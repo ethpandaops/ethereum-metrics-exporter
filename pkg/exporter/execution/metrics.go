@@ -52,7 +52,7 @@ func NewMetrics(nodeName, namespace string) Metrics {
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
 				Name:        "eth_sync_is_syncing",
-				Help:        "1 if the node is syncing.",
+				Help:        "1 if the node is in syncing state.",
 				ConstLabels: constLabels,
 			},
 		),
