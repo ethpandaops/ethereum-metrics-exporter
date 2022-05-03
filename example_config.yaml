@@ -1,0 +1,10 @@
+pollingFrequencySeconds: 5
+
+consensus:
+  enabled: true
+  url: "http://192.168.0.128:5052"
+  name: "consensus-client"
+execution:
+  enabled: true
+  url: "http://192.168.0.128:8545"
+  name: "execution-client"
