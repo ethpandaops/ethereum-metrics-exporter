@@ -1,5 +1,5 @@
 /*
-Copyright © 2022 NAME HERE sam@puritydev.io
+Copyright © 2022 Sam Calder-Mason sam@puritydev.io
 
 */
 package main
