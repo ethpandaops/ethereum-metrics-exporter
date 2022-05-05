@@ -9,12 +9,13 @@ import (
 
 type Node interface {
 	Name() string
+	URL() string
 	SyncStatus(ctx context.Context) (*SyncStatus, error)
 }
 
 type node struct {
 	name    string
-	URL     string
+	url     string
 	client  ethclient.Client
 	log     logrus.FieldLogger
 	metrics Metrics
@@ -27,7 +28,7 @@ func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, name string, 
 
 	return &node{
 		name:    name,
-		URL:     url,
+		url:     url,
 		client:  *client,
 		log:     log,
 		metrics: metrics,
@@ -36,6 +37,10 @@ func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, name string, 
 
 func (e *node) Name() string {
 	return e.name
+}
+
+func (e *node) URL() string {
+	return e.url
 }
 
 func (e *node) SyncStatus(ctx context.Context) (*SyncStatus, error) {

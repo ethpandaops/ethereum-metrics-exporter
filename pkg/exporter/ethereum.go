@@ -73,7 +73,10 @@ func (e *ethereum) ticker(ctx context.Context) {
 
 func (e *ethereum) Serve(ctx context.Context, port int) error {
 	go e.ticker(ctx)
-	e.log.Info(fmt.Sprintf("Starting metrics server on :%v", port))
+	e.log.
+		WithField("consensus_url", e.consensus.URL()).
+		WithField("execution_url", e.execution.URL()).
+		Info(fmt.Sprintf("Starting metrics server on :%v", port))
 
 	http.Handle("/metrics", promhttp.Handler())
 	err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)

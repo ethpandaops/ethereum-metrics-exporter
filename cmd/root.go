@@ -15,14 +15,24 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "ethereum-metrics-exporter",
 	Short: "A tool to report the sync status of ethereum nodes",
+	Run: func(cmd *cobra.Command, args []string) {
+		initCommon()
+
+		err := ethClient.Serve(ctx, metricsPort)
+		if err != nil {
+			logr.Fatal(err)
+		}
+	},
 }
 
 var (
-	cfgFile   string
-	config    *exporter.Config
-	ethClient exporter.Ethereum
-	ctx       context.Context
-	logr      logrus.FieldLogger
+	cfgFile      string
+	config       *exporter.Config
+	ethClient    exporter.Ethereum
+	ctx          context.Context
+	logr         logrus.FieldLogger
+	executionUrl string
+	consensusUrl string
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -41,6 +51,10 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ethereum-metrics-exporter.yaml)")
+
+	rootCmd.PersistentFlags().IntVarP(&metricsPort, "metrics-port", "", 9090, "Port to serve Prometheus metrics on")
+	rootCmd.PersistentFlags().StringVarP(&executionUrl, "execution-url", "", "", "(optional) URL to the execution node")
+	rootCmd.PersistentFlags().StringVarP(&consensusUrl, "consensus-url", "", "", "(optional) URL to the consensus node")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -75,6 +89,16 @@ func initCommon() {
 	config, err := loadConfigFromFile(cfgFile)
 	if err != nil {
 		logr.Fatal(err)
+	}
+
+	if executionUrl != "" {
+		config.Execution.Enabled = true
+		config.Execution.URL = executionUrl
+	}
+
+	if consensusUrl != "" {
+		config.Consensus.Enabled = true
+		config.Consensus.URL = consensusUrl
 	}
 
 	ethClient = exporter.NewEthereum(log, config)
