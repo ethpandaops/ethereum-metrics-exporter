@@ -29,7 +29,4 @@ var serveCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
-
-	serveCmd.Flags().BoolVarP(&exitWhenSynced, "exit-when-synced", "", false, "Exit the program when both clients are synced")
-	serveCmd.Flags().IntVarP(&metricsPort, "metrics-port", "", 9090, "Port to serve Prometheus metrics on")
 }
