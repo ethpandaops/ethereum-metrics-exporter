@@ -45,6 +45,8 @@ func (e *ethereum) Init(ctx context.Context) error {
 			return err
 		}
 
+		consensus.Bootstrap(ctx)
+
 		e.consensus = consensus
 	}
 
@@ -53,6 +55,8 @@ func (e *ethereum) Init(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
+		execution.Bootstrap(ctx)
 
 		e.execution = execution
 	}
@@ -84,9 +88,50 @@ func (e *ethereum) Serve(ctx context.Context, port int) error {
 }
 
 func (e *ethereum) Tick(ctx context.Context) {
-	if _, err := e.GetSyncStatus(ctx); err != nil {
+	if err := e.PollConsensus(ctx); err != nil {
 		e.log.Error(err)
 	}
+	if err := e.PollExecution(ctx); err != nil {
+		e.log.Error(err)
+	}
+}
+
+func (e *ethereum) PollConsensus(ctx context.Context) error {
+	if !e.config.Consensus.Enabled {
+		return nil
+	}
+
+	if !e.consensus.Bootstrapped() {
+		if err := e.consensus.Bootstrap(ctx); err != nil {
+			return err
+		}
+	}
+
+	// TODO(sam.calder-mason): Parallelize this
+	if _, err := e.consensus.SyncStatus(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (e *ethereum) PollExecution(ctx context.Context) error {
+	if !e.config.Execution.Enabled {
+		return nil
+	}
+
+	if !e.execution.Bootstrapped() {
+		if err := e.execution.Bootstrap(ctx); err != nil {
+			return err
+		}
+	}
+
+	// TODO(sam.calder-mason): Parallelize this
+	if _, err := e.execution.SyncStatus(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (e *ethereum) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {

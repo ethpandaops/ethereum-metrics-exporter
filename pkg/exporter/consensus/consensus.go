@@ -13,6 +13,8 @@ import (
 type Node interface {
 	Name() string
 	URL() string
+	Bootstrapped() bool
+	Bootstrap(ctx context.Context) error
 	SyncStatus(ctx context.Context) (*SyncStatus, error)
 }
 
@@ -25,18 +27,9 @@ type node struct {
 }
 
 func NewConsensusNode(ctx context.Context, log logrus.FieldLogger, name string, url string, metrics Metrics) (*node, error) {
-	client, err := http.New(ctx,
-		http.WithAddress(url),
-		http.WithLogLevel(zerolog.WarnLevel),
-	)
-	if err != nil {
-		log.WithError(err).Error("Failed to create consensus client")
-	}
-
 	return &node{
 		name:    name,
 		url:     url,
-		client:  client,
 		log:     log,
 		metrics: metrics,
 	}, nil
@@ -48,6 +41,29 @@ func (c *node) Name() string {
 
 func (c *node) URL() string {
 	return c.url
+}
+
+func (c *node) Bootstrap(ctx context.Context) error {
+	client, err := http.New(ctx,
+		http.WithAddress(c.url),
+		http.WithLogLevel(zerolog.WarnLevel),
+	)
+	if err != nil {
+		return err
+	}
+
+	c.client = client
+
+	return nil
+}
+
+func (c *node) Bootstrapped() bool {
+	_, isProvider := c.client.(eth2client.NodeSyncingProvider)
+	if !isProvider {
+		return false
+	}
+
+	return true
 }
 
 func (c *node) refreshClient(ctx context.Context) error {

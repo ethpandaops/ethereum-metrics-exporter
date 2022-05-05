@@ -10,26 +10,23 @@ import (
 type Node interface {
 	Name() string
 	URL() string
+	Bootstrapped() bool
+	Bootstrap(ctx context.Context) error
 	SyncStatus(ctx context.Context) (*SyncStatus, error)
 }
 
 type node struct {
 	name    string
 	url     string
-	client  ethclient.Client
+	client  *ethclient.Client
 	log     logrus.FieldLogger
 	metrics Metrics
 }
 
 func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, name string, url string, metrics Metrics) (*node, error) {
-	// Make a dial call since its easier to create the client. We don't actually care if the
-	// client is alive or not at this point.
-	client, _ := ethclient.Dial(url)
-
 	return &node{
 		name:    name,
 		url:     url,
-		client:  *client,
 		log:     log,
 		metrics: metrics,
 	}, nil
@@ -41,6 +38,20 @@ func (e *node) Name() string {
 
 func (e *node) URL() string {
 	return e.url
+}
+
+func (e *node) Bootstrapped() bool {
+	return e.client != nil
+}
+
+func (e *node) Bootstrap(ctx context.Context) error {
+	client, err := ethclient.Dial(e.url)
+	if err != nil {
+		return err
+	}
+
+	e.client = client
+	return nil
 }
 
 func (e *node) SyncStatus(ctx context.Context) (*SyncStatus, error) {
