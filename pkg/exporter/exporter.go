@@ -8,33 +8,35 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/disk"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution"
 	"github.com/sirupsen/logrus"
 )
 
-type Ethereum interface {
+type Exporter interface {
 	Init(ctx context.Context) error
 	Config(ctx context.Context) *Config
 	Serve(ctx context.Context, port int) error
 	GetSyncStatus(ctx context.Context) (*SyncStatus, error)
 }
 
-func NewEthereum(log logrus.FieldLogger, conf *Config) Ethereum {
-	return &ethereum{
+func NewExporter(log logrus.FieldLogger, conf *Config) Exporter {
+	return &exporter{
 		log:    log.WithField("component", "exporter"),
 		config: conf,
 	}
 }
 
-type ethereum struct {
+type exporter struct {
 	log       logrus.FieldLogger
 	config    *Config
 	consensus consensus.Node
 	execution execution.Node
+	diskUsage disk.DiskUsage
 	metrics   Metrics
 }
 
-func (e *ethereum) Init(ctx context.Context) error {
+func (e *exporter) Init(ctx context.Context) error {
 	e.log.Info("Initializing...")
 	e.metrics = NewMetrics(e.config.Execution.Name, e.config.Consensus.Name, "")
 	e.log.Info("metrics done")
@@ -61,21 +63,30 @@ func (e *ethereum) Init(ctx context.Context) error {
 		e.execution = execution
 	}
 
+	if e.config.DiskUsage.Enabled {
+		diskUsage, err := disk.NewDiskUsage(ctx, e.log, e.metrics.Disk())
+		if err != nil {
+			return err
+		}
+
+		e.diskUsage = diskUsage
+	}
+
 	return nil
 }
 
-func (e *ethereum) Config(ctx context.Context) *Config {
+func (e *exporter) Config(ctx context.Context) *Config {
 	return e.config
 }
 
-func (e *ethereum) ticker(ctx context.Context) {
+func (e *exporter) ticker(ctx context.Context) {
 	for {
 		e.Tick(ctx)
 		time.Sleep(time.Second * time.Duration(e.config.PollingFrequencySeconds))
 	}
 }
 
-func (e *ethereum) Serve(ctx context.Context, port int) error {
+func (e *exporter) Serve(ctx context.Context, port int) error {
 	go e.ticker(ctx)
 	e.log.
 		WithField("consensus_url", e.consensus.URL()).
@@ -87,16 +98,19 @@ func (e *ethereum) Serve(ctx context.Context, port int) error {
 	return err
 }
 
-func (e *ethereum) Tick(ctx context.Context) {
+func (e *exporter) Tick(ctx context.Context) {
 	if err := e.PollConsensus(ctx); err != nil {
 		e.log.Error(err)
 	}
 	if err := e.PollExecution(ctx); err != nil {
 		e.log.Error(err)
 	}
+	if err := e.PollDiskUsage(ctx); err != nil {
+		e.log.Error(err)
+	}
 }
 
-func (e *ethereum) PollConsensus(ctx context.Context) error {
+func (e *exporter) PollConsensus(ctx context.Context) error {
 	if !e.config.Consensus.Enabled {
 		return nil
 	}
@@ -115,7 +129,7 @@ func (e *ethereum) PollConsensus(ctx context.Context) error {
 	return nil
 }
 
-func (e *ethereum) PollExecution(ctx context.Context) error {
+func (e *exporter) PollExecution(ctx context.Context) error {
 	if !e.config.Execution.Enabled {
 		return nil
 	}
@@ -134,7 +148,18 @@ func (e *ethereum) PollExecution(ctx context.Context) error {
 	return nil
 }
 
-func (e *ethereum) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
+func (e *exporter) PollDiskUsage(ctx context.Context) error {
+	if !e.config.DiskUsage.Enabled {
+		return nil
+	}
+
+	e.log.Info("Getting disk info")
+
+	_, err := e.diskUsage.GetUsage(ctx, e.config.DiskUsage.Directories)
+	return err
+}
+
+func (e *exporter) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
 	status := &SyncStatus{}
 	consensus, err := e.consensus.SyncStatus(ctx)
 	if err == nil {

@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		initCommon()
 
-		err := ethClient.Serve(ctx, metricsPort)
+		err := export.Serve(ctx, metricsPort)
 		if err != nil {
 			logr.Fatal(err)
 		}
@@ -28,7 +28,7 @@ var rootCmd = &cobra.Command{
 var (
 	cfgFile      string
 	config       *exporter.Config
-	ethClient    exporter.Ethereum
+	export       exporter.Exporter
 	ctx          context.Context
 	logr         logrus.FieldLogger
 	executionUrl string
@@ -101,8 +101,8 @@ func initCommon() {
 		config.Consensus.URL = consensusUrl
 	}
 
-	ethClient = exporter.NewEthereum(log, config)
-	if err := ethClient.Init(ctx); err != nil {
+	export = exporter.NewExporter(log, config)
+	if err := export.Init(ctx); err != nil {
 		logrus.Fatal(err)
 	}
 }
