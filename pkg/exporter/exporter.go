@@ -123,7 +123,11 @@ func (e *exporter) PollConsensus(ctx context.Context) error {
 
 	// TODO(sam.calder-mason): Parallelize this
 	if _, err := e.consensus.SyncStatus(ctx); err != nil {
-		return err
+		e.log.WithError(err).Error("failed to get sync status")
+	}
+
+	if _, err := e.consensus.NodeVersion(ctx); err != nil {
+		e.log.WithError(err).Error("failed to get node version")
 	}
 
 	return nil
@@ -152,8 +156,6 @@ func (e *exporter) PollDiskUsage(ctx context.Context) error {
 	if !e.config.DiskUsage.Enabled {
 		return nil
 	}
-
-	e.log.Info("Getting disk info")
 
 	_, err := e.diskUsage.GetUsage(ctx, e.config.DiskUsage.Directories)
 	return err

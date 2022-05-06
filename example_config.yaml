@@ -9,6 +9,6 @@ execution:
   url: "http://localhost:8545"
   name: "execution-client"
 diskUsage:
-  enabled: true
+  enabled: false
   directories:
   - /data/ethereum

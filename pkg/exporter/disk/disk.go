@@ -45,7 +45,6 @@ func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]DiskU
 	}
 
 	for _, disk := range diskUsed {
-		d.log.WithField("directory", disk.Directory).WithField("usage", disk.UsageBytes).Info("Disk usage")
 		d.metrics.ObserveDiskUsage(disk)
 	}
 

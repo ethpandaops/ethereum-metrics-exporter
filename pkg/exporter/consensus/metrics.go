@@ -8,6 +8,7 @@ type Metrics interface {
 	ObserveSyncHeadSlot(slot uint64)
 	ObserveSyncDistance(slots uint64)
 	ObserveSyncIsSyncing(syncing bool)
+	ObserveNodeVersion(version string)
 }
 
 type metrics struct {
@@ -16,6 +17,7 @@ type metrics struct {
 	syncHeadSlot             prometheus.Gauge
 	syncDistance             prometheus.Gauge
 	syncIsSyncing            prometheus.Gauge
+	nodeVersion              *prometheus.GaugeVec
 }
 
 func NewMetrics(nodeName, namespace string) Metrics {
@@ -64,6 +66,17 @@ func NewMetrics(nodeName, namespace string) Metrics {
 				ConstLabels: constLabels,
 			},
 		),
+		nodeVersion: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "eth_node_version",
+				Help:        "The version of the running beacon node.",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"version",
+			},
+		),
 	}
 
 	prometheus.MustRegister(m.syncPercentage)
@@ -71,6 +84,7 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	prometheus.MustRegister(m.syncHeadSlot)
 	prometheus.MustRegister(m.syncDistance)
 	prometheus.MustRegister(m.syncIsSyncing)
+	prometheus.MustRegister(m.nodeVersion)
 	return m
 }
 
@@ -97,4 +111,8 @@ func (m *metrics) ObserveSyncIsSyncing(syncing bool) {
 	}
 
 	m.syncIsSyncing.Set(0)
+}
+
+func (m *metrics) ObserveNodeVersion(version string) {
+	m.nodeVersion.WithLabelValues(version).Set(float64(1))
 }

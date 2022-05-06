@@ -16,6 +16,7 @@ type Node interface {
 	Bootstrapped() bool
 	Bootstrap(ctx context.Context) error
 	SyncStatus(ctx context.Context) (*SyncStatus, error)
+	NodeVersion(ctx context.Context) (string, error)
 }
 
 type node struct {
@@ -105,4 +106,21 @@ func (c *node) SyncStatus(ctx context.Context) (*SyncStatus, error) {
 	c.metrics.ObserveSyncIsSyncing(syncStatus.IsSyncing)
 
 	return syncStatus, nil
+}
+
+func (c *node) NodeVersion(ctx context.Context) (string, error) {
+	provider, isProvider := c.client.(eth2client.NodeVersionProvider)
+	if !isProvider {
+		c.refreshClient(ctx)
+		return "", errors.New("client does not implement eth2client.NodeVersionProvider")
+	}
+
+	version, err := provider.NodeVersion(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	c.metrics.ObserveNodeVersion(version)
+
+	return version, nil
 }
