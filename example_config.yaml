@@ -1,10 +1,14 @@
-pollingFrequencySeconds: 5
+pollingFrequencySeconds: 10
 
 consensus:
   enabled: true
-  url: "http://192.168.0.128:5053"
+  url: "http://localhost:5053"
   name: "consensus-client"
 execution:
   enabled: true
-  url: "http://192.168.0.128:8545"
+  url: "http://localhost:8545"
   name: "execution-client"
+diskUsage:
+  enabled: false
+  directories:
+  - /data/ethereum

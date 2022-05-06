@@ -20,7 +20,7 @@ var serveCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		initCommon()
 
-		err := ethClient.Serve(ctx, metricsPort)
+		err := export.Serve(ctx, metricsPort)
 		if err != nil {
 			logr.Fatal(err)
 		}

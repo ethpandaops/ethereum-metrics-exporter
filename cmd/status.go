@@ -16,7 +16,7 @@ var statusCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		initCommon()
 
-		status, err := ethClient.GetSyncStatus(ctx)
+		status, err := export.GetSyncStatus(ctx)
 		if err != nil {
 			logrus.Fatal(err)
 		}
