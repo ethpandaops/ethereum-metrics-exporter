@@ -38,7 +38,7 @@ type exporter struct {
 
 func (e *exporter) Init(ctx context.Context) error {
 	e.log.Info("Initializing...")
-	e.metrics = NewMetrics(e.config.Execution.Name, e.config.Consensus.Name, "")
+	e.metrics = NewMetrics(e.config.Execution.Name, e.config.Consensus.Name, "eth")
 	e.log.Info("metrics done")
 
 	if e.config.Consensus.Enabled {
@@ -130,6 +130,10 @@ func (e *exporter) PollConsensus(ctx context.Context) error {
 		e.log.WithError(err).Error("failed to get node version")
 	}
 
+	if _, err := e.consensus.Spec(ctx); err != nil {
+		e.log.WithError(err).Error("failed to get chain id")
+	}
+
 	return nil
 }
 
@@ -146,7 +150,12 @@ func (e *exporter) PollExecution(ctx context.Context) error {
 
 	// TODO(sam.calder-mason): Parallelize this
 	if _, err := e.execution.SyncStatus(ctx); err != nil {
-		return err
+		e.log.WithError(err).Error("failed to get network id")
+
+	}
+
+	if _, err := e.execution.NetworkID(ctx); err != nil {
+		e.log.WithError(err).Error("failed to get network id")
 	}
 
 	return nil

@@ -8,6 +8,7 @@ type Metrics interface {
 	ObserveSyncHighestBlock(block uint64)
 	ObserveSyncCurrentBlock(block uint64)
 	ObserveSyncStartingBlock(block uint64)
+	ObserveNetworkID(networkID int64)
 }
 
 type metrics struct {
@@ -16,6 +17,7 @@ type metrics struct {
 	syncStartingBlock prometheus.Gauge
 	syncIsSyncing     prometheus.Gauge
 	syncHighestblock  prometheus.Gauge
+	networkID         prometheus.Gauge
 }
 
 func NewMetrics(nodeName, namespace string) Metrics {
@@ -27,7 +29,7 @@ func NewMetrics(nodeName, namespace string) Metrics {
 		syncPercentage: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "eth_sync_percentage",
+				Name:        "sync_percentage",
 				Help:        "How synced the node is with the network (0-100%).",
 				ConstLabels: constLabels,
 			},
@@ -35,7 +37,7 @@ func NewMetrics(nodeName, namespace string) Metrics {
 		syncStartingBlock: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "eth_sync_starting_block",
+				Name:        "sync_starting_block",
 				Help:        "The starting block of the sync procedure.",
 				ConstLabels: constLabels,
 			},
@@ -43,7 +45,7 @@ func NewMetrics(nodeName, namespace string) Metrics {
 		syncCurrentBlock: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "eth_sync_current_block",
+				Name:        "sync_current_block",
 				Help:        "The current block of the sync procedure.",
 				ConstLabels: constLabels,
 			},
@@ -51,7 +53,7 @@ func NewMetrics(nodeName, namespace string) Metrics {
 		syncIsSyncing: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "eth_sync_is_syncing",
+				Name:        "sync_is_syncing",
 				Help:        "1 if the node is in syncing state.",
 				ConstLabels: constLabels,
 			},
@@ -59,8 +61,16 @@ func NewMetrics(nodeName, namespace string) Metrics {
 		syncHighestblock: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "eth_sync_highest_block",
+				Name:        "sync_highest_block",
 				Help:        "The highest block of the sync procedure.",
+				ConstLabels: constLabels,
+			},
+		),
+		networkID: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "network_id",
+				Help:        "The network id of the node.",
 				ConstLabels: constLabels,
 			},
 		),
@@ -71,6 +81,8 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	prometheus.MustRegister(m.syncCurrentBlock)
 	prometheus.MustRegister(m.syncIsSyncing)
 	prometheus.MustRegister(m.syncHighestblock)
+	prometheus.MustRegister(m.networkID)
+
 	return m
 }
 
@@ -97,4 +109,8 @@ func (m *metrics) ObserveSyncIsSyncing(syncing bool) {
 
 func (m *metrics) ObserveSyncHighestBlock(block uint64) {
 	m.syncHighestblock.Set(float64(block))
+}
+
+func (m *metrics) ObserveNetworkID(networkID int64) {
+	m.networkID.Set(float64(networkID))
 }

@@ -13,6 +13,7 @@ type Node interface {
 	Bootstrapped() bool
 	Bootstrap(ctx context.Context) error
 	SyncStatus(ctx context.Context) (*SyncStatus, error)
+	NetworkID(ctx context.Context) (int64, error)
 }
 
 type node struct {
@@ -82,4 +83,15 @@ func (e *node) SyncStatus(ctx context.Context) (*SyncStatus, error) {
 	e.metrics.ObserveSyncIsSyncing(syncStatus.IsSyncing)
 
 	return syncStatus, nil
+}
+
+func (e *node) NetworkID(ctx context.Context) (int64, error) {
+	id, err := e.client.NetworkID(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	e.metrics.ObserveNetworkID(id.Int64())
+
+	return id.Int64(), nil
 }
