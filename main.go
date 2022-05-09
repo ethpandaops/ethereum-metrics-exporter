@@ -1,7 +1,22 @@
 package main
 
-import "github.com/samcm/ethereum-metrics-exporter/cmd"
+import (
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/samcm/ethereum-metrics-exporter/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	cancel := make(chan os.Signal, 1)
+	signal.Notify(cancel, syscall.SIGTERM, syscall.SIGINT)
+
+	go cmd.Execute()
+
+	sig := <-cancel
+	log.Printf("Caught signal: %v", sig)
+
+	os.Exit(0)
 }
