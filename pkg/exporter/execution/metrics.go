@@ -8,12 +8,14 @@ import (
 type Metrics interface {
 	ObserveSyncStatus(status SyncStatus)
 	ObserveNetworkID(networkID int64)
+	ObserveChainID(chainID int64)
+	ObserveMostRecentBlock(block int64)
+	ObserveGasPrice(gasPrice float64)
 }
 
 type metrics struct {
-	networkID prometheus.Gauge
-
-	syncMetrics jobs.SyncStatus
+	syncMetrics    jobs.SyncStatus
+	generalMetrics jobs.GeneralMetrics
 }
 
 func NewMetrics(nodeName, namespace string) Metrics {
@@ -22,15 +24,9 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	constLabels["node_name"] = nodeName
 
 	m := &metrics{
-		networkID: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "network_id",
-				Help:        "The network id of the node.",
-				ConstLabels: constLabels,
-			},
-		),
-		syncMetrics: jobs.NewSyncStatus(namespace, constLabels),
+
+		syncMetrics:    jobs.NewSyncStatus(namespace, constLabels),
+		generalMetrics: jobs.NewGeneralMetrics(namespace, constLabels),
 	}
 
 	prometheus.MustRegister(m.syncMetrics.Percentage)
@@ -38,7 +34,10 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	prometheus.MustRegister(m.syncMetrics.CurrentBlock)
 	prometheus.MustRegister(m.syncMetrics.IsSyncing)
 	prometheus.MustRegister(m.syncMetrics.Highestblock)
-	prometheus.MustRegister(m.networkID)
+	prometheus.MustRegister(m.generalMetrics.NetworkID)
+	prometheus.MustRegister(m.generalMetrics.GasPrice)
+	prometheus.MustRegister(m.generalMetrics.MostRecentBlockNumber)
+	prometheus.MustRegister(m.generalMetrics.ChainID)
 
 	return m
 }
@@ -52,5 +51,17 @@ func (m *metrics) ObserveSyncStatus(status SyncStatus) {
 }
 
 func (m *metrics) ObserveNetworkID(networkID int64) {
-	m.networkID.Set(float64(networkID))
+	m.generalMetrics.ObserveNetworkID(networkID)
+}
+
+func (m *metrics) ObserveMostRecentBlock(block int64) {
+	m.generalMetrics.ObserveMostRecentBlock(block)
+}
+
+func (m *metrics) ObserveGasPrice(gasPrice float64) {
+	m.generalMetrics.ObserveGasPrice(gasPrice)
+}
+
+func (m *metrics) ObserveChainID(chainID int64) {
+	m.generalMetrics.ObserveChainID(chainID)
 }

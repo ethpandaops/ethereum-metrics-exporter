@@ -14,6 +14,9 @@ type Node interface {
 	Bootstrap(ctx context.Context) error
 	SyncStatus(ctx context.Context) (*SyncStatus, error)
 	NetworkID(ctx context.Context) (int64, error)
+	ChainID(ctx context.Context) (int64, error)
+	MostRecentBlockNumber(ctx context.Context) (uint64, error)
+	EstimatedGasPrice(ctx context.Context) (float64, error)
 }
 
 type node struct {
@@ -88,6 +91,39 @@ func (e *node) NetworkID(ctx context.Context) (int64, error) {
 	}
 
 	e.metrics.ObserveNetworkID(id.Int64())
+
+	return id.Int64(), nil
+}
+
+func (e *node) MostRecentBlockNumber(ctx context.Context) (uint64, error) {
+	blockNumber, err := e.client.BlockNumber(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	e.metrics.ObserveMostRecentBlock(int64(blockNumber))
+
+	return blockNumber, nil
+}
+
+func (e *node) EstimatedGasPrice(ctx context.Context) (float64, error) {
+	gasPrice, err := e.client.SuggestGasPrice(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	e.metrics.ObserveGasPrice(float64(gasPrice.Int64()))
+
+	return float64(gasPrice.Int64()), nil
+}
+
+func (e *node) ChainID(ctx context.Context) (int64, error) {
+	id, err := e.client.ChainID(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	e.metrics.ObserveChainID(id.Int64())
 
 	return id.Int64(), nil
 }

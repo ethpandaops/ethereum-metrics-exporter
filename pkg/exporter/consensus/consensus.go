@@ -3,11 +3,13 @@ package consensus
 import (
 	"context"
 	"errors"
+	"strings"
 
 	eth2client "github.com/attestantio/go-eth2-client"
 	"github.com/attestantio/go-eth2-client/http"
 	"github.com/rs/zerolog"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 type Node interface {
@@ -18,6 +20,8 @@ type Node interface {
 	SyncStatus(ctx context.Context) (*SyncStatus, error)
 	NodeVersion(ctx context.Context) (string, error)
 	Spec(ctx context.Context) (map[string]interface{}, error)
+	BlockNumbers(ctx context.Context) (*BlockchainSlots, error)
+	Forks(ctx context.Context) ([]Fork, error)
 }
 
 type node struct {
@@ -138,3 +142,88 @@ func (c *node) Spec(ctx context.Context) (map[string]interface{}, error) {
 
 	return spec, nil
 }
+
+func (c *node) BlockNumbers(ctx context.Context) (*BlockchainSlots, error) {
+	provider, isProvider := c.client.(eth2client.BeaconBlockHeadersProvider)
+	if !isProvider {
+		c.refreshClient(ctx)
+		return nil, errors.New("client does not implement eth2client.BeaconBlockHeadersProvider")
+	}
+
+	errs := []error{}
+
+	slots := &BlockchainSlots{}
+
+	head, err := provider.BeaconBlockHeader(ctx, "head")
+	if err != nil {
+		errs = append(errs, err)
+	} else {
+		slots.Head = uint64(head.Header.Message.Slot)
+	}
+
+	genesis, err := provider.BeaconBlockHeader(ctx, "genesis")
+	if err != nil {
+		errs = append(errs, err)
+	} else {
+		slots.Genesis = uint64(genesis.Header.Message.Slot)
+	}
+
+	finalized, err := provider.BeaconBlockHeader(ctx, "finalized")
+	if err != nil {
+		errs = append(errs, err)
+	} else {
+		slots.Finalized = uint64(finalized.Header.Message.Slot)
+	}
+
+	if len(errs) > 0 {
+		errMsg := ""
+		for _, e := range errs {
+			errMsg += e.Error() + ", "
+		}
+
+		return slots, errors.New(errMsg)
+	}
+
+	c.metrics.ObserveBlockchainSlots(*slots)
+
+	return slots, nil
+}
+
+func (c *node) Forks(ctx context.Context) ([]Fork, error) {
+	// Extract the forks out of the spec.
+	spec, err := c.Spec(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var forks []Fork
+	for k, v := range spec {
+		if strings.Contains(k, "_FORK_EPOCH") {
+			fork := Fork{
+				Name:  strings.Replace(k, "_FORK_EPOCH", "", -1),
+				Epoch: cast.ToUint64(v),
+			}
+
+			forks = append(forks, fork)
+		}
+	}
+
+	c.metrics.ObserveForks(forks)
+
+	return forks, nil
+}
+
+// func (c *node) NetworkID(ctx context.Context) (uint64, error) {
+// 	provider, isProvider := c.client.(eth2client.NetworkIDProvider)
+// 	if !isProvider {
+// 		c.refreshClient(ctx)
+// 		return 0, errors.New("client does not implement eth2client.NetworkIDProvider")
+// 	}
+
+// 	networkID, err := provider.NetworkID(ctx)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+// 	c.metrics.ObserveNetworkID(networkID)
+// }
