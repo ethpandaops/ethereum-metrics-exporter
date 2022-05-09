@@ -212,18 +212,3 @@ func (c *node) Forks(ctx context.Context) ([]Fork, error) {
 
 	return forks, nil
 }
-
-// func (c *node) NetworkID(ctx context.Context) (uint64, error) {
-// 	provider, isProvider := c.client.(eth2client.NetworkIDProvider)
-// 	if !isProvider {
-// 		c.refreshClient(ctx)
-// 		return 0, errors.New("client does not implement eth2client.NetworkIDProvider")
-// 	}
-
-// 	networkID, err := provider.NetworkID(ctx)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	c.metrics.ObserveNetworkID(networkID)
-// }
