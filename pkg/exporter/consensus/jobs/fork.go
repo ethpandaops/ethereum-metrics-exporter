@@ -15,7 +15,7 @@ func NewForkMetrics(namespace string, constLabels map[string]string) ForkMetrics
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
 				Name:        "epoch",
-				Help:        "The fork epoch for the version.",
+				Help:        "The epoch for the fork.",
 				ConstLabels: constLabels,
 			},
 			[]string{
