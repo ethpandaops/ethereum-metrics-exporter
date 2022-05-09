@@ -100,11 +100,7 @@ func (c *node) SyncStatus(ctx context.Context) (*SyncStatus, error) {
 		EstimatedHeadSlot: uint64(status.HeadSlot + status.SyncDistance),
 	}
 
-	c.metrics.ObserveSyncPercentage(syncStatus.Percent())
-	c.metrics.ObserveSyncEstimatedHighestSlot(syncStatus.EstimatedHeadSlot)
-	c.metrics.ObserveSyncHeadSlot(syncStatus.HeadSlot)
-	c.metrics.ObserveSyncDistance(syncStatus.SyncDistance)
-	c.metrics.ObserveSyncIsSyncing(syncStatus.IsSyncing)
+	c.metrics.ObserveSyncStatus(*syncStatus)
 
 	return syncStatus, nil
 }

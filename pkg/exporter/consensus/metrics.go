@@ -1,26 +1,21 @@
 package consensus
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/jobs"
+)
 
 type Metrics interface {
-	ObserveSyncPercentage(percent float64)
-	ObserveSyncEstimatedHighestSlot(slot uint64)
-	ObserveSyncHeadSlot(slot uint64)
-	ObserveSyncDistance(slots uint64)
-	ObserveSyncIsSyncing(syncing bool)
+	ObserveSyncStatus(status SyncStatus)
 	ObserveNodeVersion(version string)
 	ObserveSpec(spec map[string]interface{})
 }
 
 type metrics struct {
-	syncPercentage           prometheus.Gauge
-	syncEstimatedHighestSlot prometheus.Gauge
-	syncHeadSlot             prometheus.Gauge
-	syncDistance             prometheus.Gauge
-	syncIsSyncing            prometheus.Gauge
-	nodeVersion              *prometheus.GaugeVec
+	nodeVersion *prometheus.GaugeVec
 
-	specMetrics SpecMetrics
+	syncMetrics jobs.SyncStatus
+	specMetrics jobs.Spec
 }
 
 func NewMetrics(nodeName, namespace string) Metrics {
@@ -29,46 +24,7 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	constLabels["node_name"] = nodeName
 
 	m := &metrics{
-		syncPercentage: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "sync_percentage",
-				Help:        "How synced the node is with the network (0-100%).",
-				ConstLabels: constLabels,
-			},
-		),
-		syncEstimatedHighestSlot: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "sync_estimated_highest_slot",
-				Help:        "The estimated highest slot of the network.",
-				ConstLabels: constLabels,
-			},
-		),
-		syncHeadSlot: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "sync_head_slot",
-				Help:        "The current slot of the node.",
-				ConstLabels: constLabels,
-			},
-		),
-		syncDistance: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "sync_distance",
-				Help:        "The sync distance of the node.",
-				ConstLabels: constLabels,
-			},
-		),
-		syncIsSyncing: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "sync_is_syncing",
-				Help:        "1 if the node is in syncing state.",
-				ConstLabels: constLabels,
-			},
-		),
+
 		nodeVersion: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -80,14 +36,15 @@ func NewMetrics(nodeName, namespace string) Metrics {
 				"version",
 			},
 		),
-		specMetrics: NewSpecMetrics(namespace, constLabels),
+		specMetrics: jobs.NewSpec(namespace, constLabels),
+		syncMetrics: jobs.NewSyncStatus(namespace, constLabels),
 	}
 
-	prometheus.MustRegister(m.syncPercentage)
-	prometheus.MustRegister(m.syncEstimatedHighestSlot)
-	prometheus.MustRegister(m.syncHeadSlot)
-	prometheus.MustRegister(m.syncDistance)
-	prometheus.MustRegister(m.syncIsSyncing)
+	prometheus.MustRegister(m.syncMetrics.Percentage)
+	prometheus.MustRegister(m.syncMetrics.EstimatedHighestSlot)
+	prometheus.MustRegister(m.syncMetrics.HeadSlot)
+	prometheus.MustRegister(m.syncMetrics.Distance)
+	prometheus.MustRegister(m.syncMetrics.IsSyncing)
 	prometheus.MustRegister(m.nodeVersion)
 
 	prometheus.MustRegister(m.specMetrics.SafeSlotsToUpdateJustified)
@@ -117,35 +74,18 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	return m
 }
 
-func (m *metrics) ObserveSyncPercentage(percent float64) {
-	m.syncPercentage.Set(percent)
-}
-
-func (m *metrics) ObserveSyncEstimatedHighestSlot(slot uint64) {
-	m.syncEstimatedHighestSlot.Set(float64(slot))
-}
-
-func (m *metrics) ObserveSyncHeadSlot(slot uint64) {
-	m.syncHeadSlot.Set(float64(slot))
-}
-
-func (m *metrics) ObserveSyncDistance(slots uint64) {
-	m.syncDistance.Set(float64(slots))
-}
-
-func (m *metrics) ObserveSyncIsSyncing(syncing bool) {
-	if syncing {
-		m.syncIsSyncing.Set(1)
-		return
-	}
-
-	m.syncIsSyncing.Set(0)
-}
-
 func (m *metrics) ObserveNodeVersion(version string) {
 	m.nodeVersion.WithLabelValues(version).Set(float64(1))
 }
 
 func (m *metrics) ObserveSpec(spec map[string]interface{}) {
 	m.specMetrics.Update(spec)
+}
+
+func (m *metrics) ObserveSyncStatus(status SyncStatus) {
+	m.syncMetrics.ObserveSyncDistance(status.SyncDistance)
+	m.syncMetrics.ObserveSyncEstimatedHighestSlot(status.EstimatedHeadSlot)
+	m.syncMetrics.ObserveSyncHeadSlot(status.HeadSlot)
+	m.syncMetrics.ObserveSyncIsSyncing(status.IsSyncing)
+	m.syncMetrics.ObserveSyncPercentage(status.Percent())
 }
