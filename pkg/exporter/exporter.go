@@ -134,6 +134,14 @@ func (e *exporter) PollConsensus(ctx context.Context) error {
 		e.log.WithError(err).Error("failed to get chain id")
 	}
 
+	if _, err := e.consensus.BlockNumbers(ctx); err != nil {
+		e.log.WithError(err).Error("failed to get block numbers")
+	}
+
+	if _, err := e.consensus.Forks(ctx); err != nil {
+		e.log.WithError(err).Error("failed to get scheduled forks")
+	}
+
 	return nil
 }
 
@@ -156,6 +164,18 @@ func (e *exporter) PollExecution(ctx context.Context) error {
 
 	if _, err := e.execution.NetworkID(ctx); err != nil {
 		e.log.WithError(err).Error("failed to get network id")
+	}
+
+	if _, err := e.execution.EstimatedGasPrice(ctx); err != nil {
+		e.log.WithError(err).Error("failed to get estimated gas price")
+	}
+
+	if _, err := e.execution.MostRecentBlockNumber(ctx); err != nil {
+		e.log.WithError(err).Error("failed to get most recent block number")
+	}
+
+	if _, err := e.execution.ChainID(ctx); err != nil {
+		e.log.WithError(err).Error("failed to get chain id")
 	}
 
 	return nil

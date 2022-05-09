@@ -9,13 +9,17 @@ type Metrics interface {
 	ObserveSyncStatus(status SyncStatus)
 	ObserveNodeVersion(version string)
 	ObserveSpec(spec map[string]interface{})
+	ObserveBlockchainSlots(blocks BlockchainSlots)
+	ObserveForks(forks []Fork)
 }
 
 type metrics struct {
 	nodeVersion *prometheus.GaugeVec
 
-	syncMetrics jobs.SyncStatus
-	specMetrics jobs.Spec
+	generalMetrics jobs.GeneralMetrics
+	syncMetrics    jobs.SyncStatus
+	specMetrics    jobs.Spec
+	forkMetrics    jobs.ForkMetrics
 }
 
 func NewMetrics(nodeName, namespace string) Metrics {
@@ -24,28 +28,20 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	constLabels["node_name"] = nodeName
 
 	m := &metrics{
-
-		nodeVersion: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "node_version",
-				Help:        "The version of the running beacon node.",
-				ConstLabels: constLabels,
-			},
-			[]string{
-				"version",
-			},
-		),
-		specMetrics: jobs.NewSpec(namespace, constLabels),
-		syncMetrics: jobs.NewSyncStatus(namespace, constLabels),
+		generalMetrics: jobs.NewGeneralMetrics(namespace, constLabels),
+		specMetrics:    jobs.NewSpec(namespace, constLabels),
+		syncMetrics:    jobs.NewSyncStatus(namespace, constLabels),
+		forkMetrics:    jobs.NewForkMetrics(namespace, constLabels),
 	}
+
+	prometheus.MustRegister(m.generalMetrics.Slots)
+	prometheus.MustRegister(m.generalMetrics.NodeVersion)
 
 	prometheus.MustRegister(m.syncMetrics.Percentage)
 	prometheus.MustRegister(m.syncMetrics.EstimatedHighestSlot)
 	prometheus.MustRegister(m.syncMetrics.HeadSlot)
 	prometheus.MustRegister(m.syncMetrics.Distance)
 	prometheus.MustRegister(m.syncMetrics.IsSyncing)
-	prometheus.MustRegister(m.nodeVersion)
 
 	prometheus.MustRegister(m.specMetrics.SafeSlotsToUpdateJustified)
 	prometheus.MustRegister(m.specMetrics.DepositChainID)
@@ -71,11 +67,12 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	prometheus.MustRegister(m.specMetrics.SlotsPerEpoch)
 	prometheus.MustRegister(m.specMetrics.PresetBase)
 
+	prometheus.MustRegister(m.forkMetrics.Forks)
 	return m
 }
 
 func (m *metrics) ObserveNodeVersion(version string) {
-	m.nodeVersion.WithLabelValues(version).Set(float64(1))
+	m.generalMetrics.ObserveNodeVersion(version)
 }
 
 func (m *metrics) ObserveSpec(spec map[string]interface{}) {
@@ -88,4 +85,16 @@ func (m *metrics) ObserveSyncStatus(status SyncStatus) {
 	m.syncMetrics.ObserveSyncHeadSlot(status.HeadSlot)
 	m.syncMetrics.ObserveSyncIsSyncing(status.IsSyncing)
 	m.syncMetrics.ObserveSyncPercentage(status.Percent())
+}
+
+func (m *metrics) ObserveBlockchainSlots(blocks BlockchainSlots) {
+	m.generalMetrics.ObserveSlot("head", blocks.Head)
+	m.generalMetrics.ObserveSlot("genesis", blocks.Genesis)
+	m.generalMetrics.ObserveSlot("finalized", blocks.Finalized)
+}
+
+func (m *metrics) ObserveForks(forks []Fork) {
+	for _, fork := range forks {
+		m.forkMetrics.ObserveFork(fork.Name, uint64(fork.Epoch))
+	}
 }
