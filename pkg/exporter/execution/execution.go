@@ -65,7 +65,7 @@ func (e *node) SyncStatus(ctx context.Context) (*SyncStatus, error) {
 		// Not syncing
 		syncStatus := &SyncStatus{}
 		syncStatus.IsSyncing = false
-		e.metrics.ObserveSyncIsSyncing(syncStatus.IsSyncing)
+		e.metrics.ObserveSyncStatus(*syncStatus)
 		return syncStatus, nil
 	}
 
@@ -76,11 +76,7 @@ func (e *node) SyncStatus(ctx context.Context) (*SyncStatus, error) {
 		StartingBlock: status.StartingBlock,
 	}
 
-	e.metrics.ObserveSyncPercentage(syncStatus.Percent())
-	e.metrics.ObserveSyncCurrentBlock(syncStatus.CurrentBlock)
-	e.metrics.ObserveSyncHighestBlock(syncStatus.HighestBlock)
-	e.metrics.ObserveSyncStartingBlock(syncStatus.StartingBlock)
-	e.metrics.ObserveSyncIsSyncing(syncStatus.IsSyncing)
+	e.metrics.ObserveSyncStatus(*syncStatus)
 
 	return syncStatus, nil
 }

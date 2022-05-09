@@ -1,11 +1,11 @@
-package consensus
+package jobs
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cast"
 )
 
-type SpecMetrics struct {
+type Spec struct {
 	SafeSlotsToUpdateJustified       prometheus.Gauge
 	DepositChainID                   prometheus.Gauge
 	ConfigName                       prometheus.GaugeVec
@@ -31,9 +31,9 @@ type SpecMetrics struct {
 	PresetBase                       prometheus.GaugeVec
 }
 
-func NewSpecMetrics(namespace string, constLabels map[string]string) SpecMetrics {
+func NewSpec(namespace string, constLabels map[string]string) Spec {
 	namespace = namespace + "_spec"
-	return SpecMetrics{
+	return Spec{
 		SafeSlotsToUpdateJustified: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -223,97 +223,97 @@ func NewSpecMetrics(namespace string, constLabels map[string]string) SpecMetrics
 	}
 }
 
-func (c *SpecMetrics) Update(spec map[string]interface{}) {
+func (s *Spec) Update(spec map[string]interface{}) {
 	if safeSlotsToUpdateJustified, exists := spec["SAFE_SLOTS_TO_UPDATE_JUSTIFIED"]; exists {
-		c.SafeSlotsToUpdateJustified.Set(cast.ToFloat64(safeSlotsToUpdateJustified))
+		s.SafeSlotsToUpdateJustified.Set(cast.ToFloat64(safeSlotsToUpdateJustified))
 	}
 
 	if depositChainId, exists := spec["DEPOSIT_CHAIN_ID"]; exists {
-		c.DepositChainID.Set(cast.ToFloat64(depositChainId))
+		s.DepositChainID.Set(cast.ToFloat64(depositChainId))
 	}
 
 	if configName, exists := spec["CONFIG_NAME"]; exists {
-		c.ConfigName.WithLabelValues(cast.ToString(configName)).Set(1)
+		s.ConfigName.WithLabelValues(cast.ToString(configName)).Set(1)
 	}
 
 	if maxValidatorsPerCommittee, exists := spec["MAX_VALIDATORS_PER_COMMITTEE"]; exists {
-		c.MaxValidatorsPerCommittee.Set(cast.ToFloat64(maxValidatorsPerCommittee))
+		s.MaxValidatorsPerCommittee.Set(cast.ToFloat64(maxValidatorsPerCommittee))
 	}
 
 	if secondsPerEth1Block, exists := spec["SECONDS_PER_ETH1_BLOCK"]; exists {
-		c.SecondsPerEth1Block.Set(float64(cast.ToDuration(secondsPerEth1Block)))
+		s.SecondsPerEth1Block.Set(float64(cast.ToDuration(secondsPerEth1Block)))
 	}
 
 	if baseRewardFactor, exists := spec["BASE_REWARD_FACTOR"]; exists {
-		c.BaseRewardFactor.Set(cast.ToFloat64(baseRewardFactor))
+		s.BaseRewardFactor.Set(cast.ToFloat64(baseRewardFactor))
 	}
 
 	if epochsPerSyncComitteePeriod, exists := spec["EPOCHS_PER_SYNC_COMMITTEE_PERIOD"]; exists {
-		c.EpochsPerSyncCommitteePeriod.Set(cast.ToFloat64(epochsPerSyncComitteePeriod))
+		s.EpochsPerSyncCommitteePeriod.Set(cast.ToFloat64(epochsPerSyncComitteePeriod))
 	}
 
 	if effectiveBalanceIncrement, exists := spec["EFFECTIVE_BALANCE_INCREMENT"]; exists {
-		c.EffectiveBalanceIncrement.Set(cast.ToFloat64(effectiveBalanceIncrement))
+		s.EffectiveBalanceIncrement.Set(cast.ToFloat64(effectiveBalanceIncrement))
 	}
 
 	if maxAttestations, exists := spec["MAX_ATTESTATIONS"]; exists {
-		c.MaxAttestations.Set(cast.ToFloat64(maxAttestations))
+		s.MaxAttestations.Set(cast.ToFloat64(maxAttestations))
 	}
 
 	if minSyncCommitteeParticipants, exists := spec["MIN_SYNC_COMMITTEE_PARTICIPANTS"]; exists {
-		c.MinSyncCommitteeParticipants.Set(cast.ToFloat64(minSyncCommitteeParticipants))
+		s.MinSyncCommitteeParticipants.Set(cast.ToFloat64(minSyncCommitteeParticipants))
 	}
 
 	if genesisDelay, exists := spec["GENESIS_DELAY"]; exists {
-		c.GenesisDelay.Set(float64(cast.ToDuration(genesisDelay)))
+		s.GenesisDelay.Set(float64(cast.ToDuration(genesisDelay)))
 	}
 
 	if secondsPerSlot, exists := spec["SECONDS_PER_SLOT"]; exists {
-		c.SecondsPerSlot.Set(float64(cast.ToDuration(secondsPerSlot)))
+		s.SecondsPerSlot.Set(float64(cast.ToDuration(secondsPerSlot)))
 	}
 
 	if maxEffectiveBalance, exists := spec["MAX_EFFECTIVE_BALANCE"]; exists {
-		c.MaxEffectiveBalance.Set(cast.ToFloat64(maxEffectiveBalance))
+		s.MaxEffectiveBalance.Set(cast.ToFloat64(maxEffectiveBalance))
 	}
 
 	if terminalTotalDifficulty, exists := spec["TERMINAL_TOTAL_DIFFICULTY"]; exists {
-		c.TerminalTotalDifficulty.Set(cast.ToFloat64(terminalTotalDifficulty))
+		s.TerminalTotalDifficulty.Set(cast.ToFloat64(terminalTotalDifficulty))
 	}
 
 	if maxDeposits, exists := spec["MAX_DEPOSITS"]; exists {
-		c.MaxDeposits.Set(cast.ToFloat64((maxDeposits)))
+		s.MaxDeposits.Set(cast.ToFloat64((maxDeposits)))
 	}
 
 	if minGenesisActiveValidatorCount, exists := spec["MIN_GENESIS_ACTIVE_VALIDATOR_COUNT"]; exists {
-		c.MinGenesisActiveValidatorCount.Set(cast.ToFloat64(minGenesisActiveValidatorCount))
+		s.MinGenesisActiveValidatorCount.Set(cast.ToFloat64(minGenesisActiveValidatorCount))
 	}
 
 	if targetCommitteeSize, exists := spec["TARGET_COMMITTEE_SIZE"]; exists {
-		c.TargetCommitteeSize.Set(cast.ToFloat64(targetCommitteeSize))
+		s.TargetCommitteeSize.Set(cast.ToFloat64(targetCommitteeSize))
 	}
 
 	if syncCommitteeSize, exists := spec["SYNC_COMMITTEE_SIZE"]; exists {
-		c.SyncCommitteeSize.Set(cast.ToFloat64(syncCommitteeSize))
+		s.SyncCommitteeSize.Set(cast.ToFloat64(syncCommitteeSize))
 	}
 
 	if eth1FollowDistance, exists := spec["ETH1_FOLLOW_DISTANCE"]; exists {
-		c.Eth1FollowDistance.Set(cast.ToFloat64(eth1FollowDistance))
+		s.Eth1FollowDistance.Set(cast.ToFloat64(eth1FollowDistance))
 	}
 
 	if terminalBlockHashActivationEpoch, exists := spec["TERMINAL_BLOCK_HASH_ACTIVATION_EPOCH"]; exists {
-		c.TerminalBlockHashActivationEpoch.Set(cast.ToFloat64(terminalBlockHashActivationEpoch))
+		s.TerminalBlockHashActivationEpoch.Set(cast.ToFloat64(terminalBlockHashActivationEpoch))
 	}
 
 	if minDepositAmount, exists := spec["MIN_DEPOSIT_AMOUNT"]; exists {
-		c.MinDepositAmount.Set(cast.ToFloat64(minDepositAmount))
+		s.MinDepositAmount.Set(cast.ToFloat64(minDepositAmount))
 	}
 
 	if slotsPerEpoch, exists := spec["SLOTS_PER_EPOCH"]; exists {
-		c.SlotsPerEpoch.Set(cast.ToFloat64(slotsPerEpoch))
+		s.SlotsPerEpoch.Set(cast.ToFloat64(slotsPerEpoch))
 	}
 
 	if presetBase, exists := spec["PRESET_BASE"]; exists {
-		c.PresetBase.WithLabelValues(cast.ToString(presetBase)).Set(1)
+		s.PresetBase.WithLabelValues(cast.ToString(presetBase)).Set(1)
 	}
 
 }
