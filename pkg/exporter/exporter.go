@@ -135,7 +135,7 @@ func (e *exporter) PollConsensus(ctx context.Context) error {
 	}
 
 	if _, err := e.consensus.BlockNumbers(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get chain id")
+		e.log.WithError(err).Error("failed to get block numbers")
 	}
 
 	if _, err := e.consensus.Forks(ctx); err != nil {
