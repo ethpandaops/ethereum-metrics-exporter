@@ -178,6 +178,10 @@ func (e *exporter) PollExecution(ctx context.Context) error {
 		e.log.WithError(err).Error("failed to get chain id")
 	}
 
+	if _, err := e.execution.TotalDifficulty(ctx); err != nil {
+		e.log.WithError(err).Error("failed to get total difficulty")
+	}
+
 	return nil
 }
 
