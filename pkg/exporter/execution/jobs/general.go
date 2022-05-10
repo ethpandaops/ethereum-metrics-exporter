@@ -9,6 +9,7 @@ type GeneralMetrics struct {
 	GasPrice              prometheus.Gauge
 	NetworkID             prometheus.Gauge
 	ChainID               prometheus.Gauge
+	TotalDifficulty       prometheus.Gauge
 }
 
 func NewGeneralMetrics(namespace string, constLabels map[string]string) GeneralMetrics {
@@ -45,6 +46,14 @@ func NewGeneralMetrics(namespace string, constLabels map[string]string) GeneralM
 				ConstLabels: constLabels,
 			},
 		),
+		TotalDifficulty: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "total_difficulty",
+				Help:        "The total difficulty of the chain.",
+				ConstLabels: constLabels,
+			},
+		),
 	}
 }
 
@@ -62,4 +71,8 @@ func (g *GeneralMetrics) ObserveNetworkID(networkID int64) {
 
 func (g *GeneralMetrics) ObserveChainID(id int64) {
 	g.ChainID.Set(float64(id))
+}
+
+func (g *GeneralMetrics) ObserveTotalDifficulty(difficulty uint64) {
+	g.TotalDifficulty.Set(float64(difficulty))
 }

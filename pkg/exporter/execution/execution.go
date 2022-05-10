@@ -2,6 +2,7 @@ package execution
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ type Node interface {
 	ChainID(ctx context.Context) (int64, error)
 	MostRecentBlockNumber(ctx context.Context) (uint64, error)
 	EstimatedGasPrice(ctx context.Context) (float64, error)
+	TotalDifficulty(ctx context.Context) (uint64, error)
 }
 
 type node struct {
@@ -126,4 +128,20 @@ func (e *node) ChainID(ctx context.Context) (int64, error) {
 	e.metrics.ObserveChainID(id.Int64())
 
 	return id.Int64(), nil
+}
+
+func (e *node) TotalDifficulty(ctx context.Context) (uint64, error) {
+	blockNumber, err := e.MostRecentBlockNumber(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	block, err := e.client.BlockByNumber(ctx, big.NewInt(int64(blockNumber)))
+	if err != nil {
+		return 0, err
+	}
+
+	e.metrics.ObserveTotalDifficulty(block.Difficulty().Uint64())
+
+	return block.Difficulty().Uint64(), nil
 }

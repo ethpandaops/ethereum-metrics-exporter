@@ -11,6 +11,7 @@ type Metrics interface {
 	ObserveChainID(chainID int64)
 	ObserveMostRecentBlock(block int64)
 	ObserveGasPrice(gasPrice float64)
+	ObserveTotalDifficulty(difficulty uint64)
 }
 
 type metrics struct {
@@ -38,6 +39,7 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	prometheus.MustRegister(m.generalMetrics.GasPrice)
 	prometheus.MustRegister(m.generalMetrics.MostRecentBlockNumber)
 	prometheus.MustRegister(m.generalMetrics.ChainID)
+	prometheus.MustRegister(m.generalMetrics.TotalDifficulty)
 
 	return m
 }
@@ -64,4 +66,8 @@ func (m *metrics) ObserveGasPrice(gasPrice float64) {
 
 func (m *metrics) ObserveChainID(chainID int64) {
 	m.generalMetrics.ObserveChainID(chainID)
+}
+
+func (m *metrics) ObserveTotalDifficulty(difficulty uint64) {
+	m.generalMetrics.ObserveTotalDifficulty(difficulty)
 }
