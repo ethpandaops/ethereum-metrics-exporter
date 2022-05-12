@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -38,9 +39,9 @@ type exporter struct {
 func (e *exporter) Init(ctx context.Context) error {
 	e.log.Info("Initializing...")
 	e.metrics = NewMetrics(e.log, e.config.Execution.Name, e.config.Consensus.Name, "eth")
-	e.log.Info("metrics done")
 
 	if e.config.Consensus.Enabled {
+		e.log.Info("Initializing consensus...")
 		consensus, err := consensus.NewConsensusNode(ctx, e.log, e.config.Consensus.Name, e.config.Consensus.URL, e.metrics.Consensus())
 		if err != nil {
 			return err
@@ -52,6 +53,7 @@ func (e *exporter) Init(ctx context.Context) error {
 	}
 
 	if e.config.Execution.Enabled {
+		e.log.WithField("modules", strings.Join(e.config.Execution.Modules, ", ")).Info("Initializing execution...")
 		execution, err := execution.NewExecutionNode(ctx, e.log, "eth_exe", e.config.Execution.Name, e.config.Execution.URL, e.config.Execution.Modules)
 		if err != nil {
 			return err
