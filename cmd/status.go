@@ -5,7 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -15,13 +14,6 @@ var statusCmd = &cobra.Command{
 	Short: "Outputs the sync status of the ethereum nodes",
 	Run: func(cmd *cobra.Command, args []string) {
 		initCommon()
-
-		status, err := export.GetSyncStatus(ctx)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
-		logr.Info(status)
 	},
 }
 

@@ -3,6 +3,7 @@ package consensus
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/jobs"
+	"github.com/sirupsen/logrus"
 )
 
 type Metrics interface {
@@ -14,6 +15,7 @@ type Metrics interface {
 }
 
 type metrics struct {
+	log         logrus.FieldLogger
 	nodeVersion *prometheus.GaugeVec
 
 	generalMetrics jobs.GeneralMetrics
@@ -22,12 +24,15 @@ type metrics struct {
 	forkMetrics    jobs.ForkMetrics
 }
 
-func NewMetrics(nodeName, namespace string) Metrics {
+func NewMetrics(log logrus.FieldLogger, nodeName, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "consensus"
 	constLabels["node_name"] = nodeName
 
+	namespace = namespace + "_con"
+
 	m := &metrics{
+		log:            log,
 		generalMetrics: jobs.NewGeneralMetrics(namespace, constLabels),
 		specMetrics:    jobs.NewSpec(namespace, constLabels),
 		syncMetrics:    jobs.NewSyncStatus(namespace, constLabels),

@@ -68,7 +68,7 @@ func loadConfigFromFile(file string) (*exporter.Config, error) {
 		return exporter.DefaultConfig(), nil
 	}
 
-	var config exporter.Config
+	config := exporter.DefaultConfig()
 	yamlFile, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func loadConfigFromFile(file string) (*exporter.Config, error) {
 		return nil, err
 	}
 
-	return &config, nil
+	return config, nil
 }
 
 func initCommon() {

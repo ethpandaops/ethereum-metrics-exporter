@@ -4,11 +4,11 @@ import (
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/disk"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution"
+	"github.com/sirupsen/logrus"
 )
 
 type Metrics interface {
 	Consensus() consensus.Metrics
-	Execution() execution.Metrics
 	Disk() disk.Metrics
 }
 
@@ -18,10 +18,9 @@ type metrics struct {
 	disk      disk.Metrics
 }
 
-func NewMetrics(executionName, consensusName, namespace string) Metrics {
+func NewMetrics(log logrus.FieldLogger, executionName, consensusName, namespace string) Metrics {
 	return &metrics{
-		consensus: consensus.NewMetrics(consensusName, namespace),
-		execution: execution.NewMetrics(executionName, namespace),
+		consensus: consensus.NewMetrics(log, consensusName, namespace),
 		disk:      disk.NewMetrics(namespace),
 	}
 }

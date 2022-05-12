@@ -2,9 +2,10 @@ package execution
 
 import (
 	"context"
-	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,29 +14,33 @@ type Node interface {
 	URL() string
 	Bootstrapped() bool
 	Bootstrap(ctx context.Context) error
-	SyncStatus(ctx context.Context) (*SyncStatus, error)
-	NetworkID(ctx context.Context) (int64, error)
-	ChainID(ctx context.Context) (int64, error)
-	MostRecentBlockNumber(ctx context.Context) (uint64, error)
-	EstimatedGasPrice(ctx context.Context) (float64, error)
-	TotalDifficulty(ctx context.Context) (uint64, error)
+	StartMetrics(ctx context.Context)
 }
 
 type node struct {
-	name    string
-	url     string
-	client  *ethclient.Client
-	log     logrus.FieldLogger
-	metrics Metrics
+	name        string
+	url         string
+	client      *ethclient.Client
+	internalApi api.ExecutionClient
+	log         logrus.FieldLogger
+	metrics     Metrics
 }
 
-func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, name string, url string, metrics Metrics) (*node, error) {
-	return &node{
-		name:    name,
-		url:     url,
-		log:     log,
-		metrics: metrics,
-	}, nil
+func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, namespace string, nodeName string, url string, enabledModules []string) (*node, error) {
+	internalApi := api.NewExecutionClient(ctx, log, url)
+	client, _ := ethclient.Dial(url)
+	metrics := NewMetrics(client, internalApi, log, nodeName, namespace, enabledModules)
+
+	node := &node{
+		name:        nodeName,
+		url:         url,
+		log:         log,
+		internalApi: internalApi,
+		client:      client,
+		metrics:     metrics,
+	}
+
+	return node, nil
 }
 
 func (e *node) Name() string {
@@ -60,88 +65,12 @@ func (e *node) Bootstrap(ctx context.Context) error {
 	return nil
 }
 
-func (e *node) SyncStatus(ctx context.Context) (*SyncStatus, error) {
-	status, err := e.client.SyncProgress(ctx)
-	if err != nil {
-		return nil, err
+func (e *node) StartMetrics(ctx context.Context) {
+	for !e.Bootstrapped() {
+		e.Bootstrap(ctx)
+
+		time.Sleep(5 * time.Second)
 	}
 
-	if status == nil && err == nil {
-		// Not syncing
-		syncStatus := &SyncStatus{}
-		syncStatus.IsSyncing = false
-		e.metrics.ObserveSyncStatus(*syncStatus)
-		return syncStatus, nil
-	}
-
-	syncStatus := &SyncStatus{
-		IsSyncing:     true,
-		CurrentBlock:  status.CurrentBlock,
-		HighestBlock:  status.HighestBlock,
-		StartingBlock: status.StartingBlock,
-	}
-
-	e.metrics.ObserveSyncStatus(*syncStatus)
-
-	return syncStatus, nil
-}
-
-func (e *node) NetworkID(ctx context.Context) (int64, error) {
-	id, err := e.client.NetworkID(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	e.metrics.ObserveNetworkID(id.Int64())
-
-	return id.Int64(), nil
-}
-
-func (e *node) MostRecentBlockNumber(ctx context.Context) (uint64, error) {
-	blockNumber, err := e.client.BlockNumber(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	e.metrics.ObserveMostRecentBlock(int64(blockNumber))
-
-	return blockNumber, nil
-}
-
-func (e *node) EstimatedGasPrice(ctx context.Context) (float64, error) {
-	gasPrice, err := e.client.SuggestGasPrice(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	e.metrics.ObserveGasPrice(float64(gasPrice.Int64()))
-
-	return float64(gasPrice.Int64()), nil
-}
-
-func (e *node) ChainID(ctx context.Context) (int64, error) {
-	id, err := e.client.ChainID(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	e.metrics.ObserveChainID(id.Int64())
-
-	return id.Int64(), nil
-}
-
-func (e *node) TotalDifficulty(ctx context.Context) (uint64, error) {
-	blockNumber, err := e.MostRecentBlockNumber(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	block, err := e.client.BlockByNumber(ctx, big.NewInt(int64(blockNumber)))
-	if err != nil {
-		return 0, err
-	}
-
-	e.metrics.ObserveTotalDifficulty(block.Difficulty().Uint64())
-
-	return block.Difficulty().Uint64(), nil
+	e.metrics.StartAsync(ctx)
 }

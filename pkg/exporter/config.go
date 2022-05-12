@@ -21,9 +21,10 @@ type ConsensusNode struct {
 
 // ExecutionNode represents a single ethereum execution client.
 type ExecutionNode struct {
-	Enabled bool   `yaml:"enabled"`
-	Name    string `yaml:"name"`
-	URL     string `yaml:"url"`
+	Enabled bool     `yaml:"enabled"`
+	Name    string   `yaml:"name"`
+	URL     string   `yaml:"url"`
+	Modules []string `yaml:"modules"`
 }
 
 // DiskUsage configures the exporter to expose disk usage stats for these directories.
@@ -39,6 +40,7 @@ func DefaultConfig() *Config {
 			Enabled: true,
 			Name:    "execution",
 			URL:     "http://localhost:8545",
+			Modules: []string{"eth", "net", "web3"},
 		},
 		Consensus: ConsensusNode{
 			Enabled: true,

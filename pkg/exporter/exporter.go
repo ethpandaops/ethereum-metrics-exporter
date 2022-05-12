@@ -17,7 +17,6 @@ type Exporter interface {
 	Init(ctx context.Context) error
 	Config(ctx context.Context) *Config
 	Serve(ctx context.Context, port int) error
-	GetSyncStatus(ctx context.Context) (*SyncStatus, error)
 }
 
 func NewExporter(log logrus.FieldLogger, conf *Config) Exporter {
@@ -38,7 +37,7 @@ type exporter struct {
 
 func (e *exporter) Init(ctx context.Context) error {
 	e.log.Info("Initializing...")
-	e.metrics = NewMetrics(e.config.Execution.Name, e.config.Consensus.Name, "eth")
+	e.metrics = NewMetrics(e.log, e.config.Execution.Name, e.config.Consensus.Name, "eth")
 	e.log.Info("metrics done")
 
 	if e.config.Consensus.Enabled {
@@ -53,7 +52,7 @@ func (e *exporter) Init(ctx context.Context) error {
 	}
 
 	if e.config.Execution.Enabled {
-		execution, err := execution.NewExecutionNode(ctx, e.log, e.config.Execution.Name, e.config.Execution.URL, e.metrics.Execution())
+		execution, err := execution.NewExecutionNode(ctx, e.log, "eth_exe", e.config.Execution.Name, e.config.Execution.URL, e.config.Execution.Modules)
 		if err != nil {
 			return err
 		}
@@ -87,6 +86,9 @@ func (e *exporter) ticker(ctx context.Context) {
 }
 
 func (e *exporter) Serve(ctx context.Context, port int) error {
+	if e.config.Execution.Enabled {
+		go e.execution.StartMetrics(ctx)
+	}
 	go e.ticker(ctx)
 	e.log.
 		WithField("consensus_url", e.consensus.URL()).
@@ -100,9 +102,6 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 
 func (e *exporter) Tick(ctx context.Context) {
 	if err := e.PollConsensus(ctx); err != nil {
-		e.log.Error(err)
-	}
-	if err := e.PollExecution(ctx); err != nil {
 		e.log.Error(err)
 	}
 	if err := e.PollDiskUsage(ctx); err != nil {
@@ -145,46 +144,6 @@ func (e *exporter) PollConsensus(ctx context.Context) error {
 	return nil
 }
 
-func (e *exporter) PollExecution(ctx context.Context) error {
-	if !e.config.Execution.Enabled {
-		return nil
-	}
-
-	if !e.execution.Bootstrapped() {
-		if err := e.execution.Bootstrap(ctx); err != nil {
-			return err
-		}
-	}
-
-	// TODO(sam.calder-mason): Parallelize this
-	if _, err := e.execution.SyncStatus(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get network id")
-
-	}
-
-	if _, err := e.execution.NetworkID(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get network id")
-	}
-
-	if _, err := e.execution.EstimatedGasPrice(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get estimated gas price")
-	}
-
-	if _, err := e.execution.MostRecentBlockNumber(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get most recent block number")
-	}
-
-	if _, err := e.execution.ChainID(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get chain id")
-	}
-
-	if _, err := e.execution.TotalDifficulty(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get total difficulty")
-	}
-
-	return nil
-}
-
 func (e *exporter) PollDiskUsage(ctx context.Context) error {
 	if !e.config.DiskUsage.Enabled {
 		return nil
@@ -192,23 +151,4 @@ func (e *exporter) PollDiskUsage(ctx context.Context) error {
 
 	_, err := e.diskUsage.GetUsage(ctx, e.config.DiskUsage.Directories)
 	return err
-}
-
-func (e *exporter) GetSyncStatus(ctx context.Context) (*SyncStatus, error) {
-	status := &SyncStatus{}
-	consensus, err := e.consensus.SyncStatus(ctx)
-	if err == nil {
-		status.Consensus = consensus
-	} else {
-		e.log.WithError(err).Error("Failed to fetch consensus client sync status")
-	}
-
-	execution, err := e.execution.SyncStatus(ctx)
-	if err == nil {
-		status.Execution = execution
-	} else {
-		e.log.WithError(err).Error("Failed to fetch execution client sync status")
-	}
-
-	return status, nil
 }

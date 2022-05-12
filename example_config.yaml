@@ -8,6 +8,9 @@ execution:
   enabled: true
   url: "http://localhost:8545"
   name: "execution-client"
+  modules:
+  - "eth"
+  - "net"
 diskUsage:
   enabled: false
   directories:
