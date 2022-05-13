@@ -6,8 +6,6 @@ type Config struct {
 	Execution ExecutionNode `yaml:"execution"`
 	// ConsensusNodes is the consensus node to use.
 	Consensus ConsensusNode `yaml:"consensus"`
-	// PollingFrequencySeconds determines how frequently to poll the targets if running in Serve mode.
-	PollingFrequencySeconds int `yaml:"pollingFrequencySeconds"`
 	// DiskUsage determines if the disk usage metrics should be exported.
 	DiskUsage DiskUsage `yaml:"diskUsage"`
 }
@@ -21,9 +19,10 @@ type ConsensusNode struct {
 
 // ExecutionNode represents a single ethereum execution client.
 type ExecutionNode struct {
-	Enabled bool   `yaml:"enabled"`
-	Name    string `yaml:"name"`
-	URL     string `yaml:"url"`
+	Enabled bool     `yaml:"enabled"`
+	Name    string   `yaml:"name"`
+	URL     string   `yaml:"url"`
+	Modules []string `yaml:"modules"`
 }
 
 // DiskUsage configures the exporter to expose disk usage stats for these directories.
@@ -39,13 +38,13 @@ func DefaultConfig() *Config {
 			Enabled: true,
 			Name:    "execution",
 			URL:     "http://localhost:8545",
+			Modules: []string{"eth", "net", "web3"},
 		},
 		Consensus: ConsensusNode{
 			Enabled: true,
 			Name:    "consensus",
 			URL:     "http://localhost:5052",
 		},
-		PollingFrequencySeconds: 5,
 		DiskUsage: DiskUsage{
 			Enabled:     false,
 			Directories: []string{},

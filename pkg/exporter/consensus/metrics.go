@@ -1,37 +1,38 @@
 package consensus
 
 import (
+	"context"
+
+	eth2client "github.com/attestantio/go-eth2-client"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/jobs"
+	"github.com/sirupsen/logrus"
 )
 
 type Metrics interface {
-	ObserveSyncStatus(status SyncStatus)
-	ObserveNodeVersion(version string)
-	ObserveSpec(spec map[string]interface{})
-	ObserveBlockchainSlots(blocks BlockchainSlots)
-	ObserveForks(forks []Fork)
+	StartAsync(ctx context.Context)
 }
 
 type metrics struct {
-	nodeVersion *prometheus.GaugeVec
+	log logrus.FieldLogger
 
-	generalMetrics jobs.GeneralMetrics
-	syncMetrics    jobs.SyncStatus
+	generalMetrics jobs.General
+	syncMetrics    jobs.Sync
 	specMetrics    jobs.Spec
-	forkMetrics    jobs.ForkMetrics
+	forkMetrics    jobs.Forks
 }
 
-func NewMetrics(nodeName, namespace string) Metrics {
+func NewMetrics(client eth2client.Service, log logrus.FieldLogger, nodeName, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "consensus"
 	constLabels["node_name"] = nodeName
 
 	m := &metrics{
-		generalMetrics: jobs.NewGeneralMetrics(namespace, constLabels),
-		specMetrics:    jobs.NewSpec(namespace, constLabels),
-		syncMetrics:    jobs.NewSyncStatus(namespace, constLabels),
-		forkMetrics:    jobs.NewForkMetrics(namespace, constLabels),
+		log:            log,
+		generalMetrics: jobs.NewGeneralJob(client, log, namespace, constLabels),
+		specMetrics:    jobs.NewSpecJob(client, log, namespace, constLabels),
+		syncMetrics:    jobs.NewSyncJob(client, log, namespace, constLabels),
+		forkMetrics:    jobs.NewForksJob(client, log, namespace, constLabels),
 	}
 
 	prometheus.MustRegister(m.generalMetrics.Slots)
@@ -67,34 +68,13 @@ func NewMetrics(nodeName, namespace string) Metrics {
 	prometheus.MustRegister(m.specMetrics.SlotsPerEpoch)
 	prometheus.MustRegister(m.specMetrics.PresetBase)
 
-	prometheus.MustRegister(m.forkMetrics.Forks)
+	prometheus.MustRegister(m.forkMetrics.Epochs)
 	return m
 }
 
-func (m *metrics) ObserveNodeVersion(version string) {
-	m.generalMetrics.ObserveNodeVersion(version)
-}
-
-func (m *metrics) ObserveSpec(spec map[string]interface{}) {
-	m.specMetrics.Update(spec)
-}
-
-func (m *metrics) ObserveSyncStatus(status SyncStatus) {
-	m.syncMetrics.ObserveSyncDistance(status.SyncDistance)
-	m.syncMetrics.ObserveSyncEstimatedHighestSlot(status.EstimatedHeadSlot)
-	m.syncMetrics.ObserveSyncHeadSlot(status.HeadSlot)
-	m.syncMetrics.ObserveSyncIsSyncing(status.IsSyncing)
-	m.syncMetrics.ObserveSyncPercentage(status.Percent())
-}
-
-func (m *metrics) ObserveBlockchainSlots(blocks BlockchainSlots) {
-	m.generalMetrics.ObserveSlot("head", blocks.Head)
-	m.generalMetrics.ObserveSlot("genesis", blocks.Genesis)
-	m.generalMetrics.ObserveSlot("finalized", blocks.Finalized)
-}
-
-func (m *metrics) ObserveForks(forks []Fork) {
-	for _, fork := range forks {
-		m.forkMetrics.ObserveFork(fork.Name, uint64(fork.Epoch))
-	}
+func (m *metrics) StartAsync(ctx context.Context) {
+	go m.generalMetrics.Start(ctx)
+	go m.specMetrics.Start(ctx)
+	go m.syncMetrics.Start(ctx)
+	go m.forkMetrics.Start(ctx)
 }

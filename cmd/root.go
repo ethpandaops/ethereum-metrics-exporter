@@ -14,7 +14,7 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "ethereum-metrics-exporter",
-	Short: "A tool to report the sync status of ethereum nodes",
+	Short: "A tool to report the state of ethereum nodes",
 	Run: func(cmd *cobra.Command, args []string) {
 		initCommon()
 
@@ -68,7 +68,7 @@ func loadConfigFromFile(file string) (*exporter.Config, error) {
 		return exporter.DefaultConfig(), nil
 	}
 
-	var config exporter.Config
+	config := exporter.DefaultConfig()
 	yamlFile, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func loadConfigFromFile(file string) (*exporter.Config, error) {
 		return nil, err
 	}
 
-	return &config, nil
+	return config, nil
 }
 
 func initCommon() {

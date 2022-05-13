@@ -1,5 +1,3 @@
-pollingFrequencySeconds: 10
-
 consensus:
   enabled: true
   url: "http://localhost:5053"
@@ -8,6 +6,10 @@ execution:
   enabled: true
   url: "http://localhost:8545"
   name: "execution-client"
+  modules:
+  - "eth"
+  - "net"
+  - "admin"
 diskUsage:
   enabled: false
   directories:

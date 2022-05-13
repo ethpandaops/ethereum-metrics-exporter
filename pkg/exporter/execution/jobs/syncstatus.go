@@ -1,20 +1,61 @@
 package jobs
 
 import (
+	"context"
+	"time"
+
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/api"
+	"github.com/sirupsen/logrus"
 )
 
 type SyncStatus struct {
+	MetricExporter
+	client        *ethclient.Client
+	api           api.ExecutionClient
+	log           logrus.FieldLogger
 	Percentage    prometheus.Gauge
 	CurrentBlock  prometheus.Gauge
 	StartingBlock prometheus.Gauge
 	IsSyncing     prometheus.Gauge
-	Highestblock  prometheus.Gauge
+	HighestBlock  prometheus.Gauge
 }
 
-func NewSyncStatus(namespace string, constLabels map[string]string) SyncStatus {
+const (
+	NameSyncStatus = "sync"
+)
+
+func (s *SyncStatus) Name() string {
+	return NameSyncStatus
+}
+
+func (s *SyncStatus) RequiredModules() []string {
+	return []string{"eth"}
+}
+
+type syncingStatus struct {
+	IsSyncing     bool
+	StartingBlock uint64
+	CurrentBlock  uint64
+	HighestBlock  uint64
+}
+
+func (s *syncingStatus) Percent() float64 {
+	if !s.IsSyncing {
+		return 100
+	}
+
+	return float64(s.CurrentBlock) / float64(s.HighestBlock) * 100
+}
+
+func NewSyncStatus(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) SyncStatus {
+	constLabels["module"] = NameSyncStatus
 	namespace = namespace + "_sync"
 	return SyncStatus{
+		client: client,
+		api:    internalApi,
+		log:    log.WithField("module", NameSyncStatus),
 		Percentage: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -47,7 +88,7 @@ func NewSyncStatus(namespace string, constLabels map[string]string) SyncStatus {
 				ConstLabels: constLabels,
 			},
 		),
-		Highestblock: prometheus.NewGauge(
+		HighestBlock: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
 				Name:        "highest_block",
@@ -58,27 +99,59 @@ func NewSyncStatus(namespace string, constLabels map[string]string) SyncStatus {
 	}
 }
 
-func (s *SyncStatus) ObserveSyncPercentage(percent float64) {
-	s.Percentage.Set(percent)
+func (s *SyncStatus) Start(ctx context.Context) {
+	s.tick(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second * 15):
+			s.tick(ctx)
+		}
+	}
 }
 
-func (s *SyncStatus) ObserveSyncStartingBlock(block uint64) {
-	s.StartingBlock.Set(float64(block))
+func (s *SyncStatus) tick(ctx context.Context) {
+	if _, err := s.GetSyncStatus(ctx); err != nil {
+		s.log.Errorf("Failed to get sync status: %s", err)
+	}
 }
 
-func (s *SyncStatus) ObserveSyncCurrentBlock(block uint64) {
-	s.CurrentBlock.Set(float64(block))
-}
-
-func (s *SyncStatus) ObserveSyncIsSyncing(syncing bool) {
-	if syncing {
-		s.IsSyncing.Set(1)
-		return
+func (s *SyncStatus) GetSyncStatus(ctx context.Context) (*syncingStatus, error) {
+	status, err := s.client.SyncProgress(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	s.IsSyncing.Set(0)
+	if status == nil && err == nil {
+		// Not syncing
+		ss := &syncingStatus{}
+		ss.IsSyncing = false
+		s.observeStatus(ss)
+		return ss, nil
+	}
+
+	syncStatus := &syncingStatus{
+		IsSyncing:     true,
+		CurrentBlock:  status.CurrentBlock,
+		HighestBlock:  status.HighestBlock,
+		StartingBlock: status.StartingBlock,
+	}
+
+	s.observeStatus(syncStatus)
+
+	return syncStatus, nil
 }
 
-func (s *SyncStatus) ObserveSyncHighestBlock(block uint64) {
-	s.Highestblock.Set(float64(block))
+func (s *SyncStatus) observeStatus(status *syncingStatus) {
+	if status.IsSyncing {
+		s.IsSyncing.Set(1)
+	} else {
+		s.IsSyncing.Set(0)
+	}
+
+	s.StartingBlock.Set(float64(status.StartingBlock))
+	s.CurrentBlock.Set(float64(status.CurrentBlock))
+	s.HighestBlock.Set(float64(status.HighestBlock))
+	s.Percentage.Set(status.Percent())
 }
