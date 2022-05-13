@@ -72,6 +72,7 @@ func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, log l
 		m.enabledJobs[m.adminMetrics.Name()] = true
 
 		prometheus.MustRegister(m.adminMetrics.TotalDifficulty)
+		prometheus.MustRegister(m.adminMetrics.TotalDifficultyTrillions)
 		prometheus.MustRegister(m.adminMetrics.NodeInfo)
 		prometheus.MustRegister(m.adminMetrics.Port)
 		prometheus.MustRegister(m.adminMetrics.Peers)

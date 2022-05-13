@@ -58,6 +58,7 @@ func NewMetrics(client eth2client.Service, log logrus.FieldLogger, nodeName, nam
 	prometheus.MustRegister(m.specMetrics.SecondsPerSlot)
 	prometheus.MustRegister(m.specMetrics.MaxEffectiveBalance)
 	prometheus.MustRegister(m.specMetrics.TerminalTotalDifficulty)
+	prometheus.MustRegister(m.specMetrics.TerminalTotalDifficultyTrillions)
 	prometheus.MustRegister(m.specMetrics.MaxDeposits)
 	prometheus.MustRegister(m.specMetrics.MinGenesisActiveValidatorCount)
 	prometheus.MustRegister(m.specMetrics.TargetCommitteeSize)

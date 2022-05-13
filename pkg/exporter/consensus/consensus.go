@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"context"
+	"time"
 
 	eth2client "github.com/attestantio/go-eth2-client"
 	"github.com/attestantio/go-eth2-client/http"
@@ -68,6 +69,8 @@ func (c *node) StartMetrics(ctx context.Context) {
 		if err := c.Bootstrap(ctx); err != nil {
 			c.log.WithError(err).Error("Failed to bootstrap consensus client")
 		}
+
+		time.Sleep(5 * time.Second)
 	}
 
 	c.metrics = NewMetrics(c.client, c.log, c.name, c.namespace)

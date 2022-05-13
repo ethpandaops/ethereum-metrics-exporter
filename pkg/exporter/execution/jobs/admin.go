@@ -15,13 +15,14 @@ import (
 
 type Admin struct {
 	MetricExporter
-	client          *ethclient.Client
-	api             api.ExecutionClient
-	log             logrus.FieldLogger
-	NodeInfo        prometheus.GaugeVec
-	Port            prometheus.GaugeVec
-	Peers           prometheus.Gauge
-	TotalDifficulty prometheus.Gauge
+	client                   *ethclient.Client
+	api                      api.ExecutionClient
+	log                      logrus.FieldLogger
+	NodeInfo                 prometheus.GaugeVec
+	Port                     prometheus.GaugeVec
+	Peers                    prometheus.Gauge
+	TotalDifficultyTrillions prometheus.Gauge
+	TotalDifficulty          prometheus.Gauge
 }
 
 const (
@@ -83,8 +84,16 @@ func NewAdmin(client *ethclient.Client, internalApi api.ExecutionClient, log log
 		TotalDifficulty: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "total_difficulty_trillions",
+				Name:        "total_difficulty",
 				Help:        "The total difficulty of the chain in trillions.",
+				ConstLabels: constLabels,
+			},
+		),
+		TotalDifficultyTrillions: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "total_difficulty_trillions",
+				Help:        "The total difficulty of the chain.",
 				ConstLabels: constLabels,
 			},
 		),
@@ -134,10 +143,11 @@ func (a *Admin) ObserveNodeInfo(nodeInfo *types.NodeInfo) {
 	a.Port.WithLabelValues("listener", "listener").Set(float64(nodeInfo.Ports.Listener))
 
 	// Total Difficulty
+	a.TotalDifficulty.Set(float64(nodeInfo.Difficulty().Uint64()))
 	// Since we can't represent a big.Int as a float64, and the TD on mainnet is beyond float64, we'll divide the number by a trillion
 	trillion := big.NewInt(1e12)
-	divided := new(big.Int).Div(nodeInfo.Protocols.Eth.Difficulty, trillion)
-	a.TotalDifficulty.Set(float64(divided.Int64()))
+	divided := new(big.Int).Quo(nodeInfo.Difficulty(), trillion)
+	a.TotalDifficultyTrillions.Set(float64(divided.Uint64()))
 }
 
 func (a *Admin) ObservePeers(peers int) {

@@ -31,6 +31,7 @@ type Spec struct {
 	SecondsPerSlot                   prometheus.Gauge
 	MaxEffectiveBalance              prometheus.Gauge
 	TerminalTotalDifficulty          prometheus.Gauge
+	TerminalTotalDifficultyTrillions prometheus.Gauge
 	MaxDeposits                      prometheus.Gauge
 	MinGenesisActiveValidatorCount   prometheus.Gauge
 	TargetCommitteeSize              prometheus.Gauge
@@ -158,6 +159,14 @@ func NewSpecJob(client eth2client.Service, log logrus.FieldLogger, namespace str
 			},
 		),
 		TerminalTotalDifficulty: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "terminal_total_difficulty",
+				Help:        "The terminal total difficulty.",
+				ConstLabels: constLabels,
+			},
+		),
+		TerminalTotalDifficultyTrillions: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
 				Name:        "terminal_total_difficulty_trillions",
@@ -339,7 +348,8 @@ func (s *Spec) Update(spec map[string]interface{}) {
 			trillion := big.NewInt(1e12)
 			divided := new(big.Int).Div(asBigInt, trillion)
 			asFloat, _ := new(big.Float).SetInt(divided).Float64()
-			s.TerminalTotalDifficulty.Set(asFloat)
+			s.TerminalTotalDifficultyTrillions.Set(asFloat)
+			s.TerminalTotalDifficulty.Set(float64(asBigInt.Uint64()))
 		}
 	}
 

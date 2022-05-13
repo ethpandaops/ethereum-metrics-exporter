@@ -90,6 +90,10 @@ func (g *General) tick(ctx context.Context) {
 		g.log.WithError(err).Error("Failed to get beacon slot: genesis")
 	}
 
+	if err := g.GetBeaconSlot(ctx, "justified"); err != nil {
+		g.log.WithError(err).Error("Failed to get beacon slot: justified")
+	}
+
 	if err := g.GetBeaconSlot(ctx, "finalized"); err != nil {
 		g.log.WithError(err).Error("Failed to get beacon slot: finalized")
 	}
