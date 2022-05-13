@@ -94,4 +94,4 @@ Contributions are greatly appreciated! Pull requests will be reviewed and merged
 
 ## Contact
 
-Sam - [@durksau](https://twitter.com/durksau)
+Sam - [@samcmau](https://twitter.com/durksau)
