@@ -6,6 +6,7 @@ import (
 	"time"
 
 	eth2client "github.com/attestantio/go-eth2-client"
+	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
@@ -17,6 +18,8 @@ type General struct {
 	Slots       prometheus.GaugeVec
 	NodeVersion prometheus.GaugeVec
 	NetworkdID  prometheus.Gauge
+	ReOrgs      prometheus.Counter
+	ReOrgDepth  prometheus.Counter
 }
 
 const (
@@ -58,6 +61,22 @@ func NewGeneralJob(client eth2client.Service, log logrus.FieldLogger, namespace 
 				ConstLabels: constLabels,
 			},
 		),
+		ReOrgs: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "reorg_count",
+				Help:        "The count of reorgs.",
+				ConstLabels: constLabels,
+			},
+		),
+		ReOrgDepth: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "reorg_depth",
+				Help:        "The number of reorgs.",
+				ConstLabels: constLabels,
+			},
+		),
 	}
 }
 
@@ -67,6 +86,7 @@ func (g *General) Name() string {
 
 func (g *General) Start(ctx context.Context) {
 	g.tick(ctx)
+	g.startSubscriptions(ctx)
 	for {
 		select {
 		case <-ctx.Done():
@@ -75,6 +95,40 @@ func (g *General) Start(ctx context.Context) {
 			g.tick(ctx)
 		}
 	}
+}
+
+func (g *General) startSubscriptions(ctx context.Context) error {
+	provider, isProvider := g.client.(eth2client.EventsProvider)
+	if !isProvider {
+		return errors.New("client does not implement eth2client.Subscriptions")
+	}
+
+	topics := []string{
+		"chain_reorg",
+	}
+
+	if err := provider.Events(ctx, topics, g.handleEvent); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *General) handleEvent(event *v1.Event) {
+	switch event.Topic {
+	case "chain_reorg":
+		g.handleChainReorg(event)
+	}
+}
+
+func (g *General) handleChainReorg(event *v1.Event) {
+	reorg, ok := event.Data.(*v1.ChainReorgEvent)
+	if !ok {
+		return
+	}
+
+	g.ReOrgs.Inc()
+	g.ReOrgDepth.Add(float64(reorg.Depth))
 }
 
 func (g *General) tick(ctx context.Context) {
