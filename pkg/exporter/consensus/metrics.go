@@ -37,6 +37,9 @@ func NewMetrics(client eth2client.Service, log logrus.FieldLogger, nodeName, nam
 
 	prometheus.MustRegister(m.generalMetrics.Slots)
 	prometheus.MustRegister(m.generalMetrics.NodeVersion)
+	prometheus.MustRegister(m.generalMetrics.NetworkdID)
+	prometheus.MustRegister(m.generalMetrics.ReOrgs)
+	prometheus.MustRegister(m.generalMetrics.ReOrgDepth)
 
 	prometheus.MustRegister(m.syncMetrics.Percentage)
 	prometheus.MustRegister(m.syncMetrics.EstimatedHighestSlot)
