@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus"
@@ -33,16 +32,16 @@ type exporter struct {
 	consensus consensus.Node
 	execution execution.Node
 	diskUsage disk.DiskUsage
-	metrics   Metrics
 }
 
 func (e *exporter) Init(ctx context.Context) error {
 	e.log.Info("Initializing...")
-	e.metrics = NewMetrics(e.log, e.config.Execution.Name, e.config.Consensus.Name, "eth")
+
+	namespace := "eth"
 
 	if e.config.Consensus.Enabled {
 		e.log.Info("Initializing consensus...")
-		consensus, err := consensus.NewConsensusNode(ctx, e.log, e.config.Consensus.Name, e.config.Consensus.URL, e.metrics.Consensus())
+		consensus, err := consensus.NewConsensusNode(ctx, e.log.WithField("exporter", "consensus"), fmt.Sprintf("%s_con", namespace), e.config.Consensus.Name, e.config.Consensus.URL)
 		if err != nil {
 			return err
 		}
@@ -54,7 +53,7 @@ func (e *exporter) Init(ctx context.Context) error {
 
 	if e.config.Execution.Enabled {
 		e.log.WithField("modules", strings.Join(e.config.Execution.Modules, ", ")).Info("Initializing execution...")
-		execution, err := execution.NewExecutionNode(ctx, e.log, "eth_exe", e.config.Execution.Name, e.config.Execution.URL, e.config.Execution.Modules)
+		execution, err := execution.NewExecutionNode(ctx, e.log.WithField("exporter", "execution"), fmt.Sprintf("%s_exe", namespace), e.config.Execution.Name, e.config.Execution.URL, e.config.Execution.Modules)
 		if err != nil {
 			return err
 		}
@@ -65,7 +64,8 @@ func (e *exporter) Init(ctx context.Context) error {
 	}
 
 	if e.config.DiskUsage.Enabled {
-		diskUsage, err := disk.NewDiskUsage(ctx, e.log, e.metrics.Disk())
+		e.log.Info("Initializing disk usage...")
+		diskUsage, err := disk.NewDiskUsage(ctx, e.log.WithField("exporter", "disk"), fmt.Sprintf("%s_disk", namespace), e.config.DiskUsage.Directories)
 		if err != nil {
 			return err
 		}
@@ -80,18 +80,19 @@ func (e *exporter) Config(ctx context.Context) *Config {
 	return e.config
 }
 
-func (e *exporter) ticker(ctx context.Context) {
-	for {
-		e.Tick(ctx)
-		time.Sleep(time.Second * time.Duration(e.config.PollingFrequencySeconds))
-	}
-}
-
 func (e *exporter) Serve(ctx context.Context, port int) error {
 	if e.config.Execution.Enabled {
 		go e.execution.StartMetrics(ctx)
 	}
-	go e.ticker(ctx)
+
+	if e.config.DiskUsage.Enabled {
+		go e.diskUsage.StartAsync(ctx)
+	}
+
+	if e.config.Consensus.Enabled {
+		go e.consensus.StartMetrics(ctx)
+	}
+
 	e.log.
 		WithField("consensus_url", e.consensus.URL()).
 		WithField("execution_url", e.execution.URL()).
@@ -99,58 +100,5 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 
 	http.Handle("/metrics", promhttp.Handler())
 	err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
-	return err
-}
-
-func (e *exporter) Tick(ctx context.Context) {
-	if err := e.PollConsensus(ctx); err != nil {
-		e.log.Error(err)
-	}
-	if err := e.PollDiskUsage(ctx); err != nil {
-		e.log.Error(err)
-	}
-}
-
-func (e *exporter) PollConsensus(ctx context.Context) error {
-	if !e.config.Consensus.Enabled {
-		return nil
-	}
-
-	if !e.consensus.Bootstrapped() {
-		if err := e.consensus.Bootstrap(ctx); err != nil {
-			return err
-		}
-	}
-
-	// TODO(sam.calder-mason): Parallelize this
-	if _, err := e.consensus.SyncStatus(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get sync status")
-	}
-
-	if _, err := e.consensus.NodeVersion(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get node version")
-	}
-
-	if _, err := e.consensus.Spec(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get chain id")
-	}
-
-	if _, err := e.consensus.BlockNumbers(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get block numbers")
-	}
-
-	if _, err := e.consensus.Forks(ctx); err != nil {
-		e.log.WithError(err).Error("failed to get scheduled forks")
-	}
-
-	return nil
-}
-
-func (e *exporter) PollDiskUsage(ctx context.Context) error {
-	if !e.config.DiskUsage.Enabled {
-		return nil
-	}
-
-	_, err := e.diskUsage.GetUsage(ctx, e.config.DiskUsage.Directories)
 	return err
 }

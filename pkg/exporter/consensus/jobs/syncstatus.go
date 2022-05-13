@@ -1,10 +1,19 @@
 package jobs
 
 import (
+	"context"
+	"errors"
+	"time"
+
+	eth2client "github.com/attestantio/go-eth2-client"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 )
 
-type SyncStatus struct {
+type Sync struct {
+	MetricExporter
+	client               eth2client.Service
+	log                  logrus.FieldLogger
 	Percentage           prometheus.Gauge
 	EstimatedHighestSlot prometheus.Gauge
 	HeadSlot             prometheus.Gauge
@@ -12,9 +21,16 @@ type SyncStatus struct {
 	IsSyncing            prometheus.Gauge
 }
 
-func NewSyncStatus(namespace string, constLabels map[string]string) SyncStatus {
+const (
+	NameSync = "sync"
+)
+
+func NewSyncJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Sync {
+	constLabels["module"] = NameSync
 	namespace = namespace + "_sync"
-	return SyncStatus{
+	return Sync{
+		client: client,
+		log:    log,
 		Percentage: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -58,23 +74,73 @@ func NewSyncStatus(namespace string, constLabels map[string]string) SyncStatus {
 	}
 }
 
-func (s *SyncStatus) ObserveSyncPercentage(percent float64) {
+func (s *Sync) Name() string {
+	return NameSync
+}
+
+func (s *Sync) Start(ctx context.Context) {
+	s.tick(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second * 15):
+			s.tick(ctx)
+		}
+	}
+}
+
+func (s *Sync) tick(ctx context.Context) {
+	if err := s.GetSyncState(ctx); err != nil {
+		s.log.WithError(err).Error("failed to get sync state")
+	}
+}
+
+func (s *Sync) GetSyncState(ctx context.Context) error {
+	provider, isProvider := s.client.(eth2client.NodeSyncingProvider)
+	if !isProvider {
+		return errors.New("client does not implement eth2client.NodeSyncingProvider")
+	}
+
+	status, err := provider.NodeSyncing(ctx)
+	if err != nil {
+		return err
+	}
+
+	s.ObserveSyncDistance(uint64(status.SyncDistance))
+	s.ObserveSyncHeadSlot(uint64(status.HeadSlot))
+	s.ObserveSyncIsSyncing(status.IsSyncing)
+
+	estimatedHighestHeadSlot := status.SyncDistance + status.HeadSlot
+	s.ObserveSyncEstimatedHighestSlot(uint64(estimatedHighestHeadSlot))
+
+	percent := (float64(status.HeadSlot) / float64(estimatedHighestHeadSlot) * 100)
+	if !status.IsSyncing {
+		percent = 100
+	}
+
+	s.ObserveSyncPercentage(percent)
+
+	return nil
+}
+
+func (s *Sync) ObserveSyncPercentage(percent float64) {
 	s.Percentage.Set(percent)
 }
 
-func (s *SyncStatus) ObserveSyncEstimatedHighestSlot(slot uint64) {
+func (s *Sync) ObserveSyncEstimatedHighestSlot(slot uint64) {
 	s.EstimatedHighestSlot.Set(float64(slot))
 }
 
-func (s *SyncStatus) ObserveSyncHeadSlot(slot uint64) {
+func (s *Sync) ObserveSyncHeadSlot(slot uint64) {
 	s.HeadSlot.Set(float64(slot))
 }
 
-func (s *SyncStatus) ObserveSyncDistance(slots uint64) {
+func (s *Sync) ObserveSyncDistance(slots uint64) {
 	s.Distance.Set(float64(slots))
 }
 
-func (s *SyncStatus) ObserveSyncIsSyncing(syncing bool) {
+func (s *Sync) ObserveSyncIsSyncing(syncing bool) {
 	if syncing {
 		s.IsSyncing.Set(1)
 		return

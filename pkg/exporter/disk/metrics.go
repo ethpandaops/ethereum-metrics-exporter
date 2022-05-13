@@ -1,19 +1,24 @@
 package disk
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
+)
 
 type Metrics interface {
 	ObserveDiskUsage(disk DiskUsed)
 }
 
 type metrics struct {
+	log       logrus.FieldLogger
 	diskUsage *prometheus.GaugeVec
 }
 
-func NewMetrics(namespace string) Metrics {
+func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 
 	m := &metrics{
+		log: log,
 		diskUsage: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,

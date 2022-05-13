@@ -14,7 +14,7 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "ethereum-metrics-exporter",
-	Short: "A tool to report the sync status of ethereum nodes",
+	Short: "A tool to report the state of ethereum nodes",
 	Run: func(cmd *cobra.Command, args []string) {
 		initCommon()
 

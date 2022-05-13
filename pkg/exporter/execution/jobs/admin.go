@@ -92,22 +92,30 @@ func NewAdmin(client *ethclient.Client, internalApi api.ExecutionClient, log log
 }
 
 func (a *Admin) Start(ctx context.Context) {
+	a.tick(ctx)
 	for {
-		nodeInfo, err := a.api.AdminNodeInfo(ctx)
-		if err != nil {
-			a.log.WithError(err).Error("Failed to get node info")
-		} else {
-			a.ObserveNodeInfo(nodeInfo)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second * 15):
+			a.tick(ctx)
 		}
+	}
+}
 
-		peers, err := a.api.AdminPeers(ctx)
-		if err != nil {
-			a.log.WithError(err).Error("Failed to get peers")
-		} else {
-			a.ObservePeers(len(peers))
-		}
+func (a *Admin) tick(ctx context.Context) {
+	nodeInfo, err := a.api.AdminNodeInfo(ctx)
+	if err != nil {
+		a.log.WithError(err).Error("Failed to get node info")
+	} else {
+		a.ObserveNodeInfo(nodeInfo)
+	}
 
-		time.Sleep(time.Second * 15)
+	peers, err := a.api.AdminPeers(ctx)
+	if err != nil {
+		a.log.WithError(err).Error("Failed to get peers")
+	} else {
+		a.ObservePeers(len(peers))
 	}
 }
 

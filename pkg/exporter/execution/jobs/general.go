@@ -75,24 +75,32 @@ func NewGeneralMetrics(client *ethclient.Client, internalApi api.ExecutionClient
 }
 
 func (g *GeneralMetrics) Start(ctx context.Context) {
+	g.tick(ctx)
 	for {
-		if _, err := g.GetMostRecentBlockNumber(ctx); err != nil {
-			g.log.WithError(err).Error("failed to get most recent block number")
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second * 15):
+			g.tick(ctx)
 		}
+	}
+}
 
-		if _, err := g.GetGasPrice(ctx); err != nil {
-			g.log.WithError(err).Error("failed to get gas price")
-		}
+func (g *GeneralMetrics) tick(ctx context.Context) {
+	if _, err := g.GetMostRecentBlockNumber(ctx); err != nil {
+		g.log.WithError(err).Error("failed to get most recent block number")
+	}
 
-		if _, err := g.GetNetworkID(ctx); err != nil {
-			g.log.WithError(err).Error("failed to get network id")
-		}
+	if _, err := g.GetGasPrice(ctx); err != nil {
+		g.log.WithError(err).Error("failed to get gas price")
+	}
 
-		if _, err := g.GetChainID(ctx); err != nil {
-			g.log.WithError(err).Error("failed to get chain id")
-		}
+	if _, err := g.GetNetworkID(ctx); err != nil {
+		g.log.WithError(err).Error("failed to get network id")
+	}
 
-		time.Sleep(time.Second * 15)
+	if _, err := g.GetChainID(ctx); err != nil {
+		g.log.WithError(err).Error("failed to get chain id")
 	}
 }
 

@@ -6,8 +6,6 @@ type Config struct {
 	Execution ExecutionNode `yaml:"execution"`
 	// ConsensusNodes is the consensus node to use.
 	Consensus ConsensusNode `yaml:"consensus"`
-	// PollingFrequencySeconds determines how frequently to poll the targets if running in Serve mode.
-	PollingFrequencySeconds int `yaml:"pollingFrequencySeconds"`
 	// DiskUsage determines if the disk usage metrics should be exported.
 	DiskUsage DiskUsage `yaml:"diskUsage"`
 }
@@ -47,7 +45,6 @@ func DefaultConfig() *Config {
 			Name:    "consensus",
 			URL:     "http://localhost:5052",
 		},
-		PollingFrequencySeconds: 5,
 		DiskUsage: DiskUsage{
 			Enabled:     false,
 			Directories: []string{},

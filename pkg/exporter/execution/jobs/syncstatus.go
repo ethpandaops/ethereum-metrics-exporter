@@ -100,12 +100,20 @@ func NewSyncStatus(client *ethclient.Client, internalApi api.ExecutionClient, lo
 }
 
 func (s *SyncStatus) Start(ctx context.Context) {
+	s.tick(ctx)
 	for {
-		if _, err := s.GetSyncStatus(ctx); err != nil {
-			s.log.Errorf("Failed to get sync status: %s", err)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second * 15):
+			s.tick(ctx)
 		}
+	}
+}
 
-		time.Sleep(20 * time.Second)
+func (s *SyncStatus) tick(ctx context.Context) {
+	if _, err := s.GetSyncStatus(ctx); err != nil {
+		s.log.Errorf("Failed to get sync status: %s", err)
 	}
 }
 

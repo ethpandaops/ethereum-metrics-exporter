@@ -52,12 +52,20 @@ func NewTXPool(client *ethclient.Client, internalApi api.ExecutionClient, log lo
 }
 
 func (t *TXPool) Start(ctx context.Context) {
+	t.tick(ctx)
 	for {
-		if err := t.GetStatus(ctx); err != nil {
-			t.log.Errorf("Failed to get txpool status: %s", err)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second * 15):
+			t.tick(ctx)
 		}
+	}
+}
 
-		time.Sleep(20 * time.Second)
+func (t *TXPool) tick(ctx context.Context) {
+	if err := t.GetStatus(ctx); err != nil {
+		t.log.Errorf("Failed to get txpool status: %s", err)
 	}
 }
 

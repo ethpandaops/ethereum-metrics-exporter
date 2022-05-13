@@ -1,11 +1,22 @@
 package jobs
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"math/big"
+	"time"
+
+	eth2client "github.com/attestantio/go-eth2-client"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
 
 type Spec struct {
+	MetricExporter
+	client                           eth2client.Service
+	log                              logrus.FieldLogger
 	SafeSlotsToUpdateJustified       prometheus.Gauge
 	DepositChainID                   prometheus.Gauge
 	ConfigName                       prometheus.GaugeVec
@@ -31,9 +42,16 @@ type Spec struct {
 	PresetBase                       prometheus.GaugeVec
 }
 
-func NewSpec(namespace string, constLabels map[string]string) Spec {
+const (
+	NameSpec = "spec"
+)
+
+func NewSpecJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Spec {
+	constLabels["module"] = NameSpec
 	namespace = namespace + "_spec"
 	return Spec{
+		client: client,
+		log:    log,
 		SafeSlotsToUpdateJustified: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -142,8 +160,8 @@ func NewSpec(namespace string, constLabels map[string]string) Spec {
 		TerminalTotalDifficulty: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "terminal_total_difficulty",
-				Help:        "The terminal total difficulty.",
+				Name:        "terminal_total_difficulty_trillions",
+				Help:        "The terminal total difficulty in trillions.",
 				ConstLabels: constLabels,
 			},
 		),
@@ -223,6 +241,44 @@ func NewSpec(namespace string, constLabels map[string]string) Spec {
 	}
 }
 
+func (s *Spec) Name() string {
+	return NameSpec
+}
+
+func (s *Spec) Start(ctx context.Context) {
+	s.tick(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second * 600):
+			s.tick(ctx)
+		}
+	}
+}
+
+func (s *Spec) tick(ctx context.Context) {
+	if err := s.GetSpec(ctx); err != nil {
+		s.log.WithError(err).Error("Failed to fetch spec")
+	}
+}
+
+func (s *Spec) GetSpec(ctx context.Context) error {
+	provider, isProvider := s.client.(eth2client.SpecProvider)
+	if !isProvider {
+		return errors.New("client does not implement eth2client.SpecProvider")
+	}
+
+	spec, err := provider.Spec(ctx)
+	if err != nil {
+		return err
+	}
+
+	s.Update(spec)
+
+	return nil
+}
+
 func (s *Spec) Update(spec map[string]interface{}) {
 	if safeSlotsToUpdateJustified, exists := spec["SAFE_SLOTS_TO_UPDATE_JUSTIFIED"]; exists {
 		s.SafeSlotsToUpdateJustified.Set(cast.ToFloat64(safeSlotsToUpdateJustified))
@@ -277,7 +333,14 @@ func (s *Spec) Update(spec map[string]interface{}) {
 	}
 
 	if terminalTotalDifficulty, exists := spec["TERMINAL_TOTAL_DIFFICULTY"]; exists {
-		s.TerminalTotalDifficulty.Set(cast.ToFloat64(terminalTotalDifficulty))
+		ttd := cast.ToString(fmt.Sprintf("%v", terminalTotalDifficulty))
+		asBigInt, success := big.NewInt(0).SetString(ttd, 10)
+		if success {
+			trillion := big.NewInt(1e12)
+			divided := new(big.Int).Div(asBigInt, trillion)
+			asFloat, _ := new(big.Float).SetInt(divided).Float64()
+			s.TerminalTotalDifficulty.Set(asFloat)
+		}
 	}
 
 	if maxDeposits, exists := spec["MAX_DEPOSITS"]; exists {

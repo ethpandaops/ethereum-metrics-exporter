@@ -1,5 +1,3 @@
-pollingFrequencySeconds: 10
-
 consensus:
   enabled: true
   url: "http://localhost:5053"

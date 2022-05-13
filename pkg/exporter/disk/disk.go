@@ -3,24 +3,41 @@ package disk
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 type DiskUsage interface {
+	StartAsync(ctx context.Context)
 	GetUsage(ctx context.Context, directories []string) ([]DiskUsed, error)
 }
 
 type diskUsage struct {
-	log     logrus.FieldLogger
-	metrics Metrics
+	log         logrus.FieldLogger
+	metrics     Metrics
+	directories []string
 }
 
-func NewDiskUsage(ctx context.Context, log logrus.FieldLogger, metrics Metrics) (DiskUsage, error) {
+func NewDiskUsage(ctx context.Context, log logrus.FieldLogger, namespace string, directories []string) (DiskUsage, error) {
 	return &diskUsage{
-		log:     log,
-		metrics: metrics,
+		log:         log,
+		metrics:     NewMetrics(log, namespace),
+		directories: directories,
 	}, nil
+}
+
+func (d *diskUsage) StartAsync(ctx context.Context) {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second * 30):
+				d.GetUsage(ctx, d.directories)
+			}
+		}
+	}()
 }
 
 func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]DiskUsed, error) {
