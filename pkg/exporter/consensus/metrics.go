@@ -73,6 +73,8 @@ func NewMetrics(client eth2client.Service, log logrus.FieldLogger, nodeName, nam
 	prometheus.MustRegister(m.specMetrics.PresetBase)
 
 	prometheus.MustRegister(m.forkMetrics.Epochs)
+	prometheus.MustRegister(m.forkMetrics.Current)
+	prometheus.MustRegister(m.forkMetrics.Activated)
 	return m
 }
 
