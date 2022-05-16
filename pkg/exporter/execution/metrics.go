@@ -61,6 +61,11 @@ func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, log l
 		prometheus.MustRegister(m.generalMetrics.GasPrice)
 		prometheus.MustRegister(m.generalMetrics.MostRecentBlockNumber)
 		prometheus.MustRegister(m.generalMetrics.ChainID)
+		prometheus.MustRegister(m.generalMetrics.GasLimit)
+		prometheus.MustRegister(m.generalMetrics.GasUsed)
+		prometheus.MustRegister(m.generalMetrics.TransactionCount)
+		prometheus.MustRegister(m.generalMetrics.BaseFeePerGas)
+		prometheus.MustRegister(m.generalMetrics.BlockSize)
 	}
 
 	if able := jobs.ExporterCanRun(enabledModules, m.txpoolMetrics.RequiredModules()); able {
