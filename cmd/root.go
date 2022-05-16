@@ -48,20 +48,13 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ethereum-metrics-exporter.yaml)")
-
 	rootCmd.PersistentFlags().IntVarP(&metricsPort, "metrics-port", "", 9090, "Port to serve Prometheus metrics on")
 	rootCmd.PersistentFlags().StringVarP(&executionUrl, "execution-url", "", "", "(optional) URL to the execution node")
 	rootCmd.PersistentFlags().StringVarP(&consensusUrl, "consensus-url", "", "", "(optional) URL to the consensus node")
 	rootCmd.PersistentFlags().StringSliceVarP(&monitoredDirectories, "monitored-directories", "", []string{}, "(optional) directories to monitor for disk usage")
 	rootCmd.PersistentFlags().StringSliceVarP(&executionModules, "execution-modules", "", []string{}, "(optional) execution modules that are enabled on the node")
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 

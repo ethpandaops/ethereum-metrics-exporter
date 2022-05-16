@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// General reports general information about the node.
 type General struct {
 	MetricExporter
 	client      eth2client.Service
@@ -26,6 +27,7 @@ const (
 	NameGeneral = "general"
 )
 
+// NewGeneral creates a new General instance.
 func NewGeneralJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) General {
 	constLabels["module"] = NameGeneral
 	return General{

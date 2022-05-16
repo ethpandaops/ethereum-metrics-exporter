@@ -10,11 +10,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Node represents a single consensus node in the ethereum network.
 type Node interface {
+	// Name returns the name of the node.
 	Name() string
+	// URL returns the url of the node.
 	URL() string
+	// Bootstrapped returns whether the node has been bootstrapped and is ready to be used.
 	Bootstrapped() bool
+	// Bootstrap attempts to bootstrap the node (i.e. configuring clients)
 	Bootstrap(ctx context.Context) error
+	// StartMetrics starts the metrics collection.
 	StartMetrics(ctx context.Context)
 }
 
@@ -27,7 +33,8 @@ type node struct {
 	metrics   Metrics
 }
 
-func NewConsensusNode(ctx context.Context, log logrus.FieldLogger, namespace string, name string, url string) (*node, error) {
+// NewConsensusNode returns a new Node instance.
+func NewConsensusNode(ctx context.Context, log logrus.FieldLogger, namespace string, name string, url string) (Node, error) {
 	node := &node{
 		name:      name,
 		url:       url,

@@ -13,6 +13,7 @@ import (
 	eth2client "github.com/attestantio/go-eth2-client"
 )
 
+// Forks reports the state of any forks (previous, active or upcoming).
 type Forks struct {
 	MetricExporter
 	Epochs              prometheus.GaugeVec
@@ -27,6 +28,7 @@ const (
 	NameFork = "fork"
 )
 
+// NewForksJob returns a new Forks instance.
 func NewForksJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Forks {
 	constLabels["module"] = NameFork
 	namespace = namespace + "_fork"

@@ -16,10 +16,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ExecutionClient is an interface for executing RPC calls to the Ethereum node.
 type ExecutionClient interface {
+	// AdminNodeInfo returns information about the node.
 	AdminNodeInfo(ctx context.Context) (*types.NodeInfo, error)
+	// AdminPeers returns information about the peers.
 	AdminPeers(ctx context.Context) ([]*p2p.PeerInfo, error)
+	// TXPoolStatus returns information about the transaction pool.
 	TXPoolStatus(ctx context.Context) (*types.TXPoolStatus, error)
+	// NetPeerCount returns the number of peers.
 	NetPeerCount(ctx context.Context) (int, error)
 }
 
@@ -29,6 +34,7 @@ type executionClient struct {
 	client http.Client
 }
 
+// NewExecutionClient creates a new ExecutionClient.
 func NewExecutionClient(ctx context.Context, log logrus.FieldLogger, url string) *executionClient {
 	client := http.Client{
 		Timeout: time.Second * 10,

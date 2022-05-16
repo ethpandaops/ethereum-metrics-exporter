@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TXPool collects metrics around the transaction pool.
 type TXPool struct {
 	MetricExporter
 	client       *ethclient.Client
@@ -30,6 +31,7 @@ func (t *TXPool) RequiredModules() []string {
 	return []string{"txpool"}
 }
 
+// NewTXPool creates a new TXPool instance.
 func NewTXPool(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) TXPool {
 	constLabels["module"] = NameTxPool
 	namespace = namespace + "_txpool"

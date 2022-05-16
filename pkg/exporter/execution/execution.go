@@ -9,11 +9,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Node represents an execution node.
 type Node interface {
+	// Name returns the name of the node.
 	Name() string
+	// URL returns the url of the node.
 	URL() string
+	// Bootstrapped returns whether the node has been bootstrapped and is ready to be used.
 	Bootstrapped() bool
+	// Bootstrap attempts to bootstrap the node (i.e. configuring clients)
 	Bootstrap(ctx context.Context) error
+	// StartMetrics starts the metrics collection.
 	StartMetrics(ctx context.Context)
 }
 
@@ -26,7 +32,8 @@ type node struct {
 	metrics     Metrics
 }
 
-func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, namespace string, nodeName string, url string, enabledModules []string) (*node, error) {
+// NewExecutionNode returns a new execution node.
+func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, namespace string, nodeName string, url string, enabledModules []string) (Node, error) {
 	internalApi := api.NewExecutionClient(ctx, log, url)
 	client, _ := ethclient.Dial(url)
 	metrics := NewMetrics(client, internalApi, log, nodeName, namespace, enabledModules)

@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Sync reports metrics on the sync status of the node.
 type Sync struct {
 	MetricExporter
 	client               eth2client.Service
@@ -25,6 +26,7 @@ const (
 	NameSync = "sync"
 )
 
+// NewSyncJob returns a new Sync instance.
 func NewSyncJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Sync {
 	constLabels["module"] = NameSync
 	namespace = namespace + "_sync"

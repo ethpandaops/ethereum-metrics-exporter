@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
+// NodeInfo is the information about the node.
 type NodeInfo struct {
 	Enode      string `json:"enode"`
 	ID         string `json:"id"`
@@ -23,6 +24,7 @@ type NodeInfo struct {
 	} `json:"protocols"`
 }
 
+// EthProtocol is the information about the eth protocol.
 type EthProtocol struct {
 	Difficulty *big.Int    `json:"difficulty"`
 	Genesis    common.Hash `json:"genesis"`
@@ -30,6 +32,8 @@ type EthProtocol struct {
 	NetworkID  int         `json:"networkID"`
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface, overriding to handle
+// clients returning difficulty as a number or string prefixed with 0x.
 func (e *EthProtocol) UnmarshalJSON(data []byte) error {
 	var v struct {
 		Difficulty *big.Int    `json:"difficulty"`
@@ -67,6 +71,7 @@ func (e *EthProtocol) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Difficulty returns the difficulty.
 func (n *NodeInfo) Difficulty() *big.Int {
 	return n.Protocols.Eth.Difficulty
 }
