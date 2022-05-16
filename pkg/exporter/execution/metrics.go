@@ -22,6 +22,7 @@ type metrics struct {
 	generalMetrics jobs.GeneralMetrics
 	txpoolMetrics  jobs.TXPool
 	adminMetrics   jobs.Admin
+	blockMetrics   jobs.BlockMetrics
 
 	enabledJobs map[string]bool
 }
@@ -38,6 +39,7 @@ func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, log l
 		syncMetrics:    jobs.NewSyncStatus(client, internalApi, log, namespace, constLabels),
 		txpoolMetrics:  jobs.NewTXPool(client, internalApi, log, namespace, constLabels),
 		adminMetrics:   jobs.NewAdmin(client, internalApi, log, namespace, constLabels),
+		blockMetrics:   jobs.NewBlockMetrics(client, internalApi, log, namespace, constLabels),
 
 		enabledJobs: make(map[string]bool),
 	}
@@ -59,13 +61,26 @@ func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, log l
 
 		prometheus.MustRegister(m.generalMetrics.NetworkID)
 		prometheus.MustRegister(m.generalMetrics.GasPrice)
-		prometheus.MustRegister(m.generalMetrics.MostRecentBlockNumber)
 		prometheus.MustRegister(m.generalMetrics.ChainID)
-		prometheus.MustRegister(m.generalMetrics.GasLimit)
-		prometheus.MustRegister(m.generalMetrics.GasUsed)
-		prometheus.MustRegister(m.generalMetrics.TransactionCount)
-		prometheus.MustRegister(m.generalMetrics.BaseFeePerGas)
-		prometheus.MustRegister(m.generalMetrics.BlockSize)
+	}
+
+	if able := jobs.ExporterCanRun(enabledModules, m.blockMetrics.RequiredModules()); able {
+		m.log.Info("Enabling block metrics")
+		m.enabledJobs[m.blockMetrics.Name()] = true
+
+		prometheus.MustRegister(m.blockMetrics.MostRecentBlockNumber)
+
+		prometheus.MustRegister(m.blockMetrics.HeadBlockSize)
+		prometheus.MustRegister(m.blockMetrics.HeadGasLimit)
+		prometheus.MustRegister(m.blockMetrics.HeadGasUsed)
+		prometheus.MustRegister(m.blockMetrics.HeadTransactionCount)
+		prometheus.MustRegister(m.blockMetrics.HeadBaseFeePerGas)
+
+		prometheus.MustRegister(m.blockMetrics.SafeBaseFeePerGas)
+		prometheus.MustRegister(m.blockMetrics.SafeBlockSize)
+		prometheus.MustRegister(m.blockMetrics.SafeGasLimit)
+		prometheus.MustRegister(m.blockMetrics.SafeGasUsed)
+		prometheus.MustRegister(m.blockMetrics.SafeTransactionCount)
 	}
 
 	if able := jobs.ExporterCanRun(enabledModules, m.txpoolMetrics.RequiredModules()); able {
@@ -104,6 +119,10 @@ func (m *metrics) StartAsync(ctx context.Context) {
 
 	if m.enabledJobs[m.adminMetrics.Name()] {
 		go m.adminMetrics.Start(ctx)
+	}
+
+	if m.enabledJobs[m.blockMetrics.Name()] {
+		go m.blockMetrics.Start(ctx)
 	}
 
 	m.log.Info("Started metrics exporter jobs")
