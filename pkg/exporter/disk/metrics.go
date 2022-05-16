@@ -22,7 +22,7 @@ func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 		diskUsage: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
-				Name:        "disk_usage",
+				Name:        "usage_bytes",
 				Help:        "How large the directory is (in bytes).",
 				ConstLabels: constLabels,
 			},
