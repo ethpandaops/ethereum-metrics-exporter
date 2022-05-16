@@ -15,9 +15,11 @@ import (
 
 type Forks struct {
 	MetricExporter
-	Epochs prometheus.GaugeVec
-	client eth2client.Service
-	log    logrus.FieldLogger
+	Epochs    prometheus.GaugeVec
+	Activated prometheus.GaugeVec
+	Current   prometheus.GaugeVec
+	client    eth2client.Service
+	log       logrus.FieldLogger
 }
 
 const (
@@ -35,6 +37,28 @@ func NewForksJob(client eth2client.Service, log logrus.FieldLogger, namespace st
 				Namespace:   namespace,
 				Name:        "epoch",
 				Help:        "The epoch for the fork.",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"fork",
+			},
+		),
+		Activated: *prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "activated",
+				Help:        "The activation status of the fork (1 for activated).",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"fork",
+			},
+		),
+		Current: *prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "current",
+				Help:        "The current fork.",
 				ConstLabels: constLabels,
 			},
 			[]string{
@@ -64,16 +88,13 @@ func (f *Forks) tick(ctx context.Context) {
 	if err := f.ForkEpochs(ctx); err != nil {
 		f.log.WithError(err).Error("Failed to fetch fork epochs")
 	}
+	if err := f.GetCurrent(ctx); err != nil {
+		f.log.WithError(err).Error("Failed to fetch current fork")
+	}
 }
 
 func (f *Forks) ForkEpochs(ctx context.Context) error {
-	// Extract the forks out of the spec.
-	provider, isProvider := f.client.(eth2client.SpecProvider)
-	if !isProvider {
-		return errors.New("client does not implement eth2client.SpecProvider")
-	}
-
-	spec, err := provider.Spec(ctx)
+	spec, err := f.getSpec(ctx)
 	if err != nil {
 		return err
 	}
@@ -85,6 +106,60 @@ func (f *Forks) ForkEpochs(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (f *Forks) GetCurrent(ctx context.Context) error {
+	// Get the current head slot.
+	provider, isProvider := f.client.(eth2client.BeaconBlockHeadersProvider)
+	if !isProvider {
+		return errors.New("client does not implement eth2client.BeaconBlockHeadersProvider")
+	}
+
+	headSlot, err := provider.BeaconBlockHeader(ctx, "head")
+	if err != nil {
+		return err
+	}
+
+	spec, err := f.getSpec(ctx)
+	if err != nil {
+		return err
+	}
+
+	slotsPerEpoch := 32
+	if v, ok := spec["SLOTS_PER_EPOCH"]; ok {
+		slotsPerEpoch = cast.ToInt(v)
+	}
+
+	current := ""
+	currentSlot := 0
+	for k, v := range spec {
+		if strings.Contains(k, "_FORK_EPOCH") {
+			forkName := strings.Replace(k, "_FORK_EPOCH", "", -1)
+			if int(headSlot.Header.Message.Slot)/slotsPerEpoch > cast.ToInt(v) {
+				f.Activated.WithLabelValues(forkName).Set(1)
+			} else {
+				f.Activated.WithLabelValues(forkName).Set(0)
+			}
+
+			if currentSlot < cast.ToInt(v) {
+				current = forkName
+				currentSlot = cast.ToInt(v)
+			}
+		}
+	}
+
+	f.Current.WithLabelValues(current).Set(1)
+
+	return nil
+}
+
+func (f *Forks) getSpec(ctx context.Context) (map[string]interface{}, error) {
+	provider, isProvider := f.client.(eth2client.SpecProvider)
+	if !isProvider {
+		return nil, errors.New("client does not implement eth2client.SpecProvider")
+	}
+
+	return provider.Spec(ctx)
 }
 
 func (f *Forks) ObserveForkEpoch(name string, epoch uint64) {
