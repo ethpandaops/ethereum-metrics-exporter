@@ -13,13 +13,12 @@ import (
 // GeneralMetrics exposes metrics that otherwise don't fit in to a specific module.
 type GeneralMetrics struct {
 	MetricExporter
-	client                *ethclient.Client
-	api                   api.ExecutionClient
-	log                   logrus.FieldLogger
-	MostRecentBlockNumber prometheus.Gauge
-	GasPrice              prometheus.Gauge
-	NetworkID             prometheus.Gauge
-	ChainID               prometheus.Gauge
+	client    *ethclient.Client
+	api       api.ExecutionClient
+	log       logrus.FieldLogger
+	GasPrice  prometheus.Gauge
+	NetworkID prometheus.Gauge
+	ChainID   prometheus.Gauge
 }
 
 const (
@@ -41,14 +40,6 @@ func NewGeneralMetrics(client *ethclient.Client, internalApi api.ExecutionClient
 		client: client,
 		api:    internalApi,
 		log:    log.WithField("module", NameGeneral),
-		MostRecentBlockNumber: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "most_recent_block_number",
-				Help:        "The most recent block number.",
-				ConstLabels: constLabels,
-			},
-		),
 		GasPrice: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -89,10 +80,6 @@ func (g *GeneralMetrics) Start(ctx context.Context) {
 }
 
 func (g *GeneralMetrics) tick(ctx context.Context) {
-	if _, err := g.GetMostRecentBlockNumber(ctx); err != nil {
-		g.log.WithError(err).Error("failed to get most recent block number")
-	}
-
 	if _, err := g.GetGasPrice(ctx); err != nil {
 		g.log.WithError(err).Error("failed to get gas price")
 	}
@@ -105,18 +92,6 @@ func (g *GeneralMetrics) tick(ctx context.Context) {
 		g.log.WithError(err).Error("failed to get chain id")
 	}
 }
-
-func (g *GeneralMetrics) GetMostRecentBlockNumber(ctx context.Context) (uint64, error) {
-	mostRecentBlockNumber, err := g.client.BlockNumber(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	g.MostRecentBlockNumber.Set(float64(mostRecentBlockNumber))
-
-	return mostRecentBlockNumber, nil
-}
-
 func (g *GeneralMetrics) GetGasPrice(ctx context.Context) (uint64, error) {
 	gasPrice, err := g.client.SuggestGasPrice(ctx)
 	if err != nil {
