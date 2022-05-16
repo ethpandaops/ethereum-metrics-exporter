@@ -82,6 +82,9 @@ Coming soon.
    ```sh  
     ./ethereum-metrics-exporter
    ```
+
+### Screenshots
+![Example](./example.png)
 ## Contributing
 
 Contributions are greatly appreciated! Pull requests will be reviewed and merged promptly if you're interested in improving the exporter! 
