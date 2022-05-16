@@ -10,7 +10,7 @@ To provide these client-agnostic metrics the exporter relies entirely on these w
 - Consensus clients
   - [Beacon Node API](https://ethereum.github.io/beacon-APIs/#/)
 
-This means that the exporter is limited to metrics that are exposed by these APIs.
+Naturally this means that the exporter is limited to metrics that are exposed by these APIs.
 
 ## Built With
 
@@ -41,6 +41,9 @@ Flags:
   -t, --toggle                          Help message for toggle
 ```
 ## Getting Started
+
+### Grafana
+* [Single instance dashboard](https://grafana.com/grafana/dashboards/16277)
 
 ### Docker
 Available as a docker image at `samcm/ethereum-metrics-exporter`
