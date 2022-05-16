@@ -5,8 +5,7 @@ import (
 )
 
 var (
-	exitWhenSynced bool
-	metricsPort    int
+	metricsPort int
 )
 
 // serveCmd represents the serve command

@@ -67,7 +67,9 @@ func (e *node) Bootstrap(ctx context.Context) error {
 
 func (e *node) StartMetrics(ctx context.Context) {
 	for !e.Bootstrapped() {
-		e.Bootstrap(ctx)
+		if err := e.Bootstrap(ctx); err != nil {
+			e.log.WithError(err).Error("Failed to bootstrap node")
+		}
 
 		time.Sleep(5 * time.Second)
 	}
