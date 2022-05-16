@@ -34,6 +34,7 @@ var (
 	executionUrl         string
 	consensusUrl         string
 	monitoredDirectories []string
+	executionModules     []string
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -57,6 +58,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&executionUrl, "execution-url", "", "", "(optional) URL to the execution node")
 	rootCmd.PersistentFlags().StringVarP(&consensusUrl, "consensus-url", "", "", "(optional) URL to the consensus node")
 	rootCmd.PersistentFlags().StringSliceVarP(&monitoredDirectories, "monitored-directories", "", []string{}, "(optional) directories to monitor for disk usage")
+	rootCmd.PersistentFlags().StringSliceVarP(&executionModules, "execution-modules", "", []string{}, "(optional) execution modules that are enabled on the node")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -106,6 +108,10 @@ func initCommon() {
 	if len(monitoredDirectories) > 0 {
 		config.DiskUsage.Enabled = true
 		config.DiskUsage.Directories = monitoredDirectories
+	}
+
+	if len(executionModules) > 0 {
+		config.Execution.Modules = executionModules
 	}
 
 	export = exporter.NewExporter(log, config)
