@@ -206,7 +206,7 @@ func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
 	b.HeadGasLimit.Set(float64(block.GasLimit()))
 	b.HeadBaseFeePerGas.Set(float64(block.BaseFee().Int64()))
 	b.HeadBlockSize.Set(float64(block.Size()))
-	b.HeadTransactionCount.Add(float64(len(block.Transactions())))
+	b.HeadTransactionCount.Set(float64(len(block.Transactions())))
 
 	return nil
 }

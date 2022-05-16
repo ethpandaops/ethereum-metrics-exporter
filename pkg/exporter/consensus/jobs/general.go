@@ -190,7 +190,3 @@ func (g *General) GetBeaconSlot(ctx context.Context, identifier string) error {
 func (g *General) ObserveSlot(identifier string, slot uint64) {
 	g.Slots.WithLabelValues(identifier).Set(float64(slot))
 }
-
-func (g *General) ObserveNetworkID(networkID uint64) {
-	g.NetworkdID.Set(float64(networkID))
-}
