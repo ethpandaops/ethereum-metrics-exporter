@@ -152,7 +152,11 @@ func (f *Forks) GetCurrent(ctx context.Context) error {
 
 	if current != f.previousCurrentFork {
 		f.Current.WithLabelValues(current).Set(1)
-		f.Current.WithLabelValues(f.previousCurrentFork).Set(0)
+
+		if f.previousCurrentFork != "" {
+			f.Current.WithLabelValues(f.previousCurrentFork).Set(0)
+		}
+
 		f.previousCurrentFork = current
 	}
 
