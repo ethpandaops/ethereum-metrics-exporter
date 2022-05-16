@@ -10,7 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Metrics exposes Execution layer metrics
 type Metrics interface {
+	// StartAsync starts all the metrics jobs
 	StartAsync(ctx context.Context)
 }
 
@@ -24,6 +26,7 @@ type metrics struct {
 	enabledJobs map[string]bool
 }
 
+// NewMetrics creates a new execution Metrics instance
 func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, nodeName, namespace string, enabledModules []string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "execution"

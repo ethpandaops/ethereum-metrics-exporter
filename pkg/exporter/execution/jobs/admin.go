@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Admin exposes metrics defined by the admin module.
 type Admin struct {
 	MetricExporter
 	client                   *ethclient.Client
@@ -37,6 +38,7 @@ func (t *Admin) RequiredModules() []string {
 	return []string{"admin"}
 }
 
+// NewAdmin returns a new Admin instance.
 func NewAdmin(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Admin {
 	namespace = namespace + "_admin"
 	constLabels["module"] = NameAdmin

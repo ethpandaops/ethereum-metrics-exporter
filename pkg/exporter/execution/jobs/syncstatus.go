@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// SyncStatus exposes metrics about the sync status of the node.
 type SyncStatus struct {
 	MetricExporter
 	client        *ethclient.Client
@@ -49,6 +50,7 @@ func (s *syncingStatus) Percent() float64 {
 	return float64(s.CurrentBlock) / float64(s.HighestBlock) * 100
 }
 
+// NewSyncStatus returns a new SyncStatus instance.
 func NewSyncStatus(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) SyncStatus {
 	constLabels["module"] = NameSyncStatus
 	namespace = namespace + "_sync"

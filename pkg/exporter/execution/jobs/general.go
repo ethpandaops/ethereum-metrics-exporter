@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// GeneralMetrics exposes metrics that otherwise don't fit in to a specific module.
 type GeneralMetrics struct {
 	MetricExporter
 	client                *ethclient.Client
@@ -33,6 +34,7 @@ func (g *GeneralMetrics) RequiredModules() []string {
 	return []string{"eth", "net"}
 }
 
+// NewGeneralMetrics returns a new General metrics instance.
 func NewGeneralMetrics(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) GeneralMetrics {
 	constLabels["module"] = NameGeneral
 	return GeneralMetrics{

@@ -9,7 +9,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Metrics defines a set of metrics for an ethereum consensus node.
 type Metrics interface {
+	// StartAsync starts the metrics exporter.
 	StartAsync(ctx context.Context)
 }
 
@@ -22,6 +24,7 @@ type metrics struct {
 	forkMetrics    jobs.Forks
 }
 
+// NewMetrics returns a new metrics object.
 func NewMetrics(client eth2client.Service, log logrus.FieldLogger, nodeName, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "consensus"

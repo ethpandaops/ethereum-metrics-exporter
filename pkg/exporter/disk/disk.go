@@ -8,8 +8,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// DiskUsage reports disk usage metrics
 type DiskUsage interface {
+	// StartAsync starts the disk usage metrics collection.
 	StartAsync(ctx context.Context)
+	// GetUsage returns the usage of the directories.
 	GetUsage(ctx context.Context, directories []string) ([]DiskUsed, error)
 }
 
@@ -19,6 +22,7 @@ type diskUsage struct {
 	directories []string
 }
 
+// NewDiskUsage returns a new DiskUsage instance.
 func NewDiskUsage(ctx context.Context, log logrus.FieldLogger, namespace string, directories []string) (DiskUsage, error) {
 	return &diskUsage{
 		log:         log,

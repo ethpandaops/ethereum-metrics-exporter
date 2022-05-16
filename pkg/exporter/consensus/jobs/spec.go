@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cast"
 )
 
+// Spec reports metrics about the configured consensus spec.
 type Spec struct {
 	MetricExporter
 	client                           eth2client.Service
@@ -47,6 +48,7 @@ const (
 	NameSpec = "spec"
 )
 
+// NewSpecJob returns a new Spec instance.
 func NewSpecJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Spec {
 	constLabels["module"] = NameSpec
 	namespace = namespace + "_spec"

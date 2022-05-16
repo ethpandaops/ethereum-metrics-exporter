@@ -5,7 +5,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Metrics defines the interface for reporting disk usage metrics.
 type Metrics interface {
+	// ObserveDiskUsage reports the disk usage for the directory.
 	ObserveDiskUsage(disk DiskUsed)
 }
 
@@ -14,6 +16,7 @@ type metrics struct {
 	diskUsage *prometheus.GaugeVec
 }
 
+// NewMetrics returns a new Metrics instance.
 func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 

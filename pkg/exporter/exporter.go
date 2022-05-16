@@ -13,12 +13,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Exporter defines the Ethereum Metrics Exporter interface
 type Exporter interface {
+	// Init initialises the exporter
 	Init(ctx context.Context) error
+	// Config returns the configuration of the exporter
 	Config(ctx context.Context) *Config
+	// Serve starts the metrics server
 	Serve(ctx context.Context, port int) error
 }
 
+// NewExporter returns a new Exporter instance
 func NewExporter(log logrus.FieldLogger, conf *Config) Exporter {
 	return &exporter{
 		log:    log.WithField("component", "exporter"),

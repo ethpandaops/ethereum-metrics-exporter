@@ -19,6 +19,7 @@ func contains(slice []string, item string) bool {
 	return ok
 }
 
+// ExporterCanRun returns true if the job can run with the enabled modules.
 func ExporterCanRun(enabledModules []string, requiredModules []string) bool {
 	for _, module := range requiredModules {
 		if !contains(enabledModules, module) {
