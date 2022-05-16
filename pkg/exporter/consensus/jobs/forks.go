@@ -15,11 +15,12 @@ import (
 
 type Forks struct {
 	MetricExporter
-	Epochs    prometheus.GaugeVec
-	Activated prometheus.GaugeVec
-	Current   prometheus.GaugeVec
-	client    eth2client.Service
-	log       logrus.FieldLogger
+	Epochs              prometheus.GaugeVec
+	Activated           prometheus.GaugeVec
+	Current             prometheus.GaugeVec
+	client              eth2client.Service
+	log                 logrus.FieldLogger
+	previousCurrentFork string
 }
 
 const (
@@ -30,8 +31,9 @@ func NewForksJob(client eth2client.Service, log logrus.FieldLogger, namespace st
 	constLabels["module"] = NameFork
 	namespace = namespace + "_fork"
 	return Forks{
-		client: client,
-		log:    log,
+		client:              client,
+		log:                 log,
+		previousCurrentFork: "",
 		Epochs: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -148,7 +150,11 @@ func (f *Forks) GetCurrent(ctx context.Context) error {
 		}
 	}
 
-	f.Current.WithLabelValues(current).Set(1)
+	if current != f.previousCurrentFork {
+		f.Current.WithLabelValues(current).Set(1)
+		f.Current.WithLabelValues(f.previousCurrentFork).Set(0)
+		f.previousCurrentFork = current
+	}
 
 	return nil
 }
