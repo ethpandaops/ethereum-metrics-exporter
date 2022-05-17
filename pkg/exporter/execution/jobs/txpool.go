@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/api"
 	"github.com/sirupsen/logrus"
@@ -15,6 +16,7 @@ type TXPool struct {
 	MetricExporter
 	client       *ethclient.Client
 	api          api.ExecutionClient
+	ethRpcClient *ethrpc.EthRPC
 	log          logrus.FieldLogger
 	Transactions prometheus.GaugeVec
 }
@@ -32,13 +34,14 @@ func (t *TXPool) RequiredModules() []string {
 }
 
 // NewTXPool creates a new TXPool instance.
-func NewTXPool(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) TXPool {
+func NewTXPool(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) TXPool {
 	constLabels["module"] = NameTxPool
 	namespace = namespace + "_txpool"
 	return TXPool{
-		client: client,
-		api:    internalApi,
-		log:    log.WithField("module", NameGeneral),
+		client:       client,
+		api:          internalApi,
+		ethRpcClient: ethRpcClient,
+		log:          log.WithField("module", NameGeneral),
 		Transactions: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,

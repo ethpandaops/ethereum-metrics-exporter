@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/api"
 	"github.com/sirupsen/logrus"
@@ -15,6 +16,7 @@ type SyncStatus struct {
 	MetricExporter
 	client        *ethclient.Client
 	api           api.ExecutionClient
+	ethRpcClient  *ethrpc.EthRPC
 	log           logrus.FieldLogger
 	Percentage    prometheus.Gauge
 	CurrentBlock  prometheus.Gauge
@@ -51,13 +53,14 @@ func (s *syncingStatus) Percent() float64 {
 }
 
 // NewSyncStatus returns a new SyncStatus instance.
-func NewSyncStatus(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) SyncStatus {
+func NewSyncStatus(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) SyncStatus {
 	constLabels["module"] = NameSyncStatus
 	namespace = namespace + "_sync"
 	return SyncStatus{
-		client: client,
-		api:    internalApi,
-		log:    log.WithField("module", NameSyncStatus),
+		client:       client,
+		api:          internalApi,
+		ethRpcClient: ethRpcClient,
+		log:          log.WithField("module", NameSyncStatus),
 		Percentage: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,

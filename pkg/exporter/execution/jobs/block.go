@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/api"
 	"github.com/sirupsen/logrus"
@@ -16,17 +17,20 @@ import (
 // BlockMetrics exposes metrics on the head/safest block.
 type BlockMetrics struct {
 	MetricExporter
-	client *ethclient.Client
-	api    api.ExecutionClient
-	log    logrus.FieldLogger
+	client       *ethclient.Client
+	api          api.ExecutionClient
+	ethRpcClient *ethrpc.EthRPC
+	log          logrus.FieldLogger
 
 	MostRecentBlockNumber prometheus.GaugeVec
 
-	HeadGasUsed          prometheus.Gauge
-	HeadGasLimit         prometheus.Gauge
-	HeadBaseFeePerGas    prometheus.Gauge
-	HeadBlockSize        prometheus.Gauge
-	HeadTransactionCount prometheus.Gauge
+	HeadGasUsed                  prometheus.Gauge
+	HeadGasLimit                 prometheus.Gauge
+	HeadBaseFeePerGas            prometheus.Gauge
+	HeadBlockSize                prometheus.Gauge
+	HeadTransactionCount         prometheus.Gauge
+	HeadTotalDifficulty          prometheus.Gauge
+	HeadTotalDifficultyTrillions prometheus.Gauge
 
 	SafeGasUsed          prometheus.Counter
 	SafeGasLimit         prometheus.Counter
@@ -52,13 +56,14 @@ func (b *BlockMetrics) RequiredModules() []string {
 }
 
 // NewBlockMetrics returns a new Block metrics instance.
-func NewBlockMetrics(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) BlockMetrics {
+func NewBlockMetrics(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) BlockMetrics {
 	constLabels["module"] = NameBlock
 	namespace = namespace + "_" + NameBlock
 	return BlockMetrics{
-		client: client,
-		api:    internalApi,
-		log:    log.WithField("module", NameBlock),
+		client:       client,
+		api:          internalApi,
+		ethRpcClient: ethRpcClient,
+		log:          log.WithField("module", NameBlock),
 
 		MostRecentBlockNumber: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -109,6 +114,22 @@ func NewBlockMetrics(client *ethclient.Client, internalApi api.ExecutionClient, 
 				Namespace:   namespace,
 				Name:        "head_transactions_in_block",
 				Help:        "The number of transactions in the most recent block.",
+				ConstLabels: constLabels,
+			},
+		),
+		HeadTotalDifficulty: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "head_total_difficulty",
+				Help:        "The total difficulty of the head block.",
+				ConstLabels: constLabels,
+			},
+		),
+		HeadTotalDifficultyTrillions: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "head_total_difficulty_trillions",
+				Help:        "The total difficulty of the head block (in trillions).",
 				ConstLabels: constLabels,
 			},
 		),
@@ -197,17 +218,22 @@ func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
 	b.currentHeadBlockNumber = mostRecentBlockNumber
 	b.MostRecentBlockNumber.WithLabelValues("head").Set(float64(mostRecentBlockNumber))
 
-	block, err := b.client.BlockByNumber(ctx, big.NewInt(int64(mostRecentBlockNumber)))
+	block, err := b.ethRpcClient.EthGetBlockByNumber(int(mostRecentBlockNumber), true)
 	if err != nil {
 		return err
 	}
 
-	b.HeadGasUsed.Set(float64(block.GasUsed()))
-	b.HeadGasLimit.Set(float64(block.GasLimit()))
-	b.HeadBaseFeePerGas.Set(float64(block.BaseFee().Int64()))
-	b.HeadBlockSize.Set(float64(block.Size()))
-	b.HeadTransactionCount.Set(float64(len(block.Transactions())))
+	b.HeadGasUsed.Set(float64(block.GasUsed))
+	b.HeadGasLimit.Set(float64(block.GasLimit))
+	b.HeadBlockSize.Set(float64(block.Size))
+	b.HeadTransactionCount.Set(float64(len(block.Transactions)))
+	// b.HeadBaseFeePerGas.Set(float64(block.BaseFee().Int64())) TODO(sam.calder-mason): Fix me
 
+	b.HeadTotalDifficulty.Set(float64(block.TotalDifficulty.Uint64()))
+	// Since we can't represent a big.Int as a float64, and the TD on mainnet is beyond float64, we'll divide the number by a trillion
+	trillion := big.NewInt(1e12)
+	divided := new(big.Int).Quo(&block.TotalDifficulty, trillion)
+	b.HeadTotalDifficultyTrillions.Set(float64(divided.Uint64()))
 	return nil
 }
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/api"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/api/types"
@@ -18,6 +19,7 @@ type Admin struct {
 	MetricExporter
 	client                   *ethclient.Client
 	api                      api.ExecutionClient
+	ethrpcClient             *ethrpc.EthRPC
 	log                      logrus.FieldLogger
 	NodeInfo                 prometheus.GaugeVec
 	Port                     prometheus.GaugeVec
@@ -39,14 +41,15 @@ func (t *Admin) RequiredModules() []string {
 }
 
 // NewAdmin returns a new Admin instance.
-func NewAdmin(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Admin {
+func NewAdmin(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) Admin {
 	namespace = namespace + "_admin"
 	constLabels["module"] = NameAdmin
 
 	return Admin{
-		client: client,
-		api:    internalApi,
-		log:    log.WithField("module", NameAdmin),
+		client:       client,
+		api:          internalApi,
+		ethrpcClient: ethRpcClient,
+		log:          log.WithField("module", NameAdmin),
 		NodeInfo: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
