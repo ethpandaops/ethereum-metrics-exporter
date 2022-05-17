@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/api"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/jobs"
@@ -28,18 +29,18 @@ type metrics struct {
 }
 
 // NewMetrics creates a new execution Metrics instance
-func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, log logrus.FieldLogger, nodeName, namespace string, enabledModules []string) Metrics {
+func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, nodeName, namespace string, enabledModules []string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "execution"
 	constLabels["node_name"] = nodeName
 
 	m := &metrics{
 		log:            log,
-		generalMetrics: jobs.NewGeneralMetrics(client, internalApi, log, namespace, constLabels),
-		syncMetrics:    jobs.NewSyncStatus(client, internalApi, log, namespace, constLabels),
-		txpoolMetrics:  jobs.NewTXPool(client, internalApi, log, namespace, constLabels),
-		adminMetrics:   jobs.NewAdmin(client, internalApi, log, namespace, constLabels),
-		blockMetrics:   jobs.NewBlockMetrics(client, internalApi, log, namespace, constLabels),
+		generalMetrics: jobs.NewGeneralMetrics(client, internalApi, ethRpcClient, log, namespace, constLabels),
+		syncMetrics:    jobs.NewSyncStatus(client, internalApi, ethRpcClient, log, namespace, constLabels),
+		txpoolMetrics:  jobs.NewTXPool(client, internalApi, ethRpcClient, log, namespace, constLabels),
+		adminMetrics:   jobs.NewAdmin(client, internalApi, ethRpcClient, log, namespace, constLabels),
+		blockMetrics:   jobs.NewBlockMetrics(client, internalApi, ethRpcClient, log, namespace, constLabels),
 
 		enabledJobs: make(map[string]bool),
 	}
@@ -75,6 +76,8 @@ func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, log l
 		prometheus.MustRegister(m.blockMetrics.HeadGasUsed)
 		prometheus.MustRegister(m.blockMetrics.HeadTransactionCount)
 		prometheus.MustRegister(m.blockMetrics.HeadBaseFeePerGas)
+		prometheus.MustRegister(m.blockMetrics.HeadTotalDifficulty)
+		prometheus.MustRegister(m.blockMetrics.HeadTotalDifficultyTrillions)
 
 		prometheus.MustRegister(m.blockMetrics.SafeBaseFeePerGas)
 		prometheus.MustRegister(m.blockMetrics.SafeBlockSize)

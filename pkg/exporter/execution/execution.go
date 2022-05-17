@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/onrik/ethrpc"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution/api"
 	"github.com/sirupsen/logrus"
 )
@@ -24,27 +25,30 @@ type Node interface {
 }
 
 type node struct {
-	name        string
-	url         string
-	client      *ethclient.Client
-	internalApi api.ExecutionClient
-	log         logrus.FieldLogger
-	metrics     Metrics
+	name         string
+	url          string
+	client       *ethclient.Client
+	internalApi  api.ExecutionClient
+	ethrpcClient *ethrpc.EthRPC
+	log          logrus.FieldLogger
+	metrics      Metrics
 }
 
 // NewExecutionNode returns a new execution node.
 func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, namespace string, nodeName string, url string, enabledModules []string) (Node, error) {
 	internalApi := api.NewExecutionClient(ctx, log, url)
 	client, _ := ethclient.Dial(url)
-	metrics := NewMetrics(client, internalApi, log, nodeName, namespace, enabledModules)
+	ethrpcClient := ethrpc.New(url)
+	metrics := NewMetrics(client, internalApi, ethrpcClient, log, nodeName, namespace, enabledModules)
 
 	node := &node{
-		name:        nodeName,
-		url:         url,
-		log:         log,
-		internalApi: internalApi,
-		client:      client,
-		metrics:     metrics,
+		name:         nodeName,
+		url:          url,
+		log:          log,
+		ethrpcClient: ethrpcClient,
+		internalApi:  internalApi,
+		client:       client,
+		metrics:      metrics,
 	}
 
 	return node, nil
