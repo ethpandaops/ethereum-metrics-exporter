@@ -41,7 +41,6 @@ linters:
     - nolintlint
     - nakedret
     - prealloc
-    - predeclared
     - revive
     - staticcheck
     - structcheck
