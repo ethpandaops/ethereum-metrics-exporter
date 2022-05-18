@@ -7,9 +7,10 @@ execution:
   url: "http://localhost:8545"
   name: "execution-client"
   modules:
-  - "eth"
-  - "net"
-  - "admin"
+    - "eth"
+    - "net"
+    - "web3"
+    - "txpool"
 diskUsage:
   enabled: false
   directories:

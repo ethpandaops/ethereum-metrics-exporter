@@ -218,7 +218,7 @@ func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
 	b.currentHeadBlockNumber = mostRecentBlockNumber
 	b.MostRecentBlockNumber.WithLabelValues("head").Set(float64(mostRecentBlockNumber))
 
-	block, err := b.ethRpcClient.EthGetBlockByNumber(int(mostRecentBlockNumber), true)
+	block, err := b.ethRpcClient.EthGetBlockByNumber(int(mostRecentBlockNumber), false)
 	if err != nil {
 		return err
 	}
