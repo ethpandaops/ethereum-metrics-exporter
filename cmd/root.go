@@ -17,7 +17,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		initCommon()
 
-		err := export.Serve(ctx, metricsPort)
+		err := export.Serve(cmd.Context(), metricsPort)
 		if err != nil {
 			logr.Fatal(err)
 		}

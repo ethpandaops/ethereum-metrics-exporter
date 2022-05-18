@@ -94,14 +94,20 @@ func (e *exporter) Config(ctx context.Context) *Config {
 
 func (e *exporter) Serve(ctx context.Context, port int) error {
 	if e.config.Execution.Enabled {
+		e.log.Info("Starting execution metrics...")
+
 		go e.execution.StartMetrics(ctx)
 	}
 
 	if e.config.DiskUsage.Enabled {
+		e.log.Info("Starting disk usage metrics...")
+
 		go e.diskUsage.StartAsync(ctx)
 	}
 
 	if e.config.Consensus.Enabled {
+		e.log.Info("Starting consensus metrics...")
+
 		go e.consensus.StartMetrics(ctx)
 	}
 
