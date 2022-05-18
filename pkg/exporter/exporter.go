@@ -36,7 +36,7 @@ type exporter struct {
 	config    *Config
 	consensus consensus.Node
 	execution execution.Node
-	diskUsage disk.DiskUsage
+	diskUsage disk.UsageMetrics
 }
 
 func (e *exporter) Init(ctx context.Context) error {
@@ -46,31 +46,38 @@ func (e *exporter) Init(ctx context.Context) error {
 
 	if e.config.Consensus.Enabled {
 		e.log.Info("Initializing consensus...")
-		consensus, err := consensus.NewConsensusNode(ctx, e.log.WithField("exporter", "consensus"), fmt.Sprintf("%s_con", namespace), e.config.Consensus.Name, e.config.Consensus.URL)
+
+		consensusNode, err := consensus.NewConsensusNode(ctx, e.log.WithField("exporter", "consensus"), fmt.Sprintf("%s_con", namespace), e.config.Consensus.Name, e.config.Consensus.URL)
 		if err != nil {
 			return err
 		}
 
-		consensus.Bootstrap(ctx)
+		if err := consensusNode.Bootstrap(ctx); err != nil {
+			e.log.WithError(err).Error("failed to bootstrap consnesus node")
+		}
 
-		e.consensus = consensus
+		e.consensus = consensusNode
 	}
 
 	if e.config.Execution.Enabled {
 		e.log.WithField("modules", strings.Join(e.config.Execution.Modules, ", ")).Info("Initializing execution...")
-		execution, err := execution.NewExecutionNode(ctx, e.log.WithField("exporter", "execution"), fmt.Sprintf("%s_exe", namespace), e.config.Execution.Name, e.config.Execution.URL, e.config.Execution.Modules)
+
+		executionNode, err := execution.NewExecutionNode(ctx, e.log.WithField("exporter", "execution"), fmt.Sprintf("%s_exe", namespace), e.config.Execution.Name, e.config.Execution.URL, e.config.Execution.Modules)
 		if err != nil {
 			return err
 		}
 
-		execution.Bootstrap(ctx)
+		if err := executionNode.Bootstrap(ctx); err != nil {
+			e.log.WithError(err).Error("failed to bootstrap execution node")
+		}
 
-		e.execution = execution
+		e.execution = executionNode
 	}
 
 	if e.config.DiskUsage.Enabled {
 		e.log.Info("Initializing disk usage...")
-		diskUsage, err := disk.NewDiskUsage(ctx, e.log.WithField("exporter", "disk"), fmt.Sprintf("%s_disk", namespace), e.config.DiskUsage.Directories)
+
+		diskUsage, err := disk.NewUsage(ctx, e.log.WithField("exporter", "disk"), fmt.Sprintf("%s_disk", namespace), e.config.DiskUsage.Directories)
 		if err != nil {
 			return err
 		}
@@ -104,6 +111,10 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 		Info(fmt.Sprintf("Starting metrics server on :%v", port))
 
 	http.Handle("/metrics", promhttp.Handler())
-	err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
-	return err
+
+	if err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil); err != nil {
+		return err
+	}
+
+	return nil
 }

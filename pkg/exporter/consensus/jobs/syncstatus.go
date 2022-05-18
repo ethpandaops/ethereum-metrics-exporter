@@ -12,7 +12,6 @@ import (
 
 // Sync reports metrics on the sync status of the node.
 type Sync struct {
-	MetricExporter
 	client               eth2client.Service
 	log                  logrus.FieldLogger
 	Percentage           prometheus.Gauge
@@ -29,7 +28,9 @@ const (
 // NewSyncJob returns a new Sync instance.
 func NewSyncJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Sync {
 	constLabels["module"] = NameSync
-	namespace = namespace + "_sync"
+
+	namespace += "_sync"
+
 	return Sync{
 		client: client,
 		log:    log,
@@ -82,6 +83,7 @@ func (s *Sync) Name() string {
 
 func (s *Sync) Start(ctx context.Context) {
 	s.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():

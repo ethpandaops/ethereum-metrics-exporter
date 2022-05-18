@@ -16,10 +16,9 @@ import (
 
 // BlockMetrics exposes metrics on the head/safest block.
 type BlockMetrics struct {
-	MetricExporter
 	client       *ethclient.Client
 	api          api.ExecutionClient
-	ethRpcClient *ethrpc.EthRPC
+	ethRPCClient *ethrpc.EthRPC
 	log          logrus.FieldLogger
 
 	MostRecentBlockNumber prometheus.GaugeVec
@@ -45,6 +44,8 @@ type BlockMetrics struct {
 
 const (
 	NameBlock = "block"
+
+	SafeDistanceBlocks = 6
 )
 
 func (b *BlockMetrics) Name() string {
@@ -56,13 +57,15 @@ func (b *BlockMetrics) RequiredModules() []string {
 }
 
 // NewBlockMetrics returns a new Block metrics instance.
-func NewBlockMetrics(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) BlockMetrics {
+func NewBlockMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) BlockMetrics {
 	constLabels["module"] = NameBlock
+
 	namespace = namespace + "_" + NameBlock
+
 	return BlockMetrics{
 		client:       client,
-		api:          internalApi,
-		ethRpcClient: ethRpcClient,
+		api:          internalAPI,
+		ethRPCClient: ethRPCClient,
 		log:          log.WithField("module", NameBlock),
 
 		MostRecentBlockNumber: *prometheus.NewGaugeVec(
@@ -175,7 +178,7 @@ func NewBlockMetrics(client *ethclient.Client, internalApi api.ExecutionClient, 
 			},
 		),
 
-		safeDistanceBlocks: 6,
+		safeDistanceBlocks: SafeDistanceBlocks,
 
 		currentHeadBlockNumber: 0,
 		currentSafeBlockNumber: 0,
@@ -184,6 +187,7 @@ func NewBlockMetrics(client *ethclient.Client, internalApi api.ExecutionClient, 
 
 func (b *BlockMetrics) Start(ctx context.Context) {
 	b.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -198,10 +202,6 @@ func (b *BlockMetrics) tick(ctx context.Context) {
 	if err := b.getHeadBlockStats(ctx); err != nil {
 		b.log.WithError(err).Error("Failed to get head block stats")
 	}
-
-	// if err := b.getSafeBlockStats(ctx); err != nil {
-	// 	b.log.WithError(err).Error("failed to get safe block stats")
-	// }
 }
 
 func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
@@ -218,7 +218,7 @@ func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
 	b.currentHeadBlockNumber = mostRecentBlockNumber
 	b.MostRecentBlockNumber.WithLabelValues("head").Set(float64(mostRecentBlockNumber))
 
-	block, err := b.ethRpcClient.EthGetBlockByNumber(int(mostRecentBlockNumber), false)
+	block, err := b.ethRPCClient.EthGetBlockByNumber(int(mostRecentBlockNumber), false)
 	if err != nil {
 		return err
 	}
@@ -234,6 +234,7 @@ func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
 	trillion := big.NewInt(1e12)
 	divided := new(big.Int).Quo(&block.TotalDifficulty, trillion)
 	b.HeadTotalDifficultyTrillions.Set(float64(divided.Uint64()))
+
 	return nil
 }
 

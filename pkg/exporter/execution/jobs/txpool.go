@@ -13,10 +13,9 @@ import (
 
 // TXPool collects metrics around the transaction pool.
 type TXPool struct {
-	MetricExporter
 	client       *ethclient.Client
 	api          api.ExecutionClient
-	ethRpcClient *ethrpc.EthRPC
+	ethRPCClient *ethrpc.EthRPC
 	log          logrus.FieldLogger
 	Transactions prometheus.GaugeVec
 }
@@ -34,13 +33,15 @@ func (t *TXPool) RequiredModules() []string {
 }
 
 // NewTXPool creates a new TXPool instance.
-func NewTXPool(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) TXPool {
+func NewTXPool(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) TXPool {
 	constLabels["module"] = NameTxPool
-	namespace = namespace + "_txpool"
+
+	namespace += "_txpool"
+
 	return TXPool{
 		client:       client,
-		api:          internalApi,
-		ethRpcClient: ethRpcClient,
+		api:          internalAPI,
+		ethRPCClient: ethRPCClient,
 		log:          log.WithField("module", NameGeneral),
 		Transactions: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -58,6 +59,7 @@ func NewTXPool(client *ethclient.Client, internalApi api.ExecutionClient, ethRpc
 
 func (t *TXPool) Start(ctx context.Context) {
 	t.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():

@@ -31,20 +31,20 @@ type metrics struct {
 }
 
 // NewMetrics creates a new execution Metrics instance
-func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, nodeName, namespace string, enabledModules []string) Metrics {
+func NewMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, nodeName, namespace string, enabledModules []string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "execution"
 	constLabels["node_name"] = nodeName
 
 	m := &metrics{
 		log:            log,
-		generalMetrics: jobs.NewGeneralMetrics(client, internalApi, ethRpcClient, log, namespace, constLabels),
-		syncMetrics:    jobs.NewSyncStatus(client, internalApi, ethRpcClient, log, namespace, constLabels),
-		txpoolMetrics:  jobs.NewTXPool(client, internalApi, ethRpcClient, log, namespace, constLabels),
-		adminMetrics:   jobs.NewAdmin(client, internalApi, ethRpcClient, log, namespace, constLabels),
-		blockMetrics:   jobs.NewBlockMetrics(client, internalApi, ethRpcClient, log, namespace, constLabels),
-		web3Metrics:    jobs.NewWeb3(client, internalApi, ethRpcClient, log, namespace, constLabels),
-		netMetrics:     jobs.NewNet(client, internalApi, ethRpcClient, log, namespace, constLabels),
+		generalMetrics: jobs.NewGeneralMetrics(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		syncMetrics:    jobs.NewSyncStatus(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		txpoolMetrics:  jobs.NewTXPool(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		adminMetrics:   jobs.NewAdmin(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		blockMetrics:   jobs.NewBlockMetrics(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		web3Metrics:    jobs.NewWeb3(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		netMetrics:     jobs.NewNet(client, internalAPI, ethRPCClient, log, namespace, constLabels),
 
 		enabledJobs: make(map[string]bool),
 	}

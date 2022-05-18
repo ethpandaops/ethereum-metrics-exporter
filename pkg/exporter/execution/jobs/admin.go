@@ -16,10 +16,9 @@ import (
 
 // Admin exposes metrics defined by the admin module.
 type Admin struct {
-	MetricExporter
 	client                   *ethclient.Client
 	api                      api.ExecutionClient
-	ethrpcClient             *ethrpc.EthRPC
+	ethRPCClient             *ethrpc.EthRPC
 	log                      logrus.FieldLogger
 	NodeInfo                 prometheus.GaugeVec
 	Port                     prometheus.GaugeVec
@@ -32,23 +31,24 @@ const (
 	NameAdmin = "admin"
 )
 
-func (t *Admin) Name() string {
+func (a *Admin) Name() string {
 	return NameAdmin
 }
 
-func (t *Admin) RequiredModules() []string {
+func (a *Admin) RequiredModules() []string {
 	return []string{"admin"}
 }
 
 // NewAdmin returns a new Admin instance.
-func NewAdmin(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) Admin {
-	namespace = namespace + "_admin"
+func NewAdmin(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) Admin {
+	namespace += "_admin"
+
 	constLabels["module"] = NameAdmin
 
 	return Admin{
 		client:       client,
-		api:          internalApi,
-		ethrpcClient: ethRpcClient,
+		api:          internalAPI,
+		ethRPCClient: ethRPCClient,
 		log:          log.WithField("module", NameAdmin),
 		NodeInfo: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -107,6 +107,7 @@ func NewAdmin(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcC
 
 func (a *Admin) Start(ctx context.Context) {
 	a.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
