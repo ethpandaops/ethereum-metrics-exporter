@@ -13,10 +13,9 @@ import (
 
 // GeneralMetrics exposes metrics that otherwise don't fit in to a specific module.
 type GeneralMetrics struct {
-	MetricExporter
 	client       *ethclient.Client
 	api          api.ExecutionClient
-	ethRpcClient *ethrpc.EthRPC
+	ethRPCClient *ethrpc.EthRPC
 	log          logrus.FieldLogger
 	GasPrice     prometheus.Gauge
 	NetworkID    prometheus.Gauge
@@ -36,12 +35,13 @@ func (g *GeneralMetrics) RequiredModules() []string {
 }
 
 // NewGeneralMetrics returns a new General metrics instance.
-func NewGeneralMetrics(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) GeneralMetrics {
+func NewGeneralMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) GeneralMetrics {
 	constLabels["module"] = NameGeneral
+
 	return GeneralMetrics{
 		client:       client,
-		api:          internalApi,
-		ethRpcClient: ethRpcClient,
+		api:          internalAPI,
+		ethRPCClient: ethRPCClient,
 		log:          log.WithField("module", NameGeneral),
 		GasPrice: prometheus.NewGauge(
 			prometheus.GaugeOpts{
@@ -72,6 +72,7 @@ func NewGeneralMetrics(client *ethclient.Client, internalApi api.ExecutionClient
 
 func (g *GeneralMetrics) Start(ctx context.Context) {
 	g.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():

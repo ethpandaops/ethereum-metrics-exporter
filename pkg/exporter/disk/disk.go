@@ -8,12 +8,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// DiskUsage reports disk usage metrics
-type DiskUsage interface {
+// UsageMetrics reports disk usage metrics
+type UsageMetrics interface {
 	// StartAsync starts the disk usage metrics collection.
 	StartAsync(ctx context.Context)
 	// GetUsage returns the usage of the directories.
-	GetUsage(ctx context.Context, directories []string) ([]DiskUsed, error)
+	GetUsage(ctx context.Context, directories []string) ([]Usage, error)
 }
 
 type diskUsage struct {
@@ -22,8 +22,8 @@ type diskUsage struct {
 	directories []string
 }
 
-// NewDiskUsage returns a new DiskUsage instance.
-func NewDiskUsage(ctx context.Context, log logrus.FieldLogger, namespace string, directories []string) (DiskUsage, error) {
+// NewUsage returns a new DiskUsage instance.
+func NewUsage(ctx context.Context, log logrus.FieldLogger, namespace string, directories []string) (UsageMetrics, error) {
 	return &diskUsage{
 		log:         log,
 		metrics:     NewMetrics(log, namespace),
@@ -37,15 +37,19 @@ func (d *diskUsage) StartAsync(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(time.Second * 30):
-				d.GetUsage(ctx, d.directories)
+			case <-time.After(time.Second * 60):
+				if _, err := d.GetUsage(ctx, d.directories); err != nil {
+					d.log.WithError(err).Error("Failed to get disk usage")
+				}
 			}
 		}
 	}()
 }
 
-func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]DiskUsed, error) {
-	var diskUsed []DiskUsed
+func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]Usage, error) {
+	//nolint:prealloc // we dont know how much success we'll have
+	var diskUsed []Usage
+
 	for _, directory := range directories {
 		info, err := os.Lstat(directory)
 		if err != nil {
@@ -59,7 +63,7 @@ func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]DiskU
 			continue
 		}
 
-		diskUsed = append(diskUsed, DiskUsed{
+		diskUsed = append(diskUsed, Usage{
 			Directory:  directory,
 			UsageBytes: used,
 		})
@@ -94,7 +98,9 @@ func getDiskUsed(currentPath string, info os.FileInfo) (int64, error) {
 		if file.Name() == "." || file.Name() == ".." {
 			continue
 		}
+
 		s, _ := getDiskUsed(currentPath+"/"+file.Name(), file)
+
 		size += s
 	}
 

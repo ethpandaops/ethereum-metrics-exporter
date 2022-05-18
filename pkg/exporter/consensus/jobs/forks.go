@@ -15,7 +15,6 @@ import (
 
 // Forks reports the state of any forks (previous, active or upcoming).
 type Forks struct {
-	MetricExporter
 	Epochs              prometheus.GaugeVec
 	Activated           prometheus.GaugeVec
 	Current             prometheus.GaugeVec
@@ -31,11 +30,12 @@ const (
 // NewForksJob returns a new Forks instance.
 func NewForksJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Forks {
 	constLabels["module"] = NameFork
-	namespace = namespace + "_fork"
+
+	namespace += "_fork"
+
 	return Forks{
-		client:              client,
-		log:                 log,
-		previousCurrentFork: "",
+		client: client,
+		log:    log,
 		Epochs: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -69,6 +69,8 @@ func NewForksJob(client eth2client.Service, log logrus.FieldLogger, namespace st
 				"fork",
 			},
 		),
+
+		previousCurrentFork: "",
 	}
 }
 
@@ -78,6 +80,7 @@ func (f *Forks) Name() string {
 
 func (f *Forks) Start(ctx context.Context) {
 	f.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -92,6 +95,7 @@ func (f *Forks) tick(ctx context.Context) {
 	if err := f.ForkEpochs(ctx); err != nil {
 		f.log.WithError(err).Error("Failed to fetch fork epochs")
 	}
+
 	if err := f.GetCurrent(ctx); err != nil {
 		f.log.WithError(err).Error("Failed to fetch current fork")
 	}
@@ -105,7 +109,7 @@ func (f *Forks) ForkEpochs(ctx context.Context) error {
 
 	for k, v := range spec {
 		if strings.Contains(k, "_FORK_EPOCH") {
-			f.ObserveForkEpoch(strings.Replace(k, "_FORK_EPOCH", "", -1), cast.ToUint64(v))
+			f.ObserveForkEpoch(strings.ReplaceAll(k, "_FORK_EPOCH", ""), cast.ToUint64(v))
 		}
 	}
 
@@ -136,9 +140,11 @@ func (f *Forks) GetCurrent(ctx context.Context) error {
 
 	current := ""
 	currentSlot := 0
+
 	for k, v := range spec {
 		if strings.Contains(k, "_FORK_EPOCH") {
-			forkName := strings.Replace(k, "_FORK_EPOCH", "", -1)
+			forkName := strings.ReplaceAll(k, "_FORK_EPOCH", "")
+
 			if int(headSlot.Header.Message.Slot)/slotsPerEpoch > cast.ToInt(v) {
 				f.Activated.WithLabelValues(forkName).Set(1)
 			} else {

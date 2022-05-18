@@ -43,6 +43,7 @@ func (e *EthProtocol) UnmarshalJSON(data []byte) error {
 	}
 
 	var objMap map[string]*json.RawMessage
+
 	err := json.Unmarshal(data, &objMap)
 	if err != nil {
 		return err
@@ -55,7 +56,6 @@ func (e *EthProtocol) UnmarshalJSON(data []byte) error {
 		if err != nil {
 			return err
 		}
-
 	} else {
 		// Try and parse the string back in to a big.Int
 		if v.Difficulty, err = hexutil.DecodeBig(difficultyString); err != nil {

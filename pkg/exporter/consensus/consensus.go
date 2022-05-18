@@ -34,14 +34,13 @@ type node struct {
 }
 
 // NewConsensusNode returns a new Node instance.
-func NewConsensusNode(ctx context.Context, log logrus.FieldLogger, namespace string, name string, url string) (Node, error) {
-	node := &node{
+func NewConsensusNode(ctx context.Context, log logrus.FieldLogger, namespace, name, url string) (Node, error) {
+	return &node{
 		name:      name,
 		url:       url,
 		log:       log,
 		namespace: namespace,
-	}
-	return node, nil
+	}, nil
 }
 
 func (c *node) Name() string {

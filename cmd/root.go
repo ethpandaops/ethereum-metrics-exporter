@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter"
@@ -14,7 +13,7 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "ethereum-metrics-exporter",
-	Short: "A tool to report the state of ethereum nodes",
+	Short: "A tool to export the state of ethereum nodes",
 	Run: func(cmd *cobra.Command, args []string) {
 		initCommon()
 
@@ -26,15 +25,20 @@ var rootCmd = &cobra.Command{
 }
 
 var (
+	metricsPort          int
 	cfgFile              string
-	config               *exporter.Config
+	config               *exporter.Config //nolint:deadcode // False positive
 	export               exporter.Exporter
 	ctx                  context.Context
 	logr                 logrus.FieldLogger
-	executionUrl         string
-	consensusUrl         string
+	executionURL         string
+	consensusURL         string
 	monitoredDirectories []string
 	executionModules     []string
+)
+
+const (
+	DefaultMetricsPort = 9090
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -44,14 +48,13 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
-
 }
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ethereum-metrics-exporter.yaml)")
-	rootCmd.PersistentFlags().IntVarP(&metricsPort, "metrics-port", "", 9090, "Port to serve Prometheus metrics on")
-	rootCmd.PersistentFlags().StringVarP(&executionUrl, "execution-url", "", "", "(optional) URL to the execution node")
-	rootCmd.PersistentFlags().StringVarP(&consensusUrl, "consensus-url", "", "", "(optional) URL to the consensus node")
+	rootCmd.PersistentFlags().IntVarP(&metricsPort, "metrics-port", "", DefaultMetricsPort, "Port to serve Prometheus metrics on")
+	rootCmd.PersistentFlags().StringVarP(&executionURL, "execution-url", "", "", "(optional) URL to the execution node")
+	rootCmd.PersistentFlags().StringVarP(&consensusURL, "consensus-url", "", "", "(optional) URL to the consensus node")
 	rootCmd.PersistentFlags().StringSliceVarP(&monitoredDirectories, "monitored-directories", "", []string{}, "(optional) directories to monitor for disk usage")
 	rootCmd.PersistentFlags().StringSliceVarP(&executionModules, "execution-modules", "", []string{}, "(optional) execution modules that are enabled on the node")
 
@@ -64,7 +67,8 @@ func loadConfigFromFile(file string) (*exporter.Config, error) {
 	}
 
 	config := exporter.DefaultConfig()
-	yamlFile, err := ioutil.ReadFile(file)
+
+	yamlFile, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -83,19 +87,20 @@ func initCommon() {
 	logr = log
 
 	log.WithField("cfgFile", cfgFile).Info("Loading config")
+
 	config, err := loadConfigFromFile(cfgFile)
 	if err != nil {
 		logr.Fatal(err)
 	}
 
-	if executionUrl != "" {
+	if executionURL != "" {
 		config.Execution.Enabled = true
-		config.Execution.URL = executionUrl
+		config.Execution.URL = executionURL
 	}
 
-	if consensusUrl != "" {
+	if consensusURL != "" {
 		config.Consensus.Enabled = true
-		config.Consensus.URL = consensusUrl
+		config.Consensus.URL = consensusURL
 	}
 
 	if len(monitoredDirectories) > 0 {

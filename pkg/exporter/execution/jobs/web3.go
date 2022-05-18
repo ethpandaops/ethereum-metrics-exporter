@@ -13,10 +13,9 @@ import (
 
 // Web3 exposes metrics defined by the Web3 module.
 type Web3 struct {
-	MetricExporter
 	client        *ethclient.Client
 	api           api.ExecutionClient
-	ethrpcClient  *ethrpc.EthRPC
+	ethRPCClient  *ethrpc.EthRPC
 	log           logrus.FieldLogger
 	ClientVersion prometheus.GaugeVec
 }
@@ -34,14 +33,15 @@ func (w *Web3) RequiredModules() []string {
 }
 
 // NewWeb3 returns a new Web3 instance.
-func NewWeb3(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) Web3 {
-	namespace = namespace + "_web3"
+func NewWeb3(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) Web3 {
+	namespace += "_web3"
+
 	constLabels["module"] = NameWeb3
 
 	return Web3{
 		client:       client,
-		api:          internalApi,
-		ethrpcClient: ethRpcClient,
+		api:          internalAPI,
+		ethRPCClient: ethRPCClient,
 		log:          log.WithField("module", NameWeb3),
 		ClientVersion: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -57,24 +57,25 @@ func NewWeb3(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcCl
 	}
 }
 
-func (a *Web3) Start(ctx context.Context) {
-	a.tick(ctx)
+func (w *Web3) Start(ctx context.Context) {
+	w.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-time.After(time.Second * 15):
-			a.tick(ctx)
+			w.tick(ctx)
 		}
 	}
 }
 
-func (a *Web3) tick(ctx context.Context) {
-	clientVersion, err := a.ethrpcClient.Web3ClientVersion()
+//nolint:unparam // context will be used in the future
+func (w *Web3) tick(ctx context.Context) {
+	clientVersion, err := w.ethRPCClient.Web3ClientVersion()
 	if err != nil {
-		a.log.WithError(err).Error("Failed to get node info")
+		w.log.WithError(err).Error("Failed to get node info")
 	} else {
-		a.ClientVersion.WithLabelValues(clientVersion).Set(1)
+		w.ClientVersion.WithLabelValues(clientVersion).Set(1)
 	}
-
 }

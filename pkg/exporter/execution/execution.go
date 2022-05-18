@@ -28,25 +28,25 @@ type node struct {
 	name         string
 	url          string
 	client       *ethclient.Client
-	internalApi  api.ExecutionClient
+	internalAPI  api.ExecutionClient
 	ethrpcClient *ethrpc.EthRPC
 	log          logrus.FieldLogger
 	metrics      Metrics
 }
 
 // NewExecutionNode returns a new execution node.
-func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, namespace string, nodeName string, url string, enabledModules []string) (Node, error) {
-	internalApi := api.NewExecutionClient(ctx, log, url)
+func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, namespace, nodeName, url string, enabledModules []string) (Node, error) {
+	internalAPI := api.NewExecutionClient(ctx, log, url)
 	client, _ := ethclient.Dial(url)
 	ethrpcClient := ethrpc.New(url)
-	metrics := NewMetrics(client, internalApi, ethrpcClient, log, nodeName, namespace, enabledModules)
+	metrics := NewMetrics(client, internalAPI, ethrpcClient, log, nodeName, namespace, enabledModules)
 
 	node := &node{
 		name:         nodeName,
 		url:          url,
 		log:          log,
 		ethrpcClient: ethrpcClient,
-		internalApi:  internalApi,
+		internalAPI:  internalAPI,
 		client:       client,
 		metrics:      metrics,
 	}
@@ -73,6 +73,7 @@ func (e *node) Bootstrap(ctx context.Context) error {
 	}
 
 	e.client = client
+
 	return nil
 }
 

@@ -13,10 +13,9 @@ import (
 
 // Net exposes metrics defined by the net module.
 type Net struct {
-	MetricExporter
 	client       *ethclient.Client
 	api          api.ExecutionClient
-	ethrpcClient *ethrpc.EthRPC
+	ethRPCClient *ethrpc.EthRPC
 	log          logrus.FieldLogger
 	PeerCount    prometheus.Gauge
 }
@@ -34,14 +33,15 @@ func (n *Net) RequiredModules() []string {
 }
 
 // NewNet returns a new Net instance.
-func NewNet(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) Net {
-	namespace = namespace + "_net"
+func NewNet(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) Net {
+	namespace += "_net"
+
 	constLabels["module"] = NameWeb3
 
 	return Net{
 		client:       client,
-		api:          internalApi,
-		ethrpcClient: ethRpcClient,
+		api:          internalAPI,
+		ethRPCClient: ethRPCClient,
 		log:          log.WithField("module", NameNet),
 		PeerCount: prometheus.NewGauge(
 			prometheus.GaugeOpts{
@@ -56,6 +56,7 @@ func NewNet(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcCli
 
 func (n *Net) Start(ctx context.Context) {
 	n.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -66,12 +67,12 @@ func (n *Net) Start(ctx context.Context) {
 	}
 }
 
+//nolint:unparam // context will be used in the future
 func (n *Net) tick(ctx context.Context) {
-	count, err := n.ethrpcClient.NetPeerCount()
+	count, err := n.ethRPCClient.NetPeerCount()
 	if err != nil {
 		n.log.WithError(err).Error("Failed to get peer count")
 	} else {
 		n.PeerCount.Set(float64(count))
 	}
-
 }

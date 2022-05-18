@@ -13,10 +13,9 @@ import (
 
 // SyncStatus exposes metrics about the sync status of the node.
 type SyncStatus struct {
-	MetricExporter
 	client        *ethclient.Client
 	api           api.ExecutionClient
-	ethRpcClient  *ethrpc.EthRPC
+	ethRPCClient  *ethrpc.EthRPC
 	log           logrus.FieldLogger
 	Percentage    prometheus.Gauge
 	CurrentBlock  prometheus.Gauge
@@ -46,20 +45,22 @@ type syncingStatus struct {
 
 func (s *syncingStatus) Percent() float64 {
 	if !s.IsSyncing {
-		return 100
+		return 100 //notlint:gomnd
 	}
 
-	return float64(s.CurrentBlock) / float64(s.HighestBlock) * 100
+	return float64(s.CurrentBlock) / float64(s.HighestBlock) * 100 //notlint:gomnd // 100 will never change.
 }
 
 // NewSyncStatus returns a new SyncStatus instance.
-func NewSyncStatus(client *ethclient.Client, internalApi api.ExecutionClient, ethRpcClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) SyncStatus {
+func NewSyncStatus(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) SyncStatus {
 	constLabels["module"] = NameSyncStatus
-	namespace = namespace + "_sync"
+
+	namespace += "_sync"
+
 	return SyncStatus{
 		client:       client,
-		api:          internalApi,
-		ethRpcClient: ethRpcClient,
+		api:          internalAPI,
+		ethRPCClient: ethRPCClient,
 		log:          log.WithField("module", NameSyncStatus),
 		Percentage: prometheus.NewGauge(
 			prometheus.GaugeOpts{
@@ -106,6 +107,7 @@ func NewSyncStatus(client *ethclient.Client, internalApi api.ExecutionClient, et
 
 func (s *SyncStatus) Start(ctx context.Context) {
 	s.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -117,15 +119,15 @@ func (s *SyncStatus) Start(ctx context.Context) {
 }
 
 func (s *SyncStatus) tick(ctx context.Context) {
-	if _, err := s.GetSyncStatus(ctx); err != nil {
+	if err := s.GetSyncStatus(ctx); err != nil {
 		s.log.Errorf("Failed to get sync status: %s", err)
 	}
 }
 
-func (s *SyncStatus) GetSyncStatus(ctx context.Context) (*syncingStatus, error) {
+func (s *SyncStatus) GetSyncStatus(ctx context.Context) error {
 	status, err := s.client.SyncProgress(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if status == nil && err == nil {
@@ -133,7 +135,8 @@ func (s *SyncStatus) GetSyncStatus(ctx context.Context) (*syncingStatus, error) 
 		ss := &syncingStatus{}
 		ss.IsSyncing = false
 		s.observeStatus(ss)
-		return ss, nil
+
+		return nil
 	}
 
 	syncStatus := &syncingStatus{
@@ -145,7 +148,7 @@ func (s *SyncStatus) GetSyncStatus(ctx context.Context) (*syncingStatus, error) 
 
 	s.observeStatus(syncStatus)
 
-	return syncStatus, nil
+	return nil
 }
 
 func (s *SyncStatus) observeStatus(status *syncingStatus) {

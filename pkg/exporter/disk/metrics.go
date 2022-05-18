@@ -8,7 +8,7 @@ import (
 // Metrics defines the interface for reporting disk usage metrics.
 type Metrics interface {
 	// ObserveDiskUsage reports the disk usage for the directory.
-	ObserveDiskUsage(disk DiskUsed)
+	ObserveDiskUsage(usage Usage)
 }
 
 type metrics struct {
@@ -36,9 +36,10 @@ func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 	}
 
 	prometheus.MustRegister(m.diskUsage)
+
 	return m
 }
 
-func (m *metrics) ObserveDiskUsage(disk DiskUsed) {
-	m.diskUsage.WithLabelValues(disk.Directory).Set(float64(disk.UsageBytes))
+func (m *metrics) ObserveDiskUsage(usage Usage) {
+	m.diskUsage.WithLabelValues(usage.Directory).Set(float64(usage.UsageBytes))
 }

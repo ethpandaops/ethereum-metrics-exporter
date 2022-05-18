@@ -13,7 +13,6 @@ import (
 
 // General reports general information about the node.
 type General struct {
-	MetricExporter
 	client      eth2client.Service
 	log         logrus.FieldLogger
 	Slots       prometheus.GaugeVec
@@ -30,6 +29,7 @@ const (
 // NewGeneral creates a new General instance.
 func NewGeneralJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) General {
 	constLabels["module"] = NameGeneral
+
 	return General{
 		client: client,
 		log:    log,
@@ -80,18 +80,32 @@ func (g *General) Name() string {
 
 func (g *General) Start(ctx context.Context) {
 	g.tick(ctx)
-	g.startSubscriptions(ctx)
+
+	subscribed := false
+
+	if err := g.startSubscriptions(ctx); err == nil {
+		subscribed = true
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-time.After(time.Second * 15):
 			g.tick(ctx)
+
+			if !subscribed {
+				if err := g.startSubscriptions(ctx); err == nil {
+					subscribed = true
+				}
+			}
 		}
 	}
 }
 
 func (g *General) startSubscriptions(ctx context.Context) error {
+	g.log.Info("starting subscriptions")
+
 	provider, isProvider := g.client.(eth2client.EventsProvider)
 	if !isProvider {
 		return errors.New("client does not implement eth2client.Subscriptions")
@@ -109,6 +123,7 @@ func (g *General) startSubscriptions(ctx context.Context) error {
 }
 
 func (g *General) handleEvent(event *v1.Event) {
+	//nolint:gocritic // new subscription topics coming soon
 	switch event.Topic {
 	case "chain_reorg":
 		g.handleChainReorg(event)

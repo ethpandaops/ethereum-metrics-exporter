@@ -5,8 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"io"
 	"net/http"
 	"time"
 
@@ -35,7 +34,7 @@ type executionClient struct {
 }
 
 // NewExecutionClient creates a new ExecutionClient.
-func NewExecutionClient(ctx context.Context, log logrus.FieldLogger, url string) *executionClient {
+func NewExecutionClient(ctx context.Context, log logrus.FieldLogger, url string) ExecutionClient {
 	client := http.Client{
 		Timeout: time.Second * 10,
 	}
@@ -53,6 +52,7 @@ type apiResponse struct {
 	Result  json.RawMessage `json:"result"`
 }
 
+//nolint:unparam // ctx will probably be used in the future
 func (e *executionClient) post(ctx context.Context, method string, params []string, id int) (json.RawMessage, error) {
 	body := map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -61,12 +61,12 @@ func (e *executionClient) post(ctx context.Context, method string, params []stri
 		"params":  params,
 	}
 
-	json_data, err := json.Marshal(body)
+	jsonData, err := json.Marshal(body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	rsp, err := e.client.Post(e.url, "application/json", bytes.NewBuffer(json_data))
+	rsp, err := e.client.Post(e.url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (e *executionClient) post(ctx context.Context, method string, params []stri
 		return nil, fmt.Errorf("status code: %d", rsp.StatusCode)
 	}
 
-	data, err := ioutil.ReadAll(rsp.Body)
+	data, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, err
 	}

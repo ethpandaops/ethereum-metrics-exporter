@@ -15,7 +15,6 @@ import (
 
 // Spec reports metrics about the configured consensus spec.
 type Spec struct {
-	MetricExporter
 	client                           eth2client.Service
 	log                              logrus.FieldLogger
 	SafeSlotsToUpdateJustified       prometheus.Gauge
@@ -51,7 +50,9 @@ const (
 // NewSpecJob returns a new Spec instance.
 func NewSpecJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Spec {
 	constLabels["module"] = NameSpec
-	namespace = namespace + "_spec"
+
+	namespace += "_spec"
+
 	return Spec{
 		client: client,
 		log:    log,
@@ -258,6 +259,7 @@ func (s *Spec) Name() string {
 
 func (s *Spec) Start(ctx context.Context) {
 	s.tick(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -295,8 +297,8 @@ func (s *Spec) Update(spec map[string]interface{}) {
 		s.SafeSlotsToUpdateJustified.Set(cast.ToFloat64(safeSlotsToUpdateJustified))
 	}
 
-	if depositChainId, exists := spec["DEPOSIT_CHAIN_ID"]; exists {
-		s.DepositChainID.Set(cast.ToFloat64(depositChainId))
+	if depositChainID, exists := spec["DEPOSIT_CHAIN_ID"]; exists {
+		s.DepositChainID.Set(cast.ToFloat64(depositChainID))
 	}
 
 	if configName, exists := spec["CONFIG_NAME"]; exists {
@@ -345,6 +347,7 @@ func (s *Spec) Update(spec map[string]interface{}) {
 
 	if terminalTotalDifficulty, exists := spec["TERMINAL_TOTAL_DIFFICULTY"]; exists {
 		ttd := cast.ToString(fmt.Sprintf("%v", terminalTotalDifficulty))
+
 		asBigInt, success := big.NewInt(0).SetString(ttd, 10)
 		if success {
 			trillion := big.NewInt(1e12)
@@ -390,5 +393,4 @@ func (s *Spec) Update(spec map[string]interface{}) {
 	if presetBase, exists := spec["PRESET_BASE"]; exists {
 		s.PresetBase.WithLabelValues(cast.ToString(presetBase)).Set(1)
 	}
-
 }
