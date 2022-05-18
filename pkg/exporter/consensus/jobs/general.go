@@ -17,7 +17,6 @@ type General struct {
 	log         logrus.FieldLogger
 	Slots       prometheus.GaugeVec
 	NodeVersion prometheus.GaugeVec
-	NetworkdID  prometheus.Gauge
 	ReOrgs      prometheus.Counter
 	ReOrgDepth  prometheus.Counter
 }
