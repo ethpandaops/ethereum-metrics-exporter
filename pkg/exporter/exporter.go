@@ -112,9 +112,7 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 
 	http.Handle("/metrics", promhttp.Handler())
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil); err != nil {
-		return err
-	}
+	err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
 
-	return nil
+	return err
 }
