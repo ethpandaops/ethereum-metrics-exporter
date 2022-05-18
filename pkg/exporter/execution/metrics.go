@@ -24,6 +24,8 @@ type metrics struct {
 	txpoolMetrics  jobs.TXPool
 	adminMetrics   jobs.Admin
 	blockMetrics   jobs.BlockMetrics
+	web3Metrics    jobs.Web3
+	netMetrics     jobs.Net
 
 	enabledJobs map[string]bool
 }
@@ -41,6 +43,8 @@ func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, ethRp
 		txpoolMetrics:  jobs.NewTXPool(client, internalApi, ethRpcClient, log, namespace, constLabels),
 		adminMetrics:   jobs.NewAdmin(client, internalApi, ethRpcClient, log, namespace, constLabels),
 		blockMetrics:   jobs.NewBlockMetrics(client, internalApi, ethRpcClient, log, namespace, constLabels),
+		web3Metrics:    jobs.NewWeb3(client, internalApi, ethRpcClient, log, namespace, constLabels),
+		netMetrics:     jobs.NewNet(client, internalApi, ethRpcClient, log, namespace, constLabels),
 
 		enabledJobs: make(map[string]bool),
 	}
@@ -104,6 +108,20 @@ func NewMetrics(client *ethclient.Client, internalApi api.ExecutionClient, ethRp
 		prometheus.MustRegister(m.adminMetrics.Peers)
 	}
 
+	if able := jobs.ExporterCanRun(enabledModules, m.web3Metrics.RequiredModules()); able {
+		m.log.Info("Enabling web3 metrics")
+		m.enabledJobs[m.web3Metrics.Name()] = true
+
+		prometheus.MustRegister(m.web3Metrics.ClientVersion)
+	}
+
+	if able := jobs.ExporterCanRun(enabledModules, m.netMetrics.RequiredModules()); able {
+		m.log.Info("Enabling net metrics")
+		m.enabledJobs[m.netMetrics.Name()] = true
+
+		prometheus.MustRegister(m.netMetrics.PeerCount)
+	}
+
 	return m
 }
 
@@ -126,6 +144,14 @@ func (m *metrics) StartAsync(ctx context.Context) {
 
 	if m.enabledJobs[m.blockMetrics.Name()] {
 		go m.blockMetrics.Start(ctx)
+	}
+
+	if m.enabledJobs[m.web3Metrics.Name()] {
+		go m.web3Metrics.Start(ctx)
+	}
+
+	if m.enabledJobs[m.netMetrics.Name()] {
+		go m.netMetrics.Start(ctx)
 	}
 
 	m.log.Info("Started metrics exporter jobs")

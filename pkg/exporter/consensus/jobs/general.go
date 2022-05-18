@@ -55,14 +55,6 @@ func NewGeneralJob(client eth2client.Service, log logrus.FieldLogger, namespace 
 				"version",
 			},
 		),
-		NetworkdID: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "network_id",
-				Help:        "The network id of the node.",
-				ConstLabels: constLabels,
-			},
-		),
 		ReOrgs: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
