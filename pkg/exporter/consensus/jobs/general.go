@@ -188,6 +188,18 @@ func (g *General) GetBeaconSlot(ctx context.Context, identifier string) error {
 		return err
 	}
 
+	if block == nil {
+		return errors.New("block is nil")
+	}
+
+	if block.Header == nil {
+		return errors.New("block header is nil")
+	}
+
+	if block.Header.Message == nil {
+		return errors.New("block header message is nil")
+	}
+
 	g.ObserveSlot(identifier, uint64(block.Header.Message.Slot))
 
 	return nil
