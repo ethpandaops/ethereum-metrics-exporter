@@ -50,11 +50,11 @@ Available as a docker image at `samcm/ethereum-metrics-exporter`
 
 **Quick start**
 ```
-docker run -it --name ethereum-metrics-exporter -p 9090:9090 -it samcm/ethereum-metrics-exporter --consensus-url=http://localhost:5052 --execution-url=http://localhost:8545
+docker run -d -it --name ethereum-metrics-exporter -p 9090:9090 -it samcm/ethereum-metrics-exporter --consensus-url=http://localhost:5052 --execution-url=http://localhost:8545
 ````
 **With a config file**
 ```
-docker run -it --name ethereum-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/exporter/config.yaml -p 9090:9090 -it samcm/ethereum-metrics-exporter --config /opt/exporter/config.yaml
+docker run -d -it --name ethereum-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/exporter/config.yaml -p 9090:9090 -it samcm/ethereum-metrics-exporter --config /opt/exporter/config.yaml
 
 ```
 
