@@ -8,6 +8,7 @@ import (
 	"time"
 
 	eth2client "github.com/attestantio/go-eth2-client"
+	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -274,6 +275,14 @@ func (s *Spec) tick(ctx context.Context) {
 	if err := s.GetSpec(ctx); err != nil {
 		s.log.WithError(err).Error("Failed to fetch spec")
 	}
+}
+
+func (s *Spec) HandleEvent(ctx context.Context, event *v1.Event) {
+	//nolint:gocritic // new subscription topics coming soon
+	// switch event.Topic {
+	// case "chain_reorg":
+	// 	g.handleChainReorg(event)
+	// }
 }
 
 func (s *Spec) GetSpec(ctx context.Context) error {
