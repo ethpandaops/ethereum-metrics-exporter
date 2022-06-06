@@ -278,11 +278,7 @@ func (s *Spec) tick(ctx context.Context) {
 }
 
 func (s *Spec) HandleEvent(ctx context.Context, event *v1.Event) {
-	//nolint:gocritic // new subscription topics coming soon
-	// switch event.Topic {
-	// case "chain_reorg":
-	// 	g.handleChainReorg(event)
-	// }
+
 }
 
 func (s *Spec) GetSpec(ctx context.Context) error {
