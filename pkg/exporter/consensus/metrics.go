@@ -2,8 +2,11 @@ package consensus
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	eth2client "github.com/attestantio/go-eth2-client"
+	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/jobs"
 	"github.com/sirupsen/logrus"
@@ -18,10 +21,14 @@ type Metrics interface {
 type metrics struct {
 	log logrus.FieldLogger
 
+	client eth2client.Service
+
 	generalMetrics jobs.General
 	syncMetrics    jobs.Sync
 	specMetrics    jobs.Spec
 	forkMetrics    jobs.Forks
+	beaconMetrics  jobs.Beacon
+	eventMetrics   jobs.Event
 }
 
 // NewMetrics returns a new metrics object.
@@ -32,17 +39,17 @@ func NewMetrics(client eth2client.Service, log logrus.FieldLogger, nodeName, nam
 
 	m := &metrics{
 		log:            log,
+		client:         client,
 		generalMetrics: jobs.NewGeneralJob(client, log, namespace, constLabels),
 		specMetrics:    jobs.NewSpecJob(client, log, namespace, constLabels),
 		syncMetrics:    jobs.NewSyncJob(client, log, namespace, constLabels),
 		forkMetrics:    jobs.NewForksJob(client, log, namespace, constLabels),
+		beaconMetrics:  jobs.NewBeaconJob(client, log, namespace, constLabels),
+		eventMetrics:   jobs.NewEventJob(client, log, namespace, constLabels),
 	}
 
 	prometheus.MustRegister(m.generalMetrics.Slots)
 	prometheus.MustRegister(m.generalMetrics.NodeVersion)
-	prometheus.MustRegister(m.generalMetrics.ReOrgs)
-	prometheus.MustRegister(m.generalMetrics.ReOrgDepth)
-	prometheus.MustRegister(m.generalMetrics.FinalityCheckpoints)
 
 	prometheus.MustRegister(m.syncMetrics.Percentage)
 	prometheus.MustRegister(m.syncMetrics.EstimatedHighestSlot)
@@ -79,6 +86,18 @@ func NewMetrics(client eth2client.Service, log logrus.FieldLogger, nodeName, nam
 	prometheus.MustRegister(m.forkMetrics.Current)
 	prometheus.MustRegister(m.forkMetrics.Activated)
 
+	prometheus.MustRegister(m.beaconMetrics.Attestations)
+	prometheus.MustRegister(m.beaconMetrics.Deposits)
+	prometheus.MustRegister(m.beaconMetrics.Slashings)
+	prometheus.MustRegister(m.beaconMetrics.Transactions)
+	prometheus.MustRegister(m.beaconMetrics.VoluntaryExits)
+	prometheus.MustRegister(m.beaconMetrics.Slot)
+	prometheus.MustRegister(m.beaconMetrics.FinalityCheckpoints)
+	prometheus.MustRegister(m.beaconMetrics.ReOrgs)
+	prometheus.MustRegister(m.beaconMetrics.ReOrgDepth)
+
+	prometheus.MustRegister(m.eventMetrics.Count)
+
 	return m
 }
 
@@ -87,4 +106,57 @@ func (m *metrics) StartAsync(ctx context.Context) {
 	go m.specMetrics.Start(ctx)
 	go m.syncMetrics.Start(ctx)
 	go m.forkMetrics.Start(ctx)
+	go m.beaconMetrics.Start(ctx)
+	go m.eventMetrics.Start(ctx)
+	go m.subscriptionLoop(ctx)
+}
+
+func (m *metrics) subscriptionLoop(ctx context.Context) {
+	subscribed := false
+
+	for {
+		if !subscribed {
+			if err := m.startSubscriptions(ctx); err != nil {
+				m.log.Errorf("Failed to subscribe to eth2 node: %v", err)
+			} else {
+				subscribed = true
+			}
+		}
+
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func (m *metrics) startSubscriptions(ctx context.Context) error {
+	m.log.Info("starting subscriptions")
+
+	provider, isProvider := m.client.(eth2client.EventsProvider)
+	if !isProvider {
+		return errors.New("client does not implement eth2client.Subscriptions")
+	}
+
+	topics := []string{}
+
+	for key, supported := range v1.SupportedEventTopics {
+		if supported {
+			topics = append(topics, key)
+		}
+	}
+
+	if err := provider.Events(ctx, topics, func(event *v1.Event) {
+		m.handleEvent(ctx, event)
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *metrics) handleEvent(ctx context.Context, event *v1.Event) {
+	m.generalMetrics.HandleEvent(ctx, event)
+	m.specMetrics.HandleEvent(ctx, event)
+	m.syncMetrics.HandleEvent(ctx, event)
+	m.forkMetrics.HandleEvent(ctx, event)
+	m.beaconMetrics.HandleEvent(ctx, event)
+	m.eventMetrics.HandleEvent(ctx, event)
 }

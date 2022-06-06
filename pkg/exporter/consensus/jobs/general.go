@@ -13,13 +13,11 @@ import (
 
 // General reports general information about the node.
 type General struct {
-	client              eth2client.Service
-	log                 logrus.FieldLogger
-	Slots               prometheus.GaugeVec
-	NodeVersion         prometheus.GaugeVec
-	ReOrgs              prometheus.Counter
-	ReOrgDepth          prometheus.Counter
-	FinalityCheckpoints prometheus.GaugeVec
+	client      eth2client.Service
+	log         logrus.FieldLogger
+	Slots       prometheus.GaugeVec
+	NodeVersion prometheus.GaugeVec
+	ClientName  prometheus.GaugeVec
 }
 
 const (
@@ -55,34 +53,6 @@ func NewGeneralJob(client eth2client.Service, log logrus.FieldLogger, namespace 
 				"version",
 			},
 		),
-		ReOrgs: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace:   namespace,
-				Name:        "reorg_count",
-				Help:        "The count of reorgs.",
-				ConstLabels: constLabels,
-			},
-		),
-		ReOrgDepth: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace:   namespace,
-				Name:        "reorg_depth",
-				Help:        "The number of reorgs.",
-				ConstLabels: constLabels,
-			},
-		),
-		FinalityCheckpoints: *prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "finality_checkpoint_epochs",
-				Help:        "That epochs of the finality checkpoints.",
-				ConstLabels: constLabels,
-			},
-			[]string{
-				"state_id",
-				"checkpoint",
-			},
-		),
 	}
 }
 
@@ -93,63 +63,18 @@ func (g *General) Name() string {
 func (g *General) Start(ctx context.Context) {
 	g.tick(ctx)
 
-	subscribed := false
-
-	if err := g.startSubscriptions(ctx); err == nil {
-		subscribed = true
-	}
-
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-time.After(time.Second * 15):
 			g.tick(ctx)
-
-			if !subscribed {
-				if err := g.startSubscriptions(ctx); err == nil {
-					subscribed = true
-				}
-			}
 		}
 	}
 }
 
-func (g *General) startSubscriptions(ctx context.Context) error {
-	g.log.Info("starting subscriptions")
+func (g *General) HandleEvent(ctx context.Context, event *v1.Event) {
 
-	provider, isProvider := g.client.(eth2client.EventsProvider)
-	if !isProvider {
-		return errors.New("client does not implement eth2client.Subscriptions")
-	}
-
-	topics := []string{
-		"chain_reorg",
-	}
-
-	if err := provider.Events(ctx, topics, g.handleEvent); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (g *General) handleEvent(event *v1.Event) {
-	//nolint:gocritic // new subscription topics coming soon
-	switch event.Topic {
-	case "chain_reorg":
-		g.handleChainReorg(event)
-	}
-}
-
-func (g *General) handleChainReorg(event *v1.Event) {
-	reorg, ok := event.Data.(*v1.ChainReorgEvent)
-	if !ok {
-		return
-	}
-
-	g.ReOrgs.Inc()
-	g.ReOrgDepth.Add(float64(reorg.Depth))
 }
 
 func (g *General) tick(ctx context.Context) {
@@ -162,10 +87,6 @@ func (g *General) tick(ctx context.Context) {
 	for _, checkpoint := range checkpoints {
 		if err := g.GetBeaconSlot(ctx, checkpoint); err != nil {
 			g.log.WithError(err).Error("Failed to get beacon slot: ", checkpoint)
-		}
-
-		if err := g.GetFinality(ctx, checkpoint); err != nil {
-			g.log.WithError(err).Error("Failed to get finality checkpoint: ", checkpoint)
 		}
 	}
 }
@@ -181,6 +102,7 @@ func (g *General) GetNodeVersion(ctx context.Context) error {
 		return err
 	}
 
+	g.NodeVersion.Reset()
 	g.NodeVersion.WithLabelValues(version).Set(1)
 
 	return nil
@@ -216,30 +138,4 @@ func (g *General) GetBeaconSlot(ctx context.Context, identifier string) error {
 
 func (g *General) ObserveSlot(identifier string, slot uint64) {
 	g.Slots.WithLabelValues(identifier).Set(float64(slot))
-}
-
-func (g *General) GetFinality(ctx context.Context, stateID string) error {
-	provider, isProvider := g.client.(eth2client.FinalityProvider)
-	if !isProvider {
-		return errors.New("client does not implement eth2client.FinalityProvider")
-	}
-
-	finality, err := provider.Finality(ctx, stateID)
-	if err != nil {
-		return err
-	}
-
-	g.FinalityCheckpoints.
-		WithLabelValues(stateID, "previous_justified").
-		Set(float64(finality.PreviousJustified.Epoch))
-
-	g.FinalityCheckpoints.
-		WithLabelValues(stateID, "justified").
-		Set(float64(finality.Justified.Epoch))
-
-	g.FinalityCheckpoints.
-		WithLabelValues(stateID, "finalized").
-		Set(float64(finality.Finalized.Epoch))
-
-	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cast"
 
 	eth2client "github.com/attestantio/go-eth2-client"
+	v1 "github.com/attestantio/go-eth2-client/api/v1"
 )
 
 // Forks reports the state of any forks (previous, active or upcoming).
@@ -99,6 +100,9 @@ func (f *Forks) tick(ctx context.Context) {
 	if err := f.GetCurrent(ctx); err != nil {
 		f.log.WithError(err).Error("Failed to fetch current fork")
 	}
+}
+
+func (f *Forks) HandleEvent(ctx context.Context, event *v1.Event) {
 }
 
 func (f *Forks) ForkEpochs(ctx context.Context) error {

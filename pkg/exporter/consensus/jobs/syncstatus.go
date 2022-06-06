@@ -6,6 +6,7 @@ import (
 	"time"
 
 	eth2client "github.com/attestantio/go-eth2-client"
+	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
@@ -92,6 +93,9 @@ func (s *Sync) Start(ctx context.Context) {
 			s.tick(ctx)
 		}
 	}
+}
+
+func (s *Sync) HandleEvent(ctx context.Context, event *v1.Event) {
 }
 
 func (s *Sync) tick(ctx context.Context) {
