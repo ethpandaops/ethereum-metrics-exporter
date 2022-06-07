@@ -9,6 +9,7 @@ import (
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/attestantio/go-eth2-client/spec"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,7 +35,7 @@ const (
 )
 
 // NewBeacon creates a new Beacon instance.
-func NewBeaconJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Beacon {
+func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Beacon {
 	constLabels["module"] = NameBeacon
 	namespace += "_beacon"
 

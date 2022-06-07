@@ -10,6 +10,7 @@ import (
 	eth2client "github.com/attestantio/go-eth2-client"
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
@@ -49,7 +50,7 @@ const (
 )
 
 // NewSpecJob returns a new Spec instance.
-func NewSpecJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Spec {
+func NewSpecJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Spec {
 	constLabels["module"] = NameSpec
 
 	namespace += "_spec"

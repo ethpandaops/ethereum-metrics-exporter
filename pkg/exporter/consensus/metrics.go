@@ -8,6 +8,7 @@ import (
 	eth2client "github.com/attestantio/go-eth2-client"
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/jobs"
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +33,7 @@ type metrics struct {
 }
 
 // NewMetrics returns a new metrics object.
-func NewMetrics(client eth2client.Service, log logrus.FieldLogger, nodeName, namespace string) Metrics {
+func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, nodeName, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "consensus"
 	constLabels["node_name"] = nodeName
@@ -40,16 +41,17 @@ func NewMetrics(client eth2client.Service, log logrus.FieldLogger, nodeName, nam
 	m := &metrics{
 		log:            log,
 		client:         client,
-		generalMetrics: jobs.NewGeneralJob(client, log, namespace, constLabels),
-		specMetrics:    jobs.NewSpecJob(client, log, namespace, constLabels),
-		syncMetrics:    jobs.NewSyncJob(client, log, namespace, constLabels),
-		forkMetrics:    jobs.NewForksJob(client, log, namespace, constLabels),
-		beaconMetrics:  jobs.NewBeaconJob(client, log, namespace, constLabels),
-		eventMetrics:   jobs.NewEventJob(client, log, namespace, constLabels),
+		generalMetrics: jobs.NewGeneralJob(client, ap, log, namespace, constLabels),
+		specMetrics:    jobs.NewSpecJob(client, ap, log, namespace, constLabels),
+		syncMetrics:    jobs.NewSyncJob(client, ap, log, namespace, constLabels),
+		forkMetrics:    jobs.NewForksJob(client, ap, log, namespace, constLabels),
+		beaconMetrics:  jobs.NewBeaconJob(client, ap, log, namespace, constLabels),
+		eventMetrics:   jobs.NewEventJob(client, ap, log, namespace, constLabels),
 	}
 
 	prometheus.MustRegister(m.generalMetrics.Slots)
 	prometheus.MustRegister(m.generalMetrics.NodeVersion)
+	prometheus.MustRegister(m.generalMetrics.Peers)
 
 	prometheus.MustRegister(m.syncMetrics.Percentage)
 	prometheus.MustRegister(m.syncMetrics.EstimatedHighestSlot)

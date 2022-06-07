@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 
@@ -29,7 +30,7 @@ const (
 )
 
 // NewForksJob returns a new Forks instance.
-func NewForksJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Forks {
+func NewForksJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Forks {
 	constLabels["module"] = NameFork
 
 	namespace += "_fork"
