@@ -33,7 +33,7 @@ type metrics struct {
 }
 
 // NewMetrics returns a new metrics object.
-func NewMetrics(client eth2client.Service, api api.ConsensusClient, log logrus.FieldLogger, nodeName, namespace string) Metrics {
+func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, nodeName, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "consensus"
 	constLabels["node_name"] = nodeName
@@ -41,12 +41,12 @@ func NewMetrics(client eth2client.Service, api api.ConsensusClient, log logrus.F
 	m := &metrics{
 		log:            log,
 		client:         client,
-		generalMetrics: jobs.NewGeneralJob(client, api, log, namespace, constLabels),
-		specMetrics:    jobs.NewSpecJob(client, api, log, namespace, constLabels),
-		syncMetrics:    jobs.NewSyncJob(client, api, log, namespace, constLabels),
-		forkMetrics:    jobs.NewForksJob(client, api, log, namespace, constLabels),
-		beaconMetrics:  jobs.NewBeaconJob(client, api, log, namespace, constLabels),
-		eventMetrics:   jobs.NewEventJob(client, api, log, namespace, constLabels),
+		generalMetrics: jobs.NewGeneralJob(client, ap, log, namespace, constLabels),
+		specMetrics:    jobs.NewSpecJob(client, ap, log, namespace, constLabels),
+		syncMetrics:    jobs.NewSyncJob(client, ap, log, namespace, constLabels),
+		forkMetrics:    jobs.NewForksJob(client, ap, log, namespace, constLabels),
+		beaconMetrics:  jobs.NewBeaconJob(client, ap, log, namespace, constLabels),
+		eventMetrics:   jobs.NewEventJob(client, ap, log, namespace, constLabels),
 	}
 
 	prometheus.MustRegister(m.generalMetrics.Slots)

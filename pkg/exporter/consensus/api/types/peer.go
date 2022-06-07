@@ -53,7 +53,7 @@ func (p *Peers) ByDirection(direction string) Peers {
 	return peers
 }
 
-func (p *Peers) ByStateAndDirection(state string, direction string) Peers {
+func (p *Peers) ByStateAndDirection(state, direction string) Peers {
 	var peers []Peer
 
 	for _, peer := range *p {
