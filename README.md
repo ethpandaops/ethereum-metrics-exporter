@@ -44,6 +44,7 @@ Flags:
 
 ### Grafana
 * [Single instance dashboard](https://grafana.com/grafana/dashboards/16277)
+* [The Merge overview dashboard](https://grafana.com/grafana/dashboards/16395)
 
 ### Docker
 Available as a docker image at `samcm/ethereum-metrics-exporter`
