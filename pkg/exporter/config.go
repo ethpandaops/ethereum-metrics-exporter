@@ -38,7 +38,7 @@ func DefaultConfig() *Config {
 			Enabled: true,
 			Name:    "execution",
 			URL:     "http://localhost:8545",
-			Modules: []string{"eth", "net", "web3", "txpool"},
+			Modules: []string{"eth", "net", "web3"},
 		},
 		Consensus: ConsensusNode{
 			Enabled: true,
