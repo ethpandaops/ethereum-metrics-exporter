@@ -7,6 +7,7 @@ import (
 	eth2client "github.com/attestantio/go-eth2-client"
 	"github.com/attestantio/go-eth2-client/http"
 	"github.com/rs/zerolog"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,6 +30,7 @@ type node struct {
 	url       string
 	namespace string
 	client    eth2client.Service
+	api       api.ConsensusClient
 	log       logrus.FieldLogger
 	metrics   Metrics
 }
@@ -54,13 +56,14 @@ func (c *node) URL() string {
 func (c *node) Bootstrap(ctx context.Context) error {
 	client, err := http.New(ctx,
 		http.WithAddress(c.url),
-		http.WithLogLevel(zerolog.WarnLevel),
+		http.WithLogLevel(zerolog.Disabled),
 	)
 	if err != nil {
 		return err
 	}
 
 	c.client = client
+	c.api = api.NewConsensusClient(ctx, c.log, c.url)
 
 	return nil
 }
@@ -79,6 +82,6 @@ func (c *node) StartMetrics(ctx context.Context) {
 		time.Sleep(5 * time.Second)
 	}
 
-	c.metrics = NewMetrics(c.client, c.log, c.name, c.namespace)
+	c.metrics = NewMetrics(c.client, c.api, c.log, c.name, c.namespace)
 	c.metrics.StartAsync(ctx)
 }

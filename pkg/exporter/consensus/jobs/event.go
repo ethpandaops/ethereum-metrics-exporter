@@ -6,6 +6,7 @@ import (
 	eth2client "github.com/attestantio/go-eth2-client"
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,7 +21,7 @@ const (
 )
 
 // NewEvent creates a new Event instance.
-func NewEventJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Event {
+func NewEventJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Event {
 	constLabels["module"] = NameEvent
 	namespace += "_event"
 

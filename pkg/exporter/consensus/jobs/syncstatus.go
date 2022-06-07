@@ -8,6 +8,7 @@ import (
 	eth2client "github.com/attestantio/go-eth2-client"
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +28,7 @@ const (
 )
 
 // NewSyncJob returns a new Sync instance.
-func NewSyncJob(client eth2client.Service, log logrus.FieldLogger, namespace string, constLabels map[string]string) Sync {
+func NewSyncJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Sync {
 	constLabels["module"] = NameSync
 
 	namespace += "_sync"
