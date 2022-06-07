@@ -141,17 +141,3 @@ func (c *consensusClient) NodePeerCount(ctx context.Context) (types.PeerCount, e
 
 	return rsp, nil
 }
-
-// func (e *ConsensusClient) AdminNodeInfo(ctx context.Context) (*types.NodeInfo, error) {
-// 	rsp, err := e.post(ctx, "admin_nodeInfo", []string{}, 0)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	nodeInfo := &types.NodeInfo{}
-// 	if err := json.Unmarshal(rsp, nodeInfo); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return nodeInfo, nil
-// }
