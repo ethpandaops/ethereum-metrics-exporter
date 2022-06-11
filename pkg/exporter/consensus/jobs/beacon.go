@@ -164,11 +164,9 @@ func (b *Beacon) Start(ctx context.Context) {
 }
 
 func (b *Beacon) tick(ctx context.Context) {
-	for _, id := range []string{"head", "finalized", "justified"} {
-		if id != "justified" {
-			if err := b.GetFinality(ctx, id); err != nil {
-				b.log.WithError(err).Error("Failed to get finality")
-			}
+	for _, id := range []string{"head", "finalized"} {
+		if err := b.GetFinality(ctx, id); err != nil {
+			b.log.WithError(err).Error("Failed to get finality")
 		}
 
 		if err := b.GetSignedBeaconBlock(ctx, id); err != nil {
