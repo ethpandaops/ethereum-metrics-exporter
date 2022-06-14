@@ -49,7 +49,6 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.Fi
 		eventMetrics:   jobs.NewEventJob(client, ap, log, namespace, constLabels),
 	}
 
-	prometheus.MustRegister(m.generalMetrics.Slots)
 	prometheus.MustRegister(m.generalMetrics.NodeVersion)
 	prometheus.MustRegister(m.generalMetrics.Peers)
 

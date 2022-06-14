@@ -18,7 +18,6 @@ type General struct {
 	client      eth2client.Service
 	api         api.ConsensusClient
 	log         logrus.FieldLogger
-	Slots       prometheus.GaugeVec
 	NodeVersion prometheus.GaugeVec
 	ClientName  prometheus.GaugeVec
 	Peers       prometheus.GaugeVec
@@ -36,17 +35,6 @@ func NewGeneralJob(client eth2client.Service, ap api.ConsensusClient, log logrus
 		client: client,
 		api:    ap,
 		log:    log,
-		Slots: *prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "slot_number",
-				Help:        "The slot number of the beacon chain.",
-				ConstLabels: constLabels,
-			},
-			[]string{
-				"identifier",
-			},
-		),
 		NodeVersion: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -99,14 +87,6 @@ func (g *General) tick(ctx context.Context) {
 		g.log.WithError(err).Error("Failed to get node version")
 	}
 
-	checkpoints := []string{"head", "justified", "finalized"}
-
-	for _, checkpoint := range checkpoints {
-		if err := g.GetBeaconSlot(ctx, checkpoint); err != nil {
-			g.log.WithError(err).Error("Failed to get beacon slot: ", checkpoint)
-		}
-	}
-
 	if err := g.GetPeers(ctx); err != nil {
 		g.log.WithError(err).Error("Failed to get peers")
 	}
@@ -129,34 +109,6 @@ func (g *General) GetNodeVersion(ctx context.Context) error {
 	return nil
 }
 
-func (g *General) GetBeaconSlot(ctx context.Context, identifier string) error {
-	provider, isProvider := g.client.(eth2client.BeaconBlockHeadersProvider)
-	if !isProvider {
-		return errors.New("client does not implement eth2client.BeaconBlockHeadersProvider")
-	}
-
-	block, err := provider.BeaconBlockHeader(ctx, identifier)
-	if err != nil {
-		return err
-	}
-
-	if block == nil {
-		return errors.New("block is nil")
-	}
-
-	if block.Header == nil {
-		return errors.New("block header is nil")
-	}
-
-	if block.Header.Message == nil {
-		return errors.New("block header message is nil")
-	}
-
-	g.ObserveSlot(identifier, uint64(block.Header.Message.Slot))
-
-	return nil
-}
-
 func (g *General) GetPeers(ctx context.Context) error {
 	peers, err := g.api.NodePeers(ctx)
 	if err != nil {
@@ -172,8 +124,4 @@ func (g *General) GetPeers(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (g *General) ObserveSlot(identifier string, slot uint64) {
-	g.Slots.WithLabelValues(identifier).Set(float64(slot))
 }

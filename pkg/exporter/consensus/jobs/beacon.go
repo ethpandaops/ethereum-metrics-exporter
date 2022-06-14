@@ -242,6 +242,10 @@ func (b *Beacon) GetFinality(ctx context.Context, stateID string) error {
 }
 
 func (b *Beacon) handleSingleBlock(blockID string, block *spec.VersionedSignedBeaconBlock) error {
+	if block == nil {
+		return errors.New("block is nil")
+	}
+
 	if b.currentVersion != block.Version.String() {
 		b.Transactions.Reset()
 		b.Slashings.Reset()
