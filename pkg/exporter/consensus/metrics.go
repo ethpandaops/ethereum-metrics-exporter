@@ -117,6 +117,14 @@ func (m *metrics) subscriptionLoop(ctx context.Context) {
 	subscribed := false
 
 	for {
+		if subscribed && (time.Since(m.eventMetrics.LastEventTime) > (5 * time.Minute)) {
+			m.log.
+				WithField("last_event_time", m.eventMetrics.LastEventTime.Local().String()).
+				Info("Haven't received any events for 5 minutes, re-subscribing")
+
+			subscribed = false
+		}
+
 		if !subscribed && m.client != nil {
 			if err := m.startSubscriptions(ctx); err != nil {
 				m.log.Errorf("Failed to subscribe to eth2 node: %v", err)
@@ -125,11 +133,7 @@ func (m *metrics) subscriptionLoop(ctx context.Context) {
 			}
 		}
 
-		if subscribed && time.Since(m.eventMetrics.LastEventTime) > (2*time.Minute) {
-			subscribed = false
-		}
-
-		time.Sleep(5 * time.Second)
+		time.Sleep(60 * time.Second)
 	}
 }
 
@@ -144,6 +148,10 @@ func (m *metrics) startSubscriptions(ctx context.Context) error {
 	topics := []string{}
 
 	for key, supported := range v1.SupportedEventTopics {
+		if key == "contribution_and_proof" {
+			continue
+		}
+
 		if supported {
 			topics = append(topics, key)
 		}
