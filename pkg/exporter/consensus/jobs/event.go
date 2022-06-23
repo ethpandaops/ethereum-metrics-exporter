@@ -69,6 +69,7 @@ func (b *Event) Start(ctx context.Context) {
 	}
 }
 
+//nolint:unparam // ctx will probably be used in the future
 func (b *Event) tick(ctx context.Context) {
 	b.TimeSinceLastEvent.Set(float64(time.Since(b.LastEventTime).Milliseconds()))
 }
