@@ -20,20 +20,15 @@ Naturally this means that the exporter is limited to metrics that are exposed by
 ## Usage
 
 ```
-A tool to report the state of ethereum nodes
+A tool to export the state of ethereum nodes
 
 Usage:
   ethereum-metrics-exporter [flags]
-  ethereum-metrics-exporter [command]
-
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  serve       Run a metrics server and poll the configured clients.
 
 Flags:
       --config string                   config file (default is $HOME/.ethereum-metrics-exporter.yaml)
       --consensus-url string            (optional) URL to the consensus node
+      --execution-modules strings       (optional) execution modules that are enabled on the node
       --execution-url string            (optional) URL to the execution node
   -h, --help                            help for ethereum-metrics-exporter
       --metrics-port int                Port to serve Prometheus metrics on (default 9090)
