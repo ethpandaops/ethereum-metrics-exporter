@@ -98,6 +98,7 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.Fi
 	prometheus.MustRegister(m.beaconMetrics.ReOrgDepth)
 
 	prometheus.MustRegister(m.eventMetrics.Count)
+	prometheus.MustRegister(m.eventMetrics.TimeSinceLastEvent)
 
 	return m
 }
@@ -116,12 +117,16 @@ func (m *metrics) subscriptionLoop(ctx context.Context) {
 	subscribed := false
 
 	for {
-		if !subscribed {
+		if !subscribed && m.client != nil {
 			if err := m.startSubscriptions(ctx); err != nil {
 				m.log.Errorf("Failed to subscribe to eth2 node: %v", err)
 			} else {
 				subscribed = true
 			}
+		}
+
+		if subscribed && time.Since(m.eventMetrics.LastEventTime) > (2*time.Minute) {
+			subscribed = false
 		}
 
 		time.Sleep(5 * time.Second)

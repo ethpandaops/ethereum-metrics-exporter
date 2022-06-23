@@ -164,22 +164,16 @@ func (b *Beacon) Start(ctx context.Context) {
 }
 
 func (b *Beacon) tick(ctx context.Context) {
-	for _, id := range []string{"head", "finalized"} {
-		if err := b.GetFinality(ctx, id); err != nil {
-			b.log.WithError(err).Error("Failed to get finality")
-		}
 
-		if err := b.GetSignedBeaconBlock(ctx, id); err != nil {
-			b.log.WithError(err).Error("Failed to get signed beacon block")
-		}
-	}
 }
 
 func (b *Beacon) HandleEvent(ctx context.Context, event *v1.Event) {
 	if event.Topic == EventTopicBlock {
-		if err := b.GetSignedBeaconBlock(ctx, "head"); err != nil {
-			b.log.WithError(err).Error("Failed to get signed beacon block")
-		}
+		b.handleBlockEvent(ctx, event)
+	}
+
+	if event.Topic == EventTopicFinalizedCheckpoint {
+		b.handleFinalizedCheckpointEvent(ctx, event)
 	}
 
 	if event.Topic == EventTopicChainReorg {
@@ -195,6 +189,32 @@ func (b *Beacon) handleChainReorg(event *v1.Event) {
 
 	b.ReOrgs.Inc()
 	b.ReOrgDepth.Add(float64(reorg.Depth))
+}
+
+func (b *Beacon) handleFinalizedCheckpointEvent(ctx context.Context, event *v1.Event) {
+	_, ok := event.Data.(*v1.FinalizedCheckpointEvent)
+	if !ok {
+		return
+	}
+
+	if err := b.GetFinality(ctx, "head"); err != nil {
+		b.log.WithError(err).Error("Failed to get finality")
+	}
+
+	if err := b.GetSignedBeaconBlock(ctx, "finalized"); err != nil {
+		b.log.WithError(err).Error("Failed to get signed beacon block")
+	}
+}
+
+func (b *Beacon) handleBlockEvent(ctx context.Context, event *v1.Event) {
+	_, ok := event.Data.(*v1.BlockEvent)
+	if !ok {
+		return
+	}
+
+	if err := b.GetSignedBeaconBlock(ctx, "head"); err != nil {
+		b.log.WithError(err).Error("Failed to get signed beacon block")
+	}
 }
 
 func (b *Beacon) GetSignedBeaconBlock(ctx context.Context, blockID string) error {

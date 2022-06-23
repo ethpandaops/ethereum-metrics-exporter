@@ -15,12 +15,13 @@ import (
 
 // General reports general information about the node.
 type General struct {
-	client      eth2client.Service
-	api         api.ConsensusClient
-	log         logrus.FieldLogger
-	NodeVersion prometheus.GaugeVec
-	ClientName  prometheus.GaugeVec
-	Peers       prometheus.GaugeVec
+	client               eth2client.Service
+	api                  api.ConsensusClient
+	log                  logrus.FieldLogger
+	NodeVersion          prometheus.GaugeVec
+	ClientName           prometheus.GaugeVec
+	Peers                prometheus.GaugeVec
+	nodeVersionFetchedAt time.Time
 }
 
 const (
@@ -93,6 +94,10 @@ func (g *General) tick(ctx context.Context) {
 }
 
 func (g *General) GetNodeVersion(ctx context.Context) error {
+	if time.Since(g.nodeVersionFetchedAt) < (30 * time.Minute) {
+		return nil
+	}
+
 	provider, isProvider := g.client.(eth2client.NodeVersionProvider)
 	if !isProvider {
 		return errors.New("client does not implement eth2client.NodeVersionProvider")
@@ -105,6 +110,8 @@ func (g *General) GetNodeVersion(ctx context.Context) error {
 
 	g.NodeVersion.Reset()
 	g.NodeVersion.WithLabelValues(version).Set(1)
+
+	g.nodeVersionFetchedAt = time.Now()
 
 	return nil
 }
