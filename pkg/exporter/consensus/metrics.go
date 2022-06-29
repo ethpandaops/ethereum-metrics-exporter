@@ -96,6 +96,8 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.Fi
 	prometheus.MustRegister(m.beaconMetrics.FinalityCheckpoints)
 	prometheus.MustRegister(m.beaconMetrics.ReOrgs)
 	prometheus.MustRegister(m.beaconMetrics.ReOrgDepth)
+	prometheus.MustRegister(m.beaconMetrics.FinalityCheckpointHash)
+	prometheus.MustRegister(m.beaconMetrics.HeadSlotHash)
 
 	prometheus.MustRegister(m.eventMetrics.Count)
 	prometheus.MustRegister(m.eventMetrics.TimeSinceLastEvent)
