@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"errors"
+	"hash/fnv"
 	"time"
 
 	eth2client "github.com/attestantio/go-eth2-client"
@@ -15,23 +16,27 @@ import (
 
 // Beacon reports Beacon information about the beacon chain.
 type Beacon struct {
-	client              eth2client.Service
-	log                 logrus.FieldLogger
-	Slot                prometheus.GaugeVec
-	Transactions        prometheus.GaugeVec
-	Slashings           prometheus.GaugeVec
-	Attestations        prometheus.GaugeVec
-	Deposits            prometheus.GaugeVec
-	VoluntaryExits      prometheus.GaugeVec
-	FinalityCheckpoints prometheus.GaugeVec
-	ReOrgs              prometheus.Counter
-	ReOrgDepth          prometheus.Counter
-
-	currentVersion string
+	client                 eth2client.Service
+	log                    logrus.FieldLogger
+	Slot                   prometheus.GaugeVec
+	Transactions           prometheus.GaugeVec
+	Slashings              prometheus.GaugeVec
+	Attestations           prometheus.GaugeVec
+	Deposits               prometheus.GaugeVec
+	VoluntaryExits         prometheus.GaugeVec
+	FinalityCheckpoints    prometheus.GaugeVec
+	ReOrgs                 prometheus.Counter
+	ReOrgDepth             prometheus.Counter
+	HeadSlotHash           prometheus.Gauge
+	FinalityCheckpointHash prometheus.GaugeVec
+	currentVersion         string
 }
 
 const (
 	NameBeacon = "beacon"
+	// NumRootHashShards defines the range of values that the *hash metrics are moduloed by. That is to say,
+	// this number defines the value range of those metrics from 0 -> NumRootHashShards.
+	NumRootHashShards = 4096
 )
 
 // NewBeacon creates a new Beacon instance.
@@ -141,6 +146,26 @@ func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, log logrus.
 				Name:        "reorg_depth",
 				Help:        "The number of reorgs.",
 				ConstLabels: constLabels,
+			},
+		),
+		HeadSlotHash: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "head_slot_hash",
+				Help:        "The hash of the head slot (ranges from 0-15).",
+				ConstLabels: constLabels,
+			},
+		),
+		FinalityCheckpointHash: *prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "finality_checkpoint_hash",
+				Help:        "The hash of the finality checkpoint.",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"state_id",
+				"checkpoint",
 			},
 		),
 	}
@@ -282,6 +307,8 @@ func (b *Beacon) GetFinality(ctx context.Context, stateID string) error {
 		WithLabelValues(stateID, "finalized").
 		Set(float64(finality.Finalized.Epoch))
 
+	b.recordFinalityCheckpointHash(stateID, finality)
+
 	return nil
 }
 
@@ -300,30 +327,89 @@ func (b *Beacon) handleSingleBlock(blockID string, block *spec.VersionedSignedBe
 		b.currentVersion = block.Version.String()
 	}
 
-	var beaconBlock BeaconBlock
-
-	switch block.Version {
-	case spec.DataVersionPhase0:
-		beaconBlock = NewBeaconBlockFromPhase0(block)
-	case spec.DataVersionAltair:
-		beaconBlock = NewBeaconBlockFromAltair(block)
-	case spec.DataVersionBellatrix:
-		beaconBlock = NewBeaconBlockFromBellatrix(block)
-	default:
-		return errors.New("received beacon block of unknown spec version")
-	}
-
-	b.recordNewBeaconBlock(blockID, block.Version.String(), beaconBlock)
+	b.recordNewBeaconBlock(blockID, block)
 
 	return nil
 }
 
-func (b *Beacon) recordNewBeaconBlock(blockID, version string, block BeaconBlock) {
-	b.Slot.WithLabelValues(blockID, version).Set(float64(block.Slot))
-	b.Slashings.WithLabelValues(blockID, version, "proposer").Set(float64(block.ProposerSlashings))
-	b.Slashings.WithLabelValues(blockID, version, "attester").Set(float64(block.ProposerSlashings))
-	b.Attestations.WithLabelValues(blockID, version).Set(float64(block.Attestations))
-	b.Deposits.WithLabelValues(blockID, version).Set(float64(block.Deposits))
-	b.VoluntaryExits.WithLabelValues(blockID, version).Set(float64(block.VoluntaryExits))
-	b.Transactions.WithLabelValues(blockID, version).Set(float64(block.Transactions))
+func (b *Beacon) recordNewBeaconBlock(blockID string, block *spec.VersionedSignedBeaconBlock) {
+	version := block.Version.String()
+
+	slot, err := block.Slot()
+	if err != nil {
+		b.log.WithError(err).WithField("block_id", blockID).Error("Failed to get slot from block")
+	} else {
+		b.Slot.WithLabelValues(blockID, version).Set(float64(slot))
+	}
+
+	attesterSlashing, err := block.AttesterSlashings()
+	if err != nil {
+		b.log.WithError(err).WithField("block_id", blockID).Error("Failed to get attester slashing from block")
+	} else {
+		b.Slashings.WithLabelValues(blockID, version, "attester").Set(float64(len(attesterSlashing)))
+	}
+
+	proposerSlashing, err := block.ProposerSlashings()
+	if err != nil {
+		b.log.WithError(err).WithField("block_id", blockID).Error("Failed to get proposer slashing from block")
+	} else {
+		b.Slashings.WithLabelValues(blockID, version, "proposer").Set(float64(len(proposerSlashing)))
+	}
+
+	attestations, err := block.Attestations()
+	if err != nil {
+		b.log.WithError(err).WithField("block_id", blockID).Error("Failed to get attestations from block")
+	} else {
+		b.Attestations.WithLabelValues(blockID, version).Set(float64(len(attestations)))
+	}
+
+	deposits := GetDepositCountsFromBeaconBlock(block)
+	b.Deposits.WithLabelValues(blockID, version).Set(float64(deposits))
+
+	voluntaryExits := GetVoluntaryExitsFromBeaconBlock(block)
+	b.VoluntaryExits.WithLabelValues(blockID, version).Set(float64(voluntaryExits))
+
+	transactions := GetTransactionsCountFromBeaconBlock(block)
+	b.Transactions.WithLabelValues(blockID, version).Set(float64(transactions))
+
+	if blockID == "head" {
+		stateRoot, err := block.StateRoot()
+		if err != nil {
+			b.log.WithError(err).Error("Failed to get state root for head block")
+
+			return
+		}
+
+		compressedHash := float64(b.getModulo(string(stateRoot[:])))
+
+		b.log.WithField("compressed_hash", compressedHash).Debug("Calculated state root of head block")
+
+		b.HeadSlotHash.Set(compressedHash)
+	}
+}
+
+func (b *Beacon) recordFinalityCheckpointHash(stateID string, finality *v1.Finality) {
+	finalized := float64(b.getModulo(string(finality.Finalized.Root[:])))
+
+	justified := float64(b.getModulo(string(finality.Justified.Root[:])))
+
+	previousJustified := float64(b.getModulo(string(finality.PreviousJustified.Root[:])))
+
+	b.log.WithFields(logrus.Fields{
+		"state_id":           stateID,
+		"finalized":          finalized,
+		"justified":          justified,
+		"previous_justified": previousJustified,
+	}).Debug("Recorded finality checkpoint hash")
+
+	b.FinalityCheckpointHash.WithLabelValues(stateID, "finalized").Set(finalized)
+	b.FinalityCheckpointHash.WithLabelValues(stateID, "justified").Set(justified)
+	b.FinalityCheckpointHash.WithLabelValues(stateID, "previous_justified").Set(previousJustified)
+}
+
+func (b *Beacon) getModulo(hash string) int {
+	h := fnv.New32a()
+	h.Write([]byte(hash))
+
+	return int(float64(h.Sum32() % NumRootHashShards))
 }
