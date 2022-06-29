@@ -36,7 +36,7 @@ const (
 	NameBeacon = "beacon"
 	// NumRootHashShards defines the range of values that the *hash metrics are moduloed by. That is to say,
 	// this number defines the value range of those metrics from 0 -> NumRootHashShards.
-	NumRootHashShards = 4096
+	NumRootHashShards = 65536
 )
 
 // NewBeacon creates a new Beacon instance.
