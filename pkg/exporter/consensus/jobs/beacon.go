@@ -11,6 +11,7 @@ import (
 	"github.com/attestantio/go-eth2-client/spec"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,6 +19,7 @@ import (
 type Beacon struct {
 	client                 eth2client.Service
 	log                    logrus.FieldLogger
+	beaconNode             *beacon.Node
 	Slot                   prometheus.GaugeVec
 	Transactions           prometheus.GaugeVec
 	Slashings              prometheus.GaugeVec
@@ -40,13 +42,14 @@ const (
 )
 
 // NewBeacon creates a new Beacon instance.
-func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Beacon {
+func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, beac *beacon.Node, log logrus.FieldLogger, namespace string, constLabels map[string]string) Beacon {
 	constLabels["module"] = NameBeacon
 	namespace += "_beacon"
 
 	return Beacon{
-		client: client,
-		log:    log,
+		client:     client,
+		beaconNode: beac,
+		log:        log,
 		Slot: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,

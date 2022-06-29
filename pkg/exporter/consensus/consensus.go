@@ -8,6 +8,7 @@ import (
 	"github.com/attestantio/go-eth2-client/http"
 	"github.com/rs/zerolog"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,13 +27,14 @@ type Node interface {
 }
 
 type node struct {
-	name      string
-	url       string
-	namespace string
-	client    eth2client.Service
-	api       api.ConsensusClient
-	log       logrus.FieldLogger
-	metrics   Metrics
+	name       string
+	url        string
+	namespace  string
+	client     eth2client.Service
+	api        api.ConsensusClient
+	beaconNode *beacon.Node
+	log        logrus.FieldLogger
+	metrics    Metrics
 }
 
 // NewConsensusNode returns a new Node instance.
@@ -64,6 +66,7 @@ func (c *node) Bootstrap(ctx context.Context) error {
 
 	c.client = client
 	c.api = api.NewConsensusClient(ctx, c.log, c.url)
+	c.beaconNode = beacon.NewNode(ctx, c.log, c.api, c.client)
 
 	return nil
 }
@@ -82,6 +85,10 @@ func (c *node) StartMetrics(ctx context.Context) {
 		time.Sleep(5 * time.Second)
 	}
 
-	c.metrics = NewMetrics(c.client, c.api, c.log, c.name, c.namespace)
+	if err := c.beaconNode.Start(ctx); err != nil {
+		c.log.WithError(err).Error("Failed to start beacon state")
+	}
+
+	c.metrics = NewMetrics(c.client, c.api, c.beaconNode, c.log, c.name, c.namespace)
 	c.metrics.StartAsync(ctx)
 }

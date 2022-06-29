@@ -2,10 +2,13 @@ package exporter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/nats-io/nats-server/v2/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/disk"
@@ -37,6 +40,7 @@ type exporter struct {
 	consensus consensus.Node
 	execution execution.Node
 	diskUsage disk.UsageMetrics
+	broker    *server.Server
 }
 
 func (e *exporter) Init(ctx context.Context) error {
@@ -85,6 +89,13 @@ func (e *exporter) Init(ctx context.Context) error {
 		e.diskUsage = diskUsage
 	}
 
+	natsServer, err := server.NewServer(&server.Options{})
+	if err != nil {
+		return err
+	}
+
+	e.broker = natsServer
+
 	return nil
 }
 
@@ -93,6 +104,13 @@ func (e *exporter) Config(ctx context.Context) *Config {
 }
 
 func (e *exporter) Serve(ctx context.Context, port int) error {
+	// Start the nats server via goroutine
+	go e.broker.Start()
+
+	if !e.broker.ReadyForConnections(15 * time.Second) {
+		return errors.New("nats server failed to start")
+	}
+
 	if e.config.Execution.Enabled {
 		e.log.Info("Starting execution metrics...")
 

@@ -316,7 +316,7 @@ func (s *Spec) Update(spec map[string]interface{}) {
 	}
 
 	if secondsPerEth1Block, exists := spec["SECONDS_PER_ETH1_BLOCK"]; exists {
-		s.SecondsPerEth1Block.Set(float64(cast.ToDuration(secondsPerEth1Block)))
+		s.SecondsPerEth1Block.Set(float64(cast.ToDuration(secondsPerEth1Block).Seconds()))
 	}
 
 	if baseRewardFactor, exists := spec["BASE_REWARD_FACTOR"]; exists {

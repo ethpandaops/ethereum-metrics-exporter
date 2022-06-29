@@ -9,6 +9,7 @@ import (
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/jobs"
 	"github.com/sirupsen/logrus"
 )
@@ -33,7 +34,7 @@ type metrics struct {
 }
 
 // NewMetrics returns a new metrics object.
-func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, nodeName, namespace string) Metrics {
+func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac *beacon.Node, log logrus.FieldLogger, nodeName, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "consensus"
 	constLabels["node_name"] = nodeName
@@ -45,7 +46,7 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.Fi
 		specMetrics:    jobs.NewSpecJob(client, ap, log, namespace, constLabels),
 		syncMetrics:    jobs.NewSyncJob(client, ap, log, namespace, constLabels),
 		forkMetrics:    jobs.NewForksJob(client, ap, log, namespace, constLabels),
-		beaconMetrics:  jobs.NewBeaconJob(client, ap, log, namespace, constLabels),
+		beaconMetrics:  jobs.NewBeaconJob(client, ap, beac, log, namespace, constLabels),
 		eventMetrics:   jobs.NewEventJob(client, ap, log, namespace, constLabels),
 	}
 
