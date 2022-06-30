@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats-server/v2/server"
+	"github.com/nats-io/nats.go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/disk"
@@ -48,10 +49,36 @@ func (e *exporter) Init(ctx context.Context) error {
 
 	namespace := "eth"
 
+	natsServer, err := server.NewServer(&server.Options{})
+	if err != nil {
+		return err
+	}
+
+	e.broker = natsServer
+
+	// Start the nats server via goroutine
+	go e.broker.Start()
+
+	if !e.broker.ReadyForConnections(15 * time.Second) {
+		return errors.New("nats server failed to start")
+	}
+
+	nc, err := nats.Connect(e.broker.ClientURL())
+
+	if err != nil {
+		return err
+	}
+
+	// Create a NATS encoded connection to the nats server
+	conn, err := nats.NewEncodedConn(nc, nats.JSON_ENCODER)
+	if err != nil {
+		return err
+	}
+
 	if e.config.Consensus.Enabled {
 		e.log.Info("Initializing consensus...")
 
-		consensusNode, err := consensus.NewConsensusNode(ctx, e.log.WithField("exporter", "consensus"), fmt.Sprintf("%s_con", namespace), e.config.Consensus.Name, e.config.Consensus.URL)
+		consensusNode, err := consensus.NewConsensusNode(ctx, e.log.WithField("exporter", "consensus"), fmt.Sprintf("%s_con", namespace), e.config.Consensus.Name, e.config.Consensus.URL, conn)
 		if err != nil {
 			return err
 		}
@@ -89,13 +116,6 @@ func (e *exporter) Init(ctx context.Context) error {
 		e.diskUsage = diskUsage
 	}
 
-	natsServer, err := server.NewServer(&server.Options{})
-	if err != nil {
-		return err
-	}
-
-	e.broker = natsServer
-
 	return nil
 }
 
@@ -104,13 +124,6 @@ func (e *exporter) Config(ctx context.Context) *Config {
 }
 
 func (e *exporter) Serve(ctx context.Context, port int) error {
-	// Start the nats server via goroutine
-	go e.broker.Start()
-
-	if !e.broker.ReadyForConnections(15 * time.Second) {
-		return errors.New("nats server failed to start")
-	}
-
 	if e.config.Execution.Enabled {
 		e.log.Info("Starting execution metrics...")
 

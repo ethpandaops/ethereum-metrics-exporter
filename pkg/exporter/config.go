@@ -35,7 +35,7 @@ type DiskUsage struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Execution: ExecutionNode{
-			Enabled: true,
+			Enabled: false,
 			Name:    "execution",
 			URL:     "http://localhost:8545",
 			Modules: []string{"eth", "net", "web3"},

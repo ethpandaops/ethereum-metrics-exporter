@@ -6,9 +6,11 @@ import (
 
 	eth2client "github.com/attestantio/go-eth2-client"
 	"github.com/attestantio/go-eth2-client/http"
+	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/event"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,16 +35,19 @@ type node struct {
 	client     eth2client.Service
 	api        api.ConsensusClient
 	beaconNode *beacon.Node
+	events     *event.DecoratedPublisher
 	log        logrus.FieldLogger
+	ec         *nats.EncodedConn
 	metrics    Metrics
 }
 
 // NewConsensusNode returns a new Node instance.
-func NewConsensusNode(ctx context.Context, log logrus.FieldLogger, namespace, name, url string) (Node, error) {
+func NewConsensusNode(ctx context.Context, log logrus.FieldLogger, namespace, name, url string, ec *nats.EncodedConn) (Node, error) {
 	return &node{
 		name:      name,
 		url:       url,
 		log:       log,
+		ec:        ec,
 		namespace: namespace,
 	}, nil
 }
@@ -66,7 +71,8 @@ func (c *node) Bootstrap(ctx context.Context) error {
 
 	c.client = client
 	c.api = api.NewConsensusClient(ctx, c.log, c.url)
-	c.beaconNode = beacon.NewNode(ctx, c.log, c.api, c.client)
+	c.events = event.NewDecoratedPublisher(ctx, c.log, c.client, c.ec)
+	c.beaconNode = beacon.NewNode(ctx, c.log, c.api, c.client, c.events)
 
 	return nil
 }
@@ -85,9 +91,8 @@ func (c *node) StartMetrics(ctx context.Context) {
 		time.Sleep(5 * time.Second)
 	}
 
-	if err := c.beaconNode.Start(ctx); err != nil {
-		c.log.WithError(err).Error("Failed to start beacon state")
-	}
+	c.beaconNode.StartAsync(ctx)
+	c.events.StartListeningForEvents(ctx)
 
 	c.metrics = NewMetrics(c.client, c.api, c.beaconNode, c.log, c.name, c.namespace)
 	c.metrics.StartAsync(ctx)

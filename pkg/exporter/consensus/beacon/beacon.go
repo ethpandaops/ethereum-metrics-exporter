@@ -7,8 +7,9 @@ import (
 
 	eth2client "github.com/attestantio/go-eth2-client"
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/event"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,20 +21,19 @@ type Node struct {
 	// Clients
 	api    api.ConsensusClient
 	client eth2client.Service
+	events *event.DecoratedPublisher
 
 	// Internal data stores
-	spec    *Spec
 	genesis *v1.Genesis
-
-	// Misc
-	specFetchedAt time.Time
+	state   *state.Container
 }
 
-func NewNode(ctx context.Context, log logrus.FieldLogger, ap api.ConsensusClient, client eth2client.Service) *Node {
+func NewNode(ctx context.Context, log logrus.FieldLogger, ap api.ConsensusClient, client eth2client.Service, events *event.DecoratedPublisher) *Node {
 	return &Node{
 		log:    log,
 		api:    ap,
 		client: client,
+		events: events,
 	}
 }
 
@@ -42,46 +42,64 @@ func (n *Node) Start(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(time.Second * 5):
+		case <-time.After(time.Second * 1):
 			n.tick(ctx)
 		}
 	}
 }
 
+func (n *Node) StartAsync(ctx context.Context) {
+	go func() {
+		if err := n.Start(ctx); err != nil {
+			n.log.WithError(err).Error("Failed to start beacon node")
+		}
+	}()
+}
+
 func (n *Node) tick(ctx context.Context) {
-	if time.Since(n.specFetchedAt) > 15*time.Minute {
-		if err := n.fetchSpec(ctx); err != nil {
-			n.log.Errorf("failed to fetch spec: %v", err)
+	if n.state == nil {
+		if err := n.InitializeState(ctx); err != nil {
+			n.log.WithError(err).Error("Failed to initialize state")
 		}
-
-		if _, err := n.GetGenesis(ctx); err != nil {
-			n.log.Errorf("failed to fetch genesis: %v", err)
-		}
-	}
-
-	if _, _, err := n.CurrentSlot(ctx); err != nil {
-		n.log.Errorf("failed to get current slot: %v", err)
 	}
 }
 
-func (n *Node) fetchSpec(ctx context.Context) error {
-	provider, isProvider := n.client.(eth2client.SpecProvider)
-	if !isProvider {
-		return errors.New("client does not implement eth2client.SpecProvider")
-	}
+func (n *Node) InitializeState(ctx context.Context) error {
+	n.log.Info("Initializing beacon state")
 
-	data, err := provider.Spec(ctx)
+	spec, err := n.GetSpec(ctx)
 	if err != nil {
 		return err
 	}
 
-	spec := NewSpec(data)
+	genesis, err := n.GetGenesis(ctx)
+	if err != nil {
+		return err
+	}
 
-	n.spec = &spec
+	st := state.NewContainer(ctx, n.log, spec, genesis, n.events)
 
-	n.specFetchedAt = time.Now()
+	if err := st.Init(ctx); err != nil {
+		return err
+	}
 
-	spew.Dump(spec)
+	n.state = &st
 
 	return nil
+}
+
+func (n *Node) GetSpec(ctx context.Context) (*state.Spec, error) {
+	provider, isProvider := n.client.(eth2client.SpecProvider)
+	if !isProvider {
+		return nil, errors.New("client does not implement eth2client.SpecProvider")
+	}
+
+	data, err := provider.Spec(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	spec := state.NewSpec(data)
+
+	return &spec, nil
 }
