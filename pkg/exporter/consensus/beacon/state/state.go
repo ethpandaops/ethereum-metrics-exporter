@@ -8,7 +8,6 @@ import (
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/attestantio/go-eth2-client/spec"
 	"github.com/attestantio/go-eth2-client/spec/phase0"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/nats-io/nats.go"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/event"
 	"github.com/sirupsen/logrus"
@@ -24,7 +23,7 @@ type Container struct {
 }
 
 const (
-	SURROUNDING_EPOCH_DISTANCE = 3
+	SURROUNDING_EPOCH_DISTANCE = 1
 )
 
 func NewContainer(ctx context.Context, log logrus.FieldLogger, spec *Spec, genesis *v1.Genesis, events *event.DecoratedPublisher) Container {
@@ -35,7 +34,7 @@ func NewContainer(ctx context.Context, log logrus.FieldLogger, spec *Spec, genes
 
 		genesis: genesis,
 
-		Epochs: NewEpochs(spec),
+		Epochs: NewEpochs(spec, genesis),
 	}
 }
 
@@ -95,7 +94,7 @@ func (c *Container) insertBeaconBlock(ctx context.Context, beaconBlock *spec.Ver
 	epochNumber := phase0.Epoch(slot / c.Spec.SlotsPerEpoch)
 
 	if exists := c.Epochs.Exists(epochNumber); !exists {
-		if err := c.AddEpoch(epochNumber); err != nil {
+		if err := c.Epochs.NewInitializedEpoch(epochNumber); err != nil {
 			return err
 		}
 	}
@@ -111,11 +110,16 @@ func (c *Container) insertBeaconBlock(ctx context.Context, beaconBlock *spec.Ver
 		return err
 	}
 
+	delay, err := epoch.Blocks.GetSlotProposerDelay(slot)
+	if err != nil {
+		return err
+	}
+
 	c.log.WithFields(logrus.Fields{
-		"epoch": epochNumber,
-		"slot":  slot,
+		"epoch":          epochNumber,
+		"slot":           slot,
+		"proposer_delay": delay.String(),
 	}).Info("Inserted beacon block")
-	spew.Dump(epoch)
 
 	return nil
 }
@@ -129,26 +133,10 @@ func (c *Container) hydrateEpochs() error {
 	// Ensure the state has +-SURROUNDING_EPOCH_DISTANCE epochs created.
 	for i := epoch - SURROUNDING_EPOCH_DISTANCE; i <= epoch+SURROUNDING_EPOCH_DISTANCE; i++ {
 		if _, err := c.Epochs.GetEpoch(i); err != nil {
-			if err := c.AddEpoch(i); err != nil {
+			if err := c.Epochs.NewInitializedEpoch(i); err != nil {
 				return err
 			}
 		}
-	}
-
-	return nil
-}
-
-func (c *Container) AddEpoch(epoch phase0.Epoch) error {
-	if _, err := c.Epochs.GetEpoch(epoch); err == nil {
-		return errors.New("epoch already exists")
-	}
-
-	c.log.Infof("Creating epoch %d", epoch)
-
-	newEpoch := NewEpoch(c.Spec.SlotsPerEpoch)
-
-	if err := c.Epochs.AddEpoch(epoch, &newEpoch); err != nil {
-		return err
 	}
 
 	return nil

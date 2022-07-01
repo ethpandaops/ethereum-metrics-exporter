@@ -3,20 +3,22 @@ package state
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 )
 
 type MapOfSlotToBlock struct {
 	blocks map[phase0.Slot]*TimedBlock
-
-	mu *sync.Mutex
+	bundle BlockTimeCalculatorBundle
+	mu     *sync.Mutex
 }
 
-func NewMapOfSlotToBlock() MapOfSlotToBlock {
+func NewMapOfSlotToBlock(bundle BlockTimeCalculatorBundle) MapOfSlotToBlock {
 	return MapOfSlotToBlock{
 		blocks: make(map[phase0.Slot]*TimedBlock),
 		mu:     &sync.Mutex{},
+		bundle: bundle,
 	}
 }
 
@@ -53,11 +55,23 @@ func (m *MapOfSlotToBlock) AddBlock(timedBlock *TimedBlock) error {
 	return nil
 }
 
-func (m *MapOfSlotToBlock) InitializeSlots(slots phase0.Slot) {
+func (m *MapOfSlotToBlock) AddEmptySlot(slot phase0.Slot) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	for i := uint64(0); i < uint64(slots); i++ {
-		m.blocks[phase0.Slot(i)] = nil
+	m.blocks[slot] = nil
+}
+
+func (m *MapOfSlotToBlock) GetSlotProposerDelay(slot phase0.Slot) (time.Duration, error) {
+	block, err := m.GetBlockAtSlot(slot)
+	if err != nil {
+		return 0, err
 	}
+
+	// Calculate the proposer delay for the block.
+	// A negative delay means the block was proposed in-time.
+	expected := m.bundle.Genesis.GenesisTime.Add(time.Duration(uint64(slot)) * m.bundle.SecondsPerSlot)
+	delay := expected.Sub(block.SeenAt)
+
+	return delay, nil
 }

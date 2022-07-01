@@ -4,21 +4,27 @@ import (
 	"errors"
 	"sync"
 
+	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 )
 
 type Epochs struct {
-	spec  *Spec
-	state map[phase0.Epoch]*Epoch
-
-	mu *sync.Mutex
+	spec    *Spec
+	state   map[phase0.Epoch]*Epoch
+	genesis *v1.Genesis
+	bundle  BlockTimeCalculatorBundle
+	mu      *sync.Mutex
 }
 
-func NewEpochs(spec *Spec) Epochs {
+func NewEpochs(spec *Spec, genesis *v1.Genesis) Epochs {
 	return Epochs{
-		spec:  spec,
-		state: make(map[phase0.Epoch]*Epoch),
-
+		spec:    spec,
+		state:   make(map[phase0.Epoch]*Epoch),
+		genesis: genesis,
+		bundle: BlockTimeCalculatorBundle{
+			Genesis:        genesis,
+			SecondsPerSlot: spec.SecondsPerSlot,
+		},
 		mu: &sync.Mutex{},
 	}
 }
@@ -44,10 +50,7 @@ func (e *Epochs) Exists(number phase0.Epoch) bool {
 }
 
 func (e *Epochs) NewInitializedEpoch(number phase0.Epoch) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	epoch := NewEpoch(e.spec.SlotsPerEpoch)
+	epoch := NewEpoch(number, e.spec.SlotsPerEpoch, e.bundle)
 
 	return e.AddEpoch(number, &epoch)
 }

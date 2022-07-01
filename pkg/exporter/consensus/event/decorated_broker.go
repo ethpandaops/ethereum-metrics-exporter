@@ -89,6 +89,8 @@ func (p *DecoratedPublisher) handleEvent(ctx context.Context, event *v1.Event) e
 		return p.handleBlockEvent(ctx, event)
 	case "attestation":
 		// do nothing
+	case "head":
+		// do nothing
 	default:
 		return fmt.Errorf("unknown event: %s", event.Topic)
 	}

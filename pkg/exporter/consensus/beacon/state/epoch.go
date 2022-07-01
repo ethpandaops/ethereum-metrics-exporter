@@ -12,15 +12,26 @@ import (
 type Epoch struct {
 	ProposerDuties ProposerDuties
 	Blocks         MapOfSlotToBlock
+	Number         phase0.Epoch
+	Start          phase0.Slot
+	End            phase0.Slot
+	bundle         BlockTimeCalculatorBundle
 }
 
-func NewEpoch(slotsPerEpoch phase0.Slot) Epoch {
+func NewEpoch(epochNumber phase0.Epoch, slotsPerEpoch phase0.Slot, bundle BlockTimeCalculatorBundle) Epoch {
+	start := uint64(epochNumber) * uint64(slotsPerEpoch)
+	end := (start + uint64(slotsPerEpoch)) - 1
+
 	e := Epoch{
+		Number:         epochNumber,
 		ProposerDuties: make(ProposerDuties),
-		Blocks:         NewMapOfSlotToBlock(),
+		Blocks:         NewMapOfSlotToBlock(bundle),
+		Start:          phase0.Slot(start),
+		End:            phase0.Slot(end),
+		bundle:         bundle,
 	}
 
-	e.Blocks.InitializeSlots(slotsPerEpoch)
+	e.InitializeSlots(epochNumber, slotsPerEpoch)
 
 	return e
 }
@@ -48,4 +59,13 @@ func (e *Epoch) GetProserDutyAtSlot(slot phase0.Slot) (*v1.ProposerDuty, error) 
 	}
 
 	return e.ProposerDuties[slot], nil
+}
+
+func (e *Epoch) InitializeSlots(epoch phase0.Epoch, slots phase0.Slot) {
+	start := uint64(e.Start)
+	end := uint64(e.End)
+
+	for i := start; i <= end; i++ {
+		e.Blocks.AddEmptySlot(phase0.Slot(i))
+	}
 }
