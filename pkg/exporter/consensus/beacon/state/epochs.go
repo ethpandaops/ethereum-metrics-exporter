@@ -49,10 +49,14 @@ func (e *Epochs) Exists(number phase0.Epoch) bool {
 	return ok
 }
 
-func (e *Epochs) NewInitializedEpoch(number phase0.Epoch) error {
+func (e *Epochs) NewInitializedEpoch(number phase0.Epoch) (*Epoch, error) {
 	epoch := NewEpoch(number, e.spec.SlotsPerEpoch, e.bundle)
 
-	return e.AddEpoch(number, &epoch)
+	if err := e.AddEpoch(number, &epoch); err != nil {
+		return nil, err
+	}
+
+	return &epoch, nil
 }
 
 func (e *Epochs) AddEpoch(number phase0.Epoch, epoch *Epoch) error {

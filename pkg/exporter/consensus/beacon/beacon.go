@@ -7,6 +7,7 @@ import (
 
 	eth2client "github.com/attestantio/go-eth2-client"
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
+	"github.com/attestantio/go-eth2-client/spec/phase0"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/event"
@@ -26,6 +27,8 @@ type Node struct {
 	// Internal data stores
 	genesis *v1.Genesis
 	state   *state.Container
+
+	currentEpoch phase0.Epoch
 }
 
 func NewNode(ctx context.Context, log logrus.FieldLogger, ap api.ConsensusClient, client eth2client.Service, events *event.DecoratedPublisher) *Node {
@@ -34,6 +37,8 @@ func NewNode(ctx context.Context, log logrus.FieldLogger, ap api.ConsensusClient
 		api:    ap,
 		client: client,
 		events: events,
+
+		currentEpoch: phase0.Epoch(0),
 	}
 }
 
@@ -61,7 +66,47 @@ func (n *Node) tick(ctx context.Context) {
 		if err := n.InitializeState(ctx); err != nil {
 			n.log.WithError(err).Error("Failed to initialize state")
 		}
+	} else {
+		if err := n.checkForNewEpoch(ctx); err != nil {
+			n.log.WithError(err).Error("Failed to check for new epoch")
+		}
 	}
+}
+
+func (n *Node) checkForNewEpoch(ctx context.Context) error {
+	currentEpoch, err := n.state.CurrentEpoch()
+	if err != nil {
+		return err
+	}
+
+	if n.currentEpoch != currentEpoch {
+		n.log.WithField("epoch", currentEpoch).Info("Epoch changed")
+
+		for i := currentEpoch; i < currentEpoch+1; i++ {
+			if err := n.fetchEpochProposerDuties(ctx, phase0.Epoch(i)); err != nil {
+				return err
+			}
+		}
+
+		n.currentEpoch = currentEpoch
+	}
+
+	return nil
+}
+
+func (n *Node) fetchEpochProposerDuties(ctx context.Context, epoch phase0.Epoch) error {
+	n.log.WithField("epoch", epoch).Info("Fetching proposer duties")
+
+	duties, err := n.GetProserDuties(ctx, epoch)
+	if err != nil {
+		return err
+	}
+
+	if err := n.state.SetProposerDuties(ctx, epoch, duties); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (n *Node) InitializeState(ctx context.Context) error {
@@ -102,4 +147,18 @@ func (n *Node) GetSpec(ctx context.Context) (*state.Spec, error) {
 	spec := state.NewSpec(data)
 
 	return &spec, nil
+}
+
+func (n *Node) GetProserDuties(ctx context.Context, epoch phase0.Epoch) ([]*v1.ProposerDuty, error) {
+	provider, isProvider := n.client.(eth2client.ProposerDutiesProvider)
+	if !isProvider {
+		return nil, errors.New("client does not implement eth2client.ProposerDutiesProvider")
+	}
+
+	duties, err := provider.ProposerDuties(ctx, epoch, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return duties, nil
 }

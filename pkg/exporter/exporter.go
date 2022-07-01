@@ -125,7 +125,7 @@ func (e *exporter) Config(ctx context.Context) *Config {
 
 func (e *exporter) Serve(ctx context.Context, port int) error {
 	if e.config.Execution.Enabled {
-		e.log.Info("Starting execution metrics...")
+		e.log.WithField("execution_url", e.execution.URL()).Info("Starting execution metrics...")
 
 		go e.execution.StartMetrics(ctx)
 	}
@@ -137,15 +137,12 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 	}
 
 	if e.config.Consensus.Enabled {
-		e.log.Info("Starting consensus metrics...")
+		e.log.WithField("consensus_url", e.consensus.URL()).Info("Starting consensus metrics...")
 
 		go e.consensus.StartMetrics(ctx)
 	}
 
-	e.log.
-		WithField("consensus_url", e.consensus.URL()).
-		WithField("execution_url", e.execution.URL()).
-		Info(fmt.Sprintf("Starting metrics server on :%v", port))
+	e.log.Info(fmt.Sprintf("Starting metrics server on :%v", port))
 
 	http.Handle("/metrics", promhttp.Handler())
 

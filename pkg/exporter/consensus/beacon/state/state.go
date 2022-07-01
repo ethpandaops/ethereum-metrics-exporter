@@ -3,6 +3,7 @@ package state
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
@@ -16,9 +17,9 @@ import (
 type Container struct {
 	log           logrus.FieldLogger
 	events        *event.DecoratedPublisher
-	Spec          *Spec
+	spec          *Spec
 	genesis       *v1.Genesis
-	Epochs        Epochs
+	epochs        Epochs
 	subscriptions []*nats.Subscription
 }
 
@@ -29,12 +30,12 @@ const (
 func NewContainer(ctx context.Context, log logrus.FieldLogger, spec *Spec, genesis *v1.Genesis, events *event.DecoratedPublisher) Container {
 	return Container{
 		log:    log,
-		Spec:   spec,
+		spec:   spec,
 		events: events,
 
 		genesis: genesis,
 
-		Epochs: NewEpochs(spec, genesis),
+		epochs: NewEpochs(spec, genesis),
 	}
 }
 
@@ -52,6 +53,10 @@ func (c *Container) Init(ctx context.Context) error {
 
 	c.subscriptions = append(c.subscriptions, subscription)
 
+	if err := c.hydrateEpochs(); err != nil {
+		return err
+	}
+
 	go c.ticker(ctx)
 
 	return nil
@@ -62,7 +67,7 @@ func (c *Container) ticker(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Second * 1):
+		case <-time.After(time.Second * 5):
 			c.tick(ctx)
 		}
 	}
@@ -91,34 +96,44 @@ func (c *Container) insertBeaconBlock(ctx context.Context, beaconBlock *spec.Ver
 		return err
 	}
 
-	epochNumber := phase0.Epoch(slot / c.Spec.SlotsPerEpoch)
+	epochNumber := phase0.Epoch(slot / c.spec.SlotsPerEpoch)
 
-	if exists := c.Epochs.Exists(epochNumber); !exists {
-		if err := c.Epochs.NewInitializedEpoch(epochNumber); err != nil {
+	if exists := c.epochs.Exists(epochNumber); !exists {
+		if _, err = c.epochs.NewInitializedEpoch(epochNumber); err != nil {
 			return err
 		}
 	}
 
 	// Get the epoch
-	epoch, err := c.Epochs.GetEpoch(epochNumber)
+	epoch, err := c.epochs.GetEpoch(epochNumber)
 	if err != nil {
 		return err
 	}
 
 	// Insert the block
-	if err := epoch.AddBlock(beaconBlock); err != nil {
+	if err = epoch.AddBlock(beaconBlock); err != nil {
 		return err
 	}
 
-	delay, err := epoch.Blocks.GetSlotProposerDelay(slot)
+	delay, err := epoch.slots.GetSlotProposerDelay(slot)
 	if err != nil {
 		return err
+	}
+
+	proposer := "unknown"
+
+	proposerDuty, err := epoch.GetSlotProposer(slot)
+	if err == nil {
+		proposer = fmt.Sprintf("%v", proposerDuty.ValidatorIndex)
+	} else {
+		c.log.WithError(err).WithField("slot", slot).Warn("Failed to get slot proposer")
 	}
 
 	c.log.WithFields(logrus.Fields{
 		"epoch":          epochNumber,
 		"slot":           slot,
 		"proposer_delay": delay.String(),
+		"proposer_index": proposer,
 	}).Info("Inserted beacon block")
 
 	return nil
@@ -132,10 +147,18 @@ func (c *Container) hydrateEpochs() error {
 
 	// Ensure the state has +-SURROUNDING_EPOCH_DISTANCE epochs created.
 	for i := epoch - SURROUNDING_EPOCH_DISTANCE; i <= epoch+SURROUNDING_EPOCH_DISTANCE; i++ {
-		if _, err := c.Epochs.GetEpoch(i); err != nil {
-			if err := c.Epochs.NewInitializedEpoch(i); err != nil {
+		if _, err := c.epochs.GetEpoch(i); err != nil {
+			epoch, err := c.epochs.NewInitializedEpoch(i)
+			if err != nil {
 				return err
 			}
+
+			c.log.WithFields(logrus.Fields{
+				"epoch":     epoch.Number,
+				"starts_at": epoch.StartTime.String(),
+				"ends_at":   epoch.EndTime.String(),
+				"duration":  epoch.Duration.String(),
+			}).Info("Created new epoch")
 		}
 	}
 
@@ -161,7 +184,7 @@ func (c *Container) CurrentSlot() (phase0.Slot, error) {
 }
 
 func (c *Container) GetCurrentEpochAndSlot() (phase0.Epoch, phase0.Slot, error) {
-	if c.Spec == nil {
+	if c.spec == nil {
 		return 0, 0, ErrSpecNotInitialized
 	}
 
@@ -169,15 +192,28 @@ func (c *Container) GetCurrentEpochAndSlot() (phase0.Epoch, phase0.Slot, error) 
 		return 0, 0, ErrGenesisNotFetched
 	}
 
-	if err := c.Spec.Validate(); err != nil {
+	if err := c.spec.Validate(); err != nil {
 		return 0, 0, err
 	}
 
 	// Calculate the current epoch based on genesis time.
 	genesis := c.genesis.GenesisTime
 
-	currentSlot := phase0.Slot(time.Since(genesis).Seconds() / c.Spec.SecondsPerSlot.Seconds())
-	currentEpoch := phase0.Epoch(currentSlot / c.Spec.SlotsPerEpoch)
+	currentSlot := phase0.Slot(time.Since(genesis).Seconds() / c.spec.SecondsPerSlot.Seconds())
+	currentEpoch := phase0.Epoch(currentSlot / c.spec.SlotsPerEpoch)
 
 	return currentEpoch, currentSlot, nil
+}
+
+func (c *Container) SetProposerDuties(ctx context.Context, epochNumber phase0.Epoch, duties []*v1.ProposerDuty) error {
+	epoch, err := c.epochs.GetEpoch(epochNumber)
+	if err != nil {
+		return err
+	}
+
+	if err := epoch.SetProposerDuties(duties); err != nil {
+		return err
+	}
+
+	return nil
 }
