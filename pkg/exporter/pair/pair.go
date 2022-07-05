@@ -117,7 +117,7 @@ func (p *pair) StartAsync(ctx context.Context) {
 					}
 				}
 
-				if time.Since(p.ttdFetchedAt) > 5*time.Minute {
+				if time.Since(p.ttdFetchedAt) > 15*time.Minute {
 					if err := p.fetchTerminalTotalDifficulty(ctx); err != nil {
 						p.log.WithError(err).Error("Failed to fetch terminal total difficulty")
 					}
@@ -129,7 +129,7 @@ func (p *pair) StartAsync(ctx context.Context) {
 					}
 				}
 
-				if time.Since(p.networkIDFetchedAt) > 1*time.Minute {
+				if time.Since(p.networkIDFetchedAt) > 15*time.Minute {
 					if err := p.fetchNetworkID(ctx); err != nil {
 						p.log.WithError(err).Error("Failed to fetch network ID")
 					}
