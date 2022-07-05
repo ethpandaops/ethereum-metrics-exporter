@@ -8,6 +8,8 @@ type Config struct {
 	Consensus ConsensusNode `yaml:"consensus"`
 	// DiskUsage determines if the disk usage metrics should be exported.
 	DiskUsage DiskUsage `yaml:"diskUsage"`
+	// Pair determines if the pair metrics should be exported.
+	Pair PairConfig `yaml:"pair"`
 }
 
 // ConsensusNode represents a single ethereum consensus client.
@@ -31,6 +33,11 @@ type DiskUsage struct {
 	Directories []string `yaml:"directories"`
 }
 
+// PairConfig holds the config for a Pair of Execution and Consensus Clients
+type PairConfig struct {
+	Enabled bool `yaml:"enabled"`
+}
+
 // DefaultConfig represents a sane-default configuration.
 func DefaultConfig() *Config {
 	return &Config{
@@ -48,6 +55,9 @@ func DefaultConfig() *Config {
 		DiskUsage: DiskUsage{
 			Enabled:     false,
 			Directories: []string{},
+		},
+		Pair: PairConfig{
+			Enabled: true,
 		},
 	}
 }
