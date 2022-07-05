@@ -49,7 +49,6 @@ linters:
     - tparallel
     - typecheck
     - unconvert
-    - unparam
     - varcheck
     - whitespace
     - wsl

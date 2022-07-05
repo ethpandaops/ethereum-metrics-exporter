@@ -14,6 +14,7 @@ import (
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/disk"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/pair"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,12 +37,13 @@ func NewExporter(log logrus.FieldLogger, conf *Config) Exporter {
 }
 
 type exporter struct {
-	log       logrus.FieldLogger
-	config    *Config
-	consensus consensus.Node
-	execution execution.Node
-	diskUsage disk.UsageMetrics
-	broker    *server.Server
+	log         logrus.FieldLogger
+	config      *Config
+	consensus   consensus.Node
+	execution   execution.Node
+	diskUsage   disk.UsageMetrics
+	broker      *server.Server
+	pairMetrics pair.Metrics
 }
 
 func (e *exporter) Init(ctx context.Context) error {
@@ -116,6 +118,17 @@ func (e *exporter) Init(ctx context.Context) error {
 		e.diskUsage = diskUsage
 	}
 
+	if e.config.Pair.Enabled && e.config.Execution.Enabled && e.config.Consensus.Enabled {
+		e.log.Info("Initializing pair...")
+
+		pairMetrics, err := pair.NewMetrics(ctx, e.log.WithField("exporter", "pair"), fmt.Sprintf("%s_pair", namespace), e.config.Consensus.URL, e.config.Execution.URL)
+		if err != nil {
+			return err
+		}
+
+		e.pairMetrics = pairMetrics
+	}
+
 	return nil
 }
 
@@ -142,7 +155,16 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 		go e.consensus.StartMetrics(ctx)
 	}
 
-	e.log.Info(fmt.Sprintf("Starting metrics server on :%v", port))
+	if e.config.Pair.Enabled && e.config.Execution.Enabled && e.config.Consensus.Enabled {
+		e.log.Info("Starting pair metrics...")
+
+		go e.pairMetrics.StartAsync(ctx)
+	}
+
+	e.log.
+		WithField("consensus_url", e.consensus.URL()).
+		WithField("execution_url", e.execution.URL()).
+		Info(fmt.Sprintf("Starting metrics server on :%v", port))
 
 	http.Handle("/metrics", promhttp.Handler())
 
