@@ -110,7 +110,7 @@ func (p *pair) StartAsync(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(time.Second * 15):
+			case <-time.After(time.Second * 5):
 				if !p.bootstrapped {
 					if err := p.Bootstrap(ctx); err != nil {
 						continue
