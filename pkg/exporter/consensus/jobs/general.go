@@ -2,21 +2,17 @@ package jobs
 
 import (
 	"context"
-	"errors"
 	"time"
 
-	eth2client "github.com/attestantio/go-eth2-client"
-	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/sirupsen/logrus"
 )
 
 // General reports general information about the node.
 type General struct {
-	client               eth2client.Service
-	api                  api.ConsensusClient
+	beacon               beacon.Node
 	log                  logrus.FieldLogger
 	NodeVersion          prometheus.GaugeVec
 	ClientName           prometheus.GaugeVec
@@ -29,12 +25,11 @@ const (
 )
 
 // NewGeneral creates a new General instance.
-func NewGeneralJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) General {
+func NewGeneralJob(beac beacon.Node, log logrus.FieldLogger, namespace string, constLabels map[string]string) General {
 	constLabels["module"] = NameGeneral
 
 	return General{
-		client: client,
-		api:    ap,
+		beacon: beac,
 		log:    log,
 		NodeVersion: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -66,68 +61,28 @@ func (g *General) Name() string {
 	return NameGeneral
 }
 
-func (g *General) Start(ctx context.Context) {
-	g.tick(ctx)
+func (g *General) Start(ctx context.Context) error {
+	if _, err := g.beacon.OnNodeVersionUpdated(ctx, func(ctx context.Context, event *beacon.NodeVersionUpdatedEvent) error {
+		g.NodeVersion.Reset()
+		g.NodeVersion.WithLabelValues(event.Version).Set(1)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Second * 15):
-			g.tick(ctx)
-		}
-	}
-}
-
-func (g *General) HandleEvent(ctx context.Context, event *v1.Event) {
-
-}
-
-func (g *General) tick(ctx context.Context) {
-	if err := g.GetNodeVersion(ctx); err != nil {
-		g.log.WithError(err).Error("Failed to get node version")
-	}
-
-	if err := g.GetPeers(ctx); err != nil {
-		g.log.WithError(err).Error("Failed to get peers")
-	}
-}
-
-func (g *General) GetNodeVersion(ctx context.Context) error {
-	if time.Since(g.nodeVersionFetchedAt) < (30 * time.Minute) {
 		return nil
-	}
-
-	provider, isProvider := g.client.(eth2client.NodeVersionProvider)
-	if !isProvider {
-		return errors.New("client does not implement eth2client.NodeVersionProvider")
-	}
-
-	version, err := provider.NodeVersion(ctx)
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
-	g.NodeVersion.Reset()
-	g.NodeVersion.WithLabelValues(version).Set(1)
+	if _, err := g.beacon.OnPeersUpdated(ctx, func(ctx context.Context, event *beacon.PeersUpdatedEvent) error {
+		g.Peers.Reset()
 
-	g.nodeVersionFetchedAt = time.Now()
-
-	return nil
-}
-
-func (g *General) GetPeers(ctx context.Context) error {
-	peers, err := g.api.NodePeers(ctx)
-	if err != nil {
-		return err
-	}
-
-	g.Peers.Reset()
-
-	for _, state := range types.PeerStates {
-		for _, direction := range types.PeerDirections {
-			g.Peers.WithLabelValues(state, direction).Set(float64(len(peers.ByStateAndDirection(state, direction))))
+		for _, state := range types.PeerStates {
+			for _, direction := range types.PeerDirections {
+				g.Peers.WithLabelValues(state, direction).Set(float64(len(event.Peers.ByStateAndDirection(state, direction))))
+			}
 		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

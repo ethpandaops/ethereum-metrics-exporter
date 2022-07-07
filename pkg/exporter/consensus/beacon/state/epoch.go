@@ -36,39 +36,67 @@ func NewEpoch(epochNumber phase0.Epoch, slotsPerEpoch phase0.Slot, bundle BlockT
 		bundle:    bundle,
 	}
 
-	e.InitializeSlots(epochNumber, slotsPerEpoch)
+	e.InitializeSlots()
 
 	return e
 }
 
-func (e *Epoch) AddBlock(block *spec.VersionedSignedBeaconBlock) error {
+func (e *Epoch) AddBlock(block *spec.VersionedSignedBeaconBlock, seenAt time.Time) error {
 	if block == nil {
 		return errors.New("block is nil")
 	}
 
-	return e.slots.AddBlock(&TimedBlock{
+	slotNumber, err := block.Slot()
+	if err != nil {
+		return err
+	}
+
+	slot, err := e.slots.Get(slotNumber)
+	if err != nil {
+		return err
+	}
+
+	return slot.AddBlock(&TimedBlock{
 		Block:  block,
-		SeenAt: time.Now(),
+		SeenAt: seenAt,
 	})
 }
 
-func (e *Epoch) GetSlotProposer(slot phase0.Slot) (*v1.ProposerDuty, error) {
-	return e.slots.GetProposerDuty(slot)
+func (e *Epoch) GetSlotProposer(slotNumber phase0.Slot) (*v1.ProposerDuty, error) {
+	slot, err := e.slots.Get(slotNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	return slot.ProposerDuty()
 }
 
 func (e *Epoch) SetProposerDuties(duties []*v1.ProposerDuty) error {
-	return e.slots.AddProposerDuties(duties)
+	for _, duty := range duties {
+		slot, err := e.slots.Get(duty.Slot)
+		if err != nil {
+			return err
+		}
+
+		if err := slot.SetProposerDuty(duty); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func (e *Epoch) HasProposerDuties() bool {
-	return len(e.slots.proposerDuties) > 0
+func (e *Epoch) GetSlot(slotNumber phase0.Slot) (*Slot, error) {
+	return e.slots.Get(slotNumber)
 }
 
-func (e *Epoch) InitializeSlots(epoch phase0.Epoch, slots phase0.Slot) {
+func (e *Epoch) InitializeSlots() {
 	start := uint64(e.FirstSlot)
 	end := uint64(e.LastSlot)
 
 	for i := start; i <= end; i++ {
-		e.slots.AddEmptySlot(phase0.Slot(i))
+		slot := NewSlot(phase0.Slot(i), e.bundle)
+
+		e.slots.Add(&slot)
 	}
 }

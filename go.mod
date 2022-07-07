@@ -6,7 +6,7 @@ go 1.17
 
 require (
 	github.com/spf13/cobra v1.4.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -21,6 +21,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.17 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/ferranbt/fastssz v0.0.0-20220103083642-bc5fefefa28b // indirect
+	github.com/go-co-op/gocron v1.15.0 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/goccy/go-yaml v1.9.5 // indirect
@@ -53,6 +54,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/prysmaticlabs/go-bitfield v0.0.0-20210809151128-385d8c5e3fb7 // indirect
 	github.com/r3labs/sse/v2 v2.7.4 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rs/zerolog v1.26.1 // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect

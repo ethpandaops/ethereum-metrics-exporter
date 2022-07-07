@@ -34,7 +34,7 @@ type metrics struct {
 }
 
 // NewMetrics returns a new metrics object.
-func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac *beacon.Node, log logrus.FieldLogger, nodeName, namespace string) Metrics {
+func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac beacon.Node, log logrus.FieldLogger, nodeName, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "consensus"
 	constLabels["node_name"] = nodeName
@@ -42,12 +42,12 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac *beacon.
 	m := &metrics{
 		log:            log,
 		client:         client,
-		generalMetrics: jobs.NewGeneralJob(client, ap, log, namespace, constLabels),
-		specMetrics:    jobs.NewSpecJob(client, ap, log, namespace, constLabels),
-		syncMetrics:    jobs.NewSyncJob(client, ap, log, namespace, constLabels),
-		forkMetrics:    jobs.NewForksJob(client, ap, log, namespace, constLabels),
+		generalMetrics: jobs.NewGeneralJob(beac, log, namespace, constLabels),
+		specMetrics:    jobs.NewSpecJob(beac, log, namespace, constLabels),
+		syncMetrics:    jobs.NewSyncJob(beac, log, namespace, constLabels),
+		forkMetrics:    jobs.NewForksJob(beac, log, namespace, constLabels),
 		beaconMetrics:  jobs.NewBeaconJob(client, ap, beac, log, namespace, constLabels),
-		eventMetrics:   jobs.NewEventJob(client, ap, log, namespace, constLabels),
+		eventMetrics:   jobs.NewEventJob(client, beac, log, namespace, constLabels),
 	}
 
 	prometheus.MustRegister(m.generalMetrics.NodeVersion)
@@ -99,6 +99,7 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac *beacon.
 	prometheus.MustRegister(m.beaconMetrics.ReOrgDepth)
 	prometheus.MustRegister(m.beaconMetrics.FinalityCheckpointHash)
 	prometheus.MustRegister(m.beaconMetrics.HeadSlotHash)
+	prometheus.MustRegister(m.beaconMetrics.ProposerDelay)
 
 	prometheus.MustRegister(m.eventMetrics.Count)
 	prometheus.MustRegister(m.eventMetrics.TimeSinceLastEvent)
@@ -170,10 +171,5 @@ func (m *metrics) startSubscriptions(ctx context.Context) error {
 }
 
 func (m *metrics) handleEvent(ctx context.Context, event *v1.Event) {
-	m.generalMetrics.HandleEvent(ctx, event)
-	m.specMetrics.HandleEvent(ctx, event)
-	m.syncMetrics.HandleEvent(ctx, event)
-	m.forkMetrics.HandleEvent(ctx, event)
 	m.beaconMetrics.HandleEvent(ctx, event)
-	m.eventMetrics.HandleEvent(ctx, event)
 }

@@ -19,7 +19,7 @@ import (
 type Beacon struct {
 	client                 eth2client.Service
 	log                    logrus.FieldLogger
-	beaconNode             *beacon.Node
+	beaconNode             beacon.Node
 	Slot                   prometheus.GaugeVec
 	Transactions           prometheus.GaugeVec
 	Slashings              prometheus.GaugeVec
@@ -31,6 +31,7 @@ type Beacon struct {
 	ReOrgDepth             prometheus.Counter
 	HeadSlotHash           prometheus.Gauge
 	FinalityCheckpointHash prometheus.GaugeVec
+	ProposerDelay          prometheus.Histogram
 	currentVersion         string
 }
 
@@ -42,7 +43,7 @@ const (
 )
 
 // NewBeacon creates a new Beacon instance.
-func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, beac *beacon.Node, log logrus.FieldLogger, namespace string, constLabels map[string]string) Beacon {
+func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, beac beacon.Node, log logrus.FieldLogger, namespace string, constLabels map[string]string) Beacon {
 	constLabels["module"] = NameBeacon
 	namespace += "_beacon"
 
@@ -171,6 +172,15 @@ func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, beac *beaco
 				"checkpoint",
 			},
 		),
+		ProposerDelay: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Namespace:   namespace,
+				Name:        "proposer_delay",
+				Help:        "The delay of the proposer.",
+				ConstLabels: constLabels,
+				Buckets:     prometheus.LinearBuckets(0, 1000, 13),
+			},
+		),
 	}
 }
 
@@ -178,15 +188,19 @@ func (b *Beacon) Name() string {
 	return NameBeacon
 }
 
-func (b *Beacon) Start(ctx context.Context) {
+func (b *Beacon) Start(ctx context.Context) error {
 	b.tick(ctx)
+
+	if err := b.setupSubscriptions(ctx); err != nil {
+		return err
+	}
 
 	go b.getInitialData(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		case <-time.After(time.Second * 5):
 			b.tick(ctx)
 		}
@@ -197,6 +211,44 @@ func (b *Beacon) tick(ctx context.Context) {
 
 }
 
+func (b *Beacon) setupSubscriptions(ctx context.Context) error {
+	if _, err := b.beaconNode.OnBlockInserted(ctx, b.handleBlockInserted); err != nil {
+		return err
+	}
+
+	if _, err := b.beaconNode.OnChainReOrg(ctx, b.handleChainReorg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *Beacon) handleBlockInserted(ctx context.Context, event *beacon.BlockInsertedEvent) error {
+	// Fetch the slot
+	slot, err := b.beaconNode.GetSlot(ctx, event.Slot)
+	if err != nil {
+		return err
+	}
+
+	timedBlock, err := slot.Block()
+	if err != nil {
+		return err
+	}
+
+	if err := b.handleSingleBlock("head", timedBlock.Block); err != nil {
+		return err
+	}
+
+	delay, err := slot.ProposerDelay()
+	if err != nil {
+		return err
+	}
+
+	b.ProposerDelay.Observe(float64(delay.Milliseconds()))
+
+	return nil
+}
+
 func (b *Beacon) getInitialData(ctx context.Context) {
 	for {
 		if b.client == nil {
@@ -204,7 +256,6 @@ func (b *Beacon) getInitialData(ctx context.Context) {
 			continue
 		}
 
-		b.updateBeaconBlock(ctx)
 		b.updateFinalizedCheckpoint(ctx)
 
 		break
@@ -212,27 +263,16 @@ func (b *Beacon) getInitialData(ctx context.Context) {
 }
 
 func (b *Beacon) HandleEvent(ctx context.Context, event *v1.Event) {
-	if event.Topic == EventTopicBlock {
-		b.handleBlockEvent(ctx, event)
-	}
-
 	if event.Topic == EventTopicFinalizedCheckpoint {
 		b.handleFinalizedCheckpointEvent(ctx, event)
 	}
-
-	if event.Topic == EventTopicChainReorg {
-		b.handleChainReorg(event)
-	}
 }
 
-func (b *Beacon) handleChainReorg(event *v1.Event) {
-	reorg, ok := event.Data.(*v1.ChainReorgEvent)
-	if !ok {
-		return
-	}
-
+func (b *Beacon) handleChainReorg(ctx context.Context, event *v1.ChainReorgEvent) error {
 	b.ReOrgs.Inc()
-	b.ReOrgDepth.Add(float64(reorg.Depth))
+	b.ReOrgDepth.Add(float64(event.Depth))
+
+	return nil
 }
 
 func (b *Beacon) handleFinalizedCheckpointEvent(ctx context.Context, event *v1.Event) {
@@ -252,21 +292,6 @@ func (b *Beacon) updateFinalizedCheckpoint(ctx context.Context) {
 	if err := b.GetSignedBeaconBlock(ctx, "finalized"); err != nil {
 		b.log.WithError(err).Error("Failed to get signed beacon block")
 	}
-}
-
-func (b *Beacon) updateBeaconBlock(ctx context.Context) {
-	if err := b.GetSignedBeaconBlock(ctx, "head"); err != nil {
-		b.log.WithError(err).Error("Failed to get signed beacon block")
-	}
-}
-
-func (b *Beacon) handleBlockEvent(ctx context.Context, event *v1.Event) {
-	_, ok := event.Data.(*v1.BlockEvent)
-	if !ok {
-		return
-	}
-
-	b.updateBeaconBlock(ctx)
 }
 
 func (b *Beacon) GetSignedBeaconBlock(ctx context.Context, blockID string) error {

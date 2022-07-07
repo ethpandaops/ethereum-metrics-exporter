@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/event"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,8 +33,7 @@ type node struct {
 	namespace  string
 	client     eth2client.Service
 	api        api.ConsensusClient
-	beaconNode *beacon.Node
-	events     *event.DecoratedPublisher
+	beaconNode beacon.Node
 	log        logrus.FieldLogger
 	ec         *nats.EncodedConn
 	metrics    Metrics
@@ -71,8 +69,7 @@ func (c *node) Bootstrap(ctx context.Context) error {
 
 	c.client = client
 	c.api = api.NewConsensusClient(ctx, c.log, c.url)
-	c.events = event.NewDecoratedPublisher(ctx, c.log, c.client, c.ec)
-	c.beaconNode = beacon.NewNode(ctx, c.log, c.api, c.client, c.events)
+	c.beaconNode = beacon.NewNode(ctx, c.log, c.api, c.client, c.ec)
 
 	return nil
 }
@@ -92,8 +89,15 @@ func (c *node) StartMetrics(ctx context.Context) {
 	}
 
 	c.beaconNode.StartAsync(ctx)
-	c.events.StartListeningForEvents(ctx)
 
 	c.metrics = NewMetrics(c.client, c.api, c.beaconNode, c.log, c.name, c.namespace)
-	c.metrics.StartAsync(ctx)
+
+	if _, err := c.beaconNode.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
+		c.log.Info("Beacon node has started up. Enabling metrics collection.")
+		c.metrics.StartAsync(ctx)
+
+		return nil
+	}); err != nil {
+		c.log.WithError(err).Error("Failed to subscribe to beacon node ready event")
+	}
 }

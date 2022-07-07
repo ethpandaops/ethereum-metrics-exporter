@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/attestantio/go-eth2-client/spec/phase0"
@@ -18,10 +19,10 @@ type Spec struct {
 	SafeSlotsToUpdateJustified phase0.Slot
 	SlotsPerEpoch              phase0.Slot
 
-	EpochsPerSyncCommittee      phase0.Epoch
-	MinSyncComitteeParticipants uint64
-	TargetCommitteeSize         uint64
-	SyncCommitteeSize           uint64
+	EpochsPerSyncCommitteePeriod phase0.Epoch
+	MinSyncCommitteeParticipants uint64
+	TargetCommitteeSize          uint64
+	SyncCommitteeSize            uint64
 
 	TerminalBlockHashActivationEpoch phase0.Epoch
 	TerminalTotalDifficulty          big.Int
@@ -39,10 +40,14 @@ type Spec struct {
 	MaxDeposits                    uint64
 	MinGenesisActiveValidatorCount uint64
 	Eth1FollowDistance             uint64
+
+	ForkEpochs ForkEpochs
 }
 
 func NewSpec(data map[string]interface{}) Spec {
-	spec := Spec{}
+	spec := Spec{
+		ForkEpochs: ForkEpochs{},
+	}
 
 	if safeSlotsToUpdateJustified, exists := data["SAFE_SLOTS_TO_UPDATE_JUSTIFIED"]; exists {
 		spec.SafeSlotsToUpdateJustified = phase0.Slot(cast.ToUint64(safeSlotsToUpdateJustified))
@@ -69,7 +74,7 @@ func NewSpec(data map[string]interface{}) Spec {
 	}
 
 	if epochsPerSyncComitteePeriod, exists := data["EPOCHS_PER_SYNC_COMMITTEE_PERIOD"]; exists {
-		spec.EpochsPerSyncCommittee = phase0.Epoch(cast.ToUint64(epochsPerSyncComitteePeriod))
+		spec.EpochsPerSyncCommitteePeriod = phase0.Epoch(cast.ToUint64(epochsPerSyncComitteePeriod))
 	}
 
 	if effectiveBalanceIncrement, exists := data["EFFECTIVE_BALANCE_INCREMENT"]; exists {
@@ -81,7 +86,7 @@ func NewSpec(data map[string]interface{}) Spec {
 	}
 
 	if minSyncCommitteeParticipants, exists := data["MIN_SYNC_COMMITTEE_PARTICIPANTS"]; exists {
-		spec.MinSyncComitteeParticipants = cast.ToUint64(minSyncCommitteeParticipants)
+		spec.MinSyncCommitteeParticipants = cast.ToUint64(minSyncCommitteeParticipants)
 	}
 
 	if genesisDelay, exists := data["GENESIS_DELAY"]; exists {
@@ -137,6 +142,17 @@ func NewSpec(data map[string]interface{}) Spec {
 
 	if presetBase, exists := data["PRESET_BASE"]; exists {
 		spec.PresetBase = cast.ToString(presetBase)
+	}
+
+	for k, v := range data {
+		if strings.Contains(k, "_FORK_EPOCH") {
+			forkName := strings.ReplaceAll(k, "_FORK_EPOCH", "")
+
+			spec.ForkEpochs = append(spec.ForkEpochs, ForkEpoch{
+				Epoch: phase0.Epoch(cast.ToUint64(v)),
+				Name:  forkName,
+			})
+		}
 	}
 
 	return spec
