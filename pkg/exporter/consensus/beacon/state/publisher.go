@@ -33,3 +33,10 @@ func (c *Container) publishBlockInserted(ctx context.Context, epoch phase0.Epoch
 		cb(ctx, epoch, slot)
 	}
 }
+
+func (c *Container) publishEmptySlot(ctx context.Context, epoch phase0.Epoch, slot Slot) {
+	for _, cb := range c.callbacksEmptySlot {
+		//nolint:errcheck // we dont care if the callback fails
+		cb(ctx, epoch, slot)
+	}
+}

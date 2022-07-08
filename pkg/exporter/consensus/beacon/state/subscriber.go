@@ -33,3 +33,10 @@ func (c *Container) OnBlockInserted(ctx context.Context, cb func(ctx context.Con
 
 	return nil
 }
+
+// OnEmptySlot is called when a slot expires without an associated block.
+func (c *Container) OnEmptySlot(ctx context.Context, cb func(ctx context.Context, epoch phase0.Epoch, slot Slot) error) error {
+	c.callbacksEmptySlot = append(c.callbacksEmptySlot, cb)
+
+	return nil
+}

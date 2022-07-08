@@ -18,6 +18,7 @@ const (
 	topicNodeVersionUpdated = "node_version_updated"
 	topicPeersUpdated       = "peers_updated"
 	topicSpecUpdated        = "spec_updated"
+	topicEmptySlot          = "slot_empty"
 
 	// Official beacon events that are proxied
 	topicAttestation          = "attestation"
@@ -64,4 +65,8 @@ type PeersUpdatedEvent struct {
 
 type SpecUpdatedEvent struct {
 	Spec *state.Spec
+}
+
+type EmptySlotEvent struct {
+	Slot phase0.Slot
 }

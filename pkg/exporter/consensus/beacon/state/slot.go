@@ -105,3 +105,7 @@ func (m *Slot) SetProposerDuty(proposerDuty *v1.ProposerDuty) error {
 
 	return nil
 }
+
+func (m *Slot) MissingBlock() bool {
+	return m.block == nil
+}

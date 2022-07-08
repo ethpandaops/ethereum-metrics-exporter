@@ -121,3 +121,10 @@ func (n *node) OnSpecUpdated(ctx context.Context, handler func(ctx context.Conte
 		handler(ctx, event)
 	})
 }
+
+func (n *node) OnEmptySlot(ctx context.Context, handler func(ctx context.Context, event *EmptySlotEvent) error) (*nats.Subscription, error) {
+	return n.broker.Subscribe(topicEmptySlot, func(event *EmptySlotEvent) {
+		//nolint:errcheck // safe to ignore)
+		handler(ctx, event)
+	})
+}

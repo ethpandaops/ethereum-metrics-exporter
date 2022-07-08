@@ -31,6 +31,7 @@ type Beacon struct {
 	ReOrgDepth             prometheus.Counter
 	HeadSlotHash           prometheus.Gauge
 	FinalityCheckpointHash prometheus.GaugeVec
+	EmptySlots             prometheus.Counter
 	ProposerDelay          prometheus.Histogram
 	currentVersion         string
 }
@@ -181,6 +182,14 @@ func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, beac beacon
 				Buckets:     prometheus.LinearBuckets(0, 1000, 13),
 			},
 		),
+		EmptySlots: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "empty_slots",
+				Help:        "The number of slots that have expired without a block proposed.",
+				ConstLabels: constLabels,
+			},
+		),
 	}
 }
 
@@ -219,6 +228,18 @@ func (b *Beacon) setupSubscriptions(ctx context.Context) error {
 	if _, err := b.beaconNode.OnChainReOrg(ctx, b.handleChainReorg); err != nil {
 		return err
 	}
+
+	if _, err := b.beaconNode.OnEmptySlot(ctx, b.handleEmptySlot); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *Beacon) handleEmptySlot(ctx context.Context, event *beacon.EmptySlotEvent) error {
+	b.log.WithField("slot", event.Slot).Info("Empty slot detected")
+
+	b.EmptySlots.Inc()
 
 	return nil
 }

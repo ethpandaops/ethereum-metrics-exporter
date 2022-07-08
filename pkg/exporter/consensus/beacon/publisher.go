@@ -91,3 +91,9 @@ func (n *node) publishSpecUpdated(ctx context.Context, spec *state.Spec) error {
 		Spec: spec,
 	})
 }
+
+func (n *node) publishEmptySlot(ctx context.Context, slot phase0.Slot) error {
+	return n.broker.Publish(topicEmptySlot, &EmptySlotEvent{
+		Slot: slot,
+	})
+}

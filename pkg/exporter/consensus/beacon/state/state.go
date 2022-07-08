@@ -26,6 +26,7 @@ type Container struct {
 	callbacksSlotChanged      []func(ctx context.Context, slot phase0.Slot) error
 	callbacksEpochSlotChanged []func(ctx context.Context, epoch phase0.Epoch, slot phase0.Slot) error
 	callbacksBlockInserted    []func(ctx context.Context, epoch phase0.Epoch, slot Slot) error
+	callbacksEmptySlot        []func(ctx context.Context, epoch phase0.Epoch, slot Slot) error
 }
 
 const (
@@ -249,11 +250,21 @@ func (c *Container) checkForNewCurrentEpochAndSlot(ctx context.Context) error {
 
 		// Notify the listeners of the new epoch.
 		go c.publishEpochChanged(ctx, epoch)
+
+		// // Delete old epochs
+		previousEpoch := epoch - 5
+		if err := c.DeleteEpoch(ctx, previousEpoch); err != nil {
+			return err
+		}
 	}
 
 	slotChanged := false
 
 	if slot != c.currentSlot {
+		if err := c.checkForEmptySlot(ctx, c.currentSlot); err != nil {
+			c.log.WithError(err).Error("Failed to check for empty slot")
+		}
+
 		c.currentSlot = slot
 
 		slotChanged = true
@@ -265,6 +276,21 @@ func (c *Container) checkForNewCurrentEpochAndSlot(ctx context.Context) error {
 	if epochChanged || slotChanged {
 		// Notify the listeners of the new epoch and slot.
 		go c.publishEpochSlotChanged(ctx, epoch, slot)
+	}
+
+	return nil
+}
+
+func (c *Container) checkForEmptySlot(ctx context.Context, slotNumber phase0.Slot) error {
+	slot, err := c.GetSlot(ctx, slotNumber)
+	if err != nil {
+		return err
+	}
+
+	epoch := c.calculateEpochFromSlot(slotNumber)
+
+	if slot.MissingBlock() {
+		go c.publishEmptySlot(ctx, epoch, *slot)
 	}
 
 	return nil

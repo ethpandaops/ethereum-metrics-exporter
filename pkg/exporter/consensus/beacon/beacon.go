@@ -73,6 +73,8 @@ type Node interface {
 	OnPeersUpdated(ctx context.Context, handler func(ctx context.Context, event *PeersUpdatedEvent) error) (*nats.Subscription, error)
 	// OnSpecUpdated is called when the spec is updated.
 	OnSpecUpdated(ctx context.Context, handler func(ctx context.Context, event *SpecUpdatedEvent) error) (*nats.Subscription, error)
+	// OnEmptySlot is called when an empty slot is detected.
+	OnEmptySlot(ctx context.Context, handler func(ctx context.Context, event *EmptySlotEvent) error) (*nats.Subscription, error)
 }
 
 // Node represents an Ethereum beacon node. It computes values based on the spec.
@@ -154,14 +156,26 @@ func (n *node) StartAsync(ctx context.Context) {
 }
 
 func (n *node) GetEpoch(ctx context.Context, epoch phase0.Epoch) (*state.Epoch, error) {
+	if n.state == nil {
+		return nil, errors.New("state is not initialized")
+	}
+
 	return n.state.GetEpoch(ctx, epoch)
 }
 
 func (n *node) GetSlot(ctx context.Context, slot phase0.Slot) (*state.Slot, error) {
+	if n.state == nil {
+		return nil, errors.New("state is not initialized")
+	}
+
 	return n.state.GetSlot(ctx, slot)
 }
 
 func (n *node) GetSpec(ctx context.Context) (*state.Spec, error) {
+	if n.state == nil {
+		return nil, errors.New("state is not initialized")
+	}
+
 	sp := n.state.Spec()
 
 	if sp == nil {
@@ -266,6 +280,10 @@ func (n *node) subscribeDownstream(ctx context.Context) error {
 		return err
 	}
 
+	if err := n.state.OnEmptySlot(ctx, n.handleDownstreamEmptySlot); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -293,6 +311,14 @@ func (n *node) handleDownstreamBlockInserted(ctx context.Context, epoch phase0.E
 	return nil
 }
 
+func (n *node) handleDownstreamEmptySlot(ctx context.Context, epoch phase0.Epoch, slot state.Slot) error {
+	if err := n.publishEmptySlot(ctx, slot.Number()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (n *node) handleStateEpochChanged(ctx context.Context, epoch phase0.Epoch) error {
 	n.log.WithFields(logrus.Fields{
 		"epoch": epoch,
@@ -302,12 +328,6 @@ func (n *node) handleStateEpochChanged(ctx context.Context, epoch phase0.Epoch) 
 		if err := n.fetchEpochProposerDuties(ctx, i); err != nil {
 			return err
 		}
-	}
-
-	// Delete old epochs
-	previousEpoch := epoch - 5
-	if err := n.state.DeleteEpoch(ctx, previousEpoch); err != nil {
-		return err
 	}
 
 	return nil
