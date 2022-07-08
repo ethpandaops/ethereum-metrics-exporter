@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cast"
 )
 
+// Spec represents the state of the spec.
 type Spec struct {
 	PresetBase string
 	ConfigName string
@@ -44,6 +45,7 @@ type Spec struct {
 	ForkEpochs ForkEpochs
 }
 
+// NewSpec creates a new spec instance.
 func NewSpec(data map[string]interface{}) Spec {
 	spec := Spec{
 		ForkEpochs: ForkEpochs{},

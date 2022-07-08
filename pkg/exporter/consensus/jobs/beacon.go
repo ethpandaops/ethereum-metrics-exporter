@@ -235,7 +235,8 @@ func (b *Beacon) handleBlockInserted(ctx context.Context, event *beacon.BlockIns
 		return err
 	}
 
-	if err := b.handleSingleBlock("head", timedBlock.Block); err != nil {
+	// nolint:gocritic // False positive
+	if err = b.handleSingleBlock("head", timedBlock.Block); err != nil {
 		return err
 	}
 

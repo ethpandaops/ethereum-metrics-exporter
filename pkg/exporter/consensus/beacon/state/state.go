@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Container is the state container.
 type Container struct {
 	log     logrus.FieldLogger
 	spec    *Spec
@@ -28,9 +29,11 @@ type Container struct {
 }
 
 const (
+	// SurroundingEpochDistance is the number of epochs to create around the current epoch.
 	SurroundingEpochDistance = 1
 )
 
+// NewContainer creates a new state container instance
 func NewContainer(ctx context.Context, log logrus.FieldLogger, sp *Spec, genesis *v1.Genesis) Container {
 	return Container{
 		log:  log,
@@ -50,6 +53,7 @@ var (
 	ErrGenesisNotFetched  = errors.New("genesis not fetched")
 )
 
+// Init initializes the state container.
 func (c *Container) Init(ctx context.Context) error {
 	if err := c.hydrateEpochs(ctx); err != nil {
 		return err
@@ -63,6 +67,7 @@ func (c *Container) Init(ctx context.Context) error {
 	return nil
 }
 
+// Spec returns the spec for the state container.
 func (c *Container) Spec() *Spec {
 	return c.spec
 }
@@ -107,6 +112,7 @@ func (c *Container) tick(ctx context.Context) {
 	}
 }
 
+// AddBeaconBlock adds a beacon block to the state container.
 func (c *Container) AddBeaconBlock(ctx context.Context, beaconBlock *spec.VersionedSignedBeaconBlock, seenAt time.Time) error {
 	if beaconBlock == nil {
 		return errors.New("beacon block is nil")
@@ -264,6 +270,7 @@ func (c *Container) checkForNewCurrentEpochAndSlot(ctx context.Context) error {
 	return nil
 }
 
+// GetSlot returns the slot for the given slot number.
 func (c *Container) GetSlot(ctx context.Context, slotNumber phase0.Slot) (*Slot, error) {
 	epoch, err := c.epochs.GetEpoch(c.calculateEpochFromSlot(slotNumber))
 	if err != nil {
@@ -277,6 +284,11 @@ func (c *Container) calculateEpochFromSlot(slotNumber phase0.Slot) phase0.Epoch 
 	return phase0.Epoch(slotNumber / c.spec.SlotsPerEpoch)
 }
 
+// GetEpoch returns the epoch for the given epoch number.
 func (c *Container) GetEpoch(ctx context.Context, epochNumber phase0.Epoch) (*Epoch, error) {
 	return c.epochs.GetEpoch(epochNumber)
+}
+
+func (c *Container) DeleteEpoch(ctx context.Context, epochNumber phase0.Epoch) error {
+	return c.epochs.RemoveEpoch(epochNumber)
 }

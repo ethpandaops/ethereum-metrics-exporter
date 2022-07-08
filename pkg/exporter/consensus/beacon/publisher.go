@@ -6,6 +6,7 @@ import (
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 )
 
 // Official beacon events that are proxied
@@ -67,9 +68,9 @@ func (n *node) publishBlockInserted(ctx context.Context, slot phase0.Slot) error
 	})
 }
 
-func (n *node) publishSyncStatus(ctx context.Context, state *v1.SyncState) error {
+func (n *node) publishSyncStatus(ctx context.Context, st *v1.SyncState) error {
 	return n.broker.Publish(topicSyncStatus, &SyncStatusEvent{
-		State: state,
+		State: st,
 	})
 }
 
@@ -82,5 +83,11 @@ func (n *node) publishNodeVersionUpdated(ctx context.Context, version string) er
 func (n *node) publishPeersUpdated(ctx context.Context, peers types.Peers) error {
 	return n.broker.Publish(topicPeersUpdated, &PeersUpdatedEvent{
 		Peers: peers,
+	})
+}
+
+func (n *node) publishSpecUpdated(ctx context.Context, spec *state.Spec) error {
+	return n.broker.Publish(topicSpecUpdated, &SpecUpdatedEvent{
+		Spec: spec,
 	})
 }

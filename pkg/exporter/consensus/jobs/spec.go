@@ -7,6 +7,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 	"github.com/sirupsen/logrus"
 )
 
@@ -254,14 +255,20 @@ func (s *Spec) Name() string {
 	return NameSpec
 }
 
-func (s *Spec) Start(ctx context.Context) {
+func (s *Spec) Start(ctx context.Context) error {
+	if _, err := s.beacon.OnSpecUpdated(ctx, func(ctx context.Context, event *beacon.SpecUpdatedEvent) error {
+		return s.observeSpec(ctx, event.Spec)
+	}); err != nil {
+		return err
+	}
+
 	s.tick(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
-			return
-		case <-time.After(time.Second * 60):
+			return ctx.Err()
+		case <-time.After(time.Minute * 5):
 			s.tick(ctx)
 		}
 	}
@@ -273,12 +280,7 @@ func (s *Spec) tick(ctx context.Context) {
 	}
 }
 
-func (s *Spec) getSpec(ctx context.Context) error {
-	spec, err := s.beacon.GetSpec(ctx)
-	if err != nil {
-		return err
-	}
-
+func (s *Spec) observeSpec(ctx context.Context, spec *state.Spec) error {
 	s.ConfigName.Reset()
 	s.ConfigName.WithLabelValues(spec.ConfigName).Set(1)
 
@@ -288,13 +290,16 @@ func (s *Spec) getSpec(ctx context.Context) error {
 	s.SafeSlotsToUpdateJustified.Set(float64(spec.SafeSlotsToUpdateJustified))
 	s.DepositChainID.Set(float64(spec.DepositChainID))
 	s.MaxValidatorsPerCommittee.Set(float64(spec.MaxValidatorsPerCommittee))
+	// nolint:unconvert // false positive
 	s.SecondsPerEth1Block.Set(float64(spec.SecondsPerEth1Block.Seconds()))
 	s.BaseRewardFactor.Set(float64(spec.BaseRewardFactor))
 	s.EpochsPerSyncCommitteePeriod.Set(float64(spec.EpochsPerSyncCommitteePeriod))
 	s.EffectiveBalanceIncrement.Set(float64(spec.EffectiveBalanceIncrement))
 	s.MaxAttestations.Set(float64(spec.MaxAttestations))
 	s.MinSyncCommitteeParticipants.Set(float64(spec.MinSyncCommitteeParticipants))
+	// nolint:unconvert // false positive
 	s.GenesisDelay.Set(float64(spec.GenesisDelay.Seconds()))
+	// nolint:unconvert // false positive
 	s.SecondsPerSlot.Set(float64(spec.SecondsPerSlot.Seconds()))
 	s.MaxEffectiveBalance.Set(float64(spec.MaxEffectiveBalance))
 	s.MaxDeposits.Set(float64(spec.MaxDeposits))
@@ -313,4 +318,13 @@ func (s *Spec) getSpec(ctx context.Context) error {
 	s.TerminalTotalDifficulty.Set(float64(spec.TerminalTotalDifficulty.Uint64()))
 
 	return nil
+}
+
+func (s *Spec) getSpec(ctx context.Context) error {
+	spec, err := s.beacon.GetSpec(ctx)
+	if err != nil {
+		return err
+	}
+
+	return s.observeSpec(ctx, spec)
 }

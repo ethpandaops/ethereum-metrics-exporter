@@ -7,12 +7,14 @@ import (
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 )
 
+// Slots is a collection of slots.
 type Slots struct {
 	state  map[phase0.Slot]*Slot
 	bundle BlockTimeCalculatorBundle
 	mu     *sync.Mutex
 }
 
+// NewSlots returns a new slots instance.
 func NewSlots(bundle BlockTimeCalculatorBundle) Slots {
 	return Slots{
 		state:  make(map[phase0.Slot]*Slot),
@@ -21,6 +23,7 @@ func NewSlots(bundle BlockTimeCalculatorBundle) Slots {
 	}
 }
 
+// Add adds a slot to the collection.
 func (m *Slots) Add(slot *Slot) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -34,6 +37,7 @@ func (m *Slots) Add(slot *Slot) error {
 	return nil
 }
 
+// Get returns a slot from the collection.
 func (m *Slots) Get(slot phase0.Slot) (*Slot, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -45,6 +49,7 @@ func (m *Slots) Get(slot phase0.Slot) (*Slot, error) {
 	return m.state[slot], nil
 }
 
+// Delete deletes a slot from the collection.
 func (m *Slots) Delete(slot phase0.Slot) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

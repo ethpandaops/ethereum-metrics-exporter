@@ -6,18 +6,22 @@ import (
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 )
 
+// ForkEpoch is a beacon fork that activates at a specific epoch.
 type ForkEpoch struct {
 	Epoch phase0.Epoch
 	Name  string
 }
 
+// Active returns true if the fork is active at the given slot.
 func (f *ForkEpoch) Active(slot, slotsPerEpoch phase0.Slot) bool {
 	return phase0.Epoch(int(slot)/int(slotsPerEpoch)) > f.Epoch
 }
 
+// ForkEpochs is a list of forks that activate at specific epochs.
 type ForkEpochs []ForkEpoch
 
-func (f *ForkEpochs) Active(slot phase0.Slot, slotsPerEpoch phase0.Slot) []ForkEpoch {
+// Active returns a list of forks that are active at the given slot.
+func (f *ForkEpochs) Active(slot, slotsPerEpoch phase0.Slot) []ForkEpoch {
 	activated := []ForkEpoch{}
 
 	for _, fork := range *f {
@@ -29,6 +33,7 @@ func (f *ForkEpochs) Active(slot phase0.Slot, slotsPerEpoch phase0.Slot) []ForkE
 	return activated
 }
 
+// CurrentFork returns the current fork at the given slot.
 func (f *ForkEpochs) Scheduled(slot, slotsPerEpoch phase0.Slot) []ForkEpoch {
 	scheduled := []ForkEpoch{}
 
@@ -41,6 +46,7 @@ func (f *ForkEpochs) Scheduled(slot, slotsPerEpoch phase0.Slot) []ForkEpoch {
 	return scheduled
 }
 
+// CurrentFork returns the current fork at the given slot.
 func (f *ForkEpochs) CurrentFork(slot, slotsPerEpoch phase0.Slot) (ForkEpoch, error) {
 	largest := ForkEpoch{
 		Epoch: 0,

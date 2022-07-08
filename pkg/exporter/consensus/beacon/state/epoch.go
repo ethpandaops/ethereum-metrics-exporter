@@ -36,8 +36,6 @@ func NewEpoch(epochNumber phase0.Epoch, slotsPerEpoch phase0.Slot, bundle BlockT
 		bundle:    bundle,
 	}
 
-	e.InitializeSlots()
-
 	return e
 }
 
@@ -90,13 +88,17 @@ func (e *Epoch) GetSlot(slotNumber phase0.Slot) (*Slot, error) {
 	return e.slots.Get(slotNumber)
 }
 
-func (e *Epoch) InitializeSlots() {
+func (e *Epoch) InitializeSlots() error {
 	start := uint64(e.FirstSlot)
 	end := uint64(e.LastSlot)
 
 	for i := start; i <= end; i++ {
 		slot := NewSlot(phase0.Slot(i), e.bundle)
 
-		e.slots.Add(&slot)
+		if err := e.slots.Add(&slot); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }

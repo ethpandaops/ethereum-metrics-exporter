@@ -20,34 +20,59 @@ import (
 
 type Node interface {
 	// Lifecycle
+	// Start starts the node.
 	Start(ctx context.Context) error
+	// StartAsync starts the node asynchronously.
 	StartAsync(ctx context.Context)
 
 	// Getters
+	// GetEpoch returns the epoch for the given epoch.
 	GetEpoch(ctx context.Context, epoch phase0.Epoch) (*state.Epoch, error)
+	// GetSlot returns the slot for the given slot.
 	GetSlot(ctx context.Context, slot phase0.Slot) (*state.Slot, error)
+	// GetSpec returns the spec for the node.
 	GetSpec(ctx context.Context) (*state.Spec, error)
+	// GetSyncState returns the sync state for the node.
 	GetSyncState(ctx context.Context) (*v1.SyncState, error)
+	// GetGenesis returns the genesis for the node.
+	GetGenesis(ctx context.Context) (*v1.Genesis, error)
 
 	// Subscriptions
 	// - Proxied Beacon events
+	// OnEvent is called when a beacon event is received.
 	OnEvent(ctx context.Context, handler func(ctx context.Context, ev *v1.Event) error) (*nats.Subscription, error)
+	// OnBlock is called when a block is received.
 	OnBlock(ctx context.Context, handler func(ctx context.Context, ev *v1.BlockEvent) error) (*nats.Subscription, error)
+	// OnAttestation is called when an attestation is received.
 	OnAttestation(ctx context.Context, handler func(ctx context.Context, ev *phase0.Attestation) error) (*nats.Subscription, error)
+	// OnFinalizedCheckpoint is called when a finalized checkpoint is received.
 	OnFinalizedCheckpoint(ctx context.Context, handler func(ctx context.Context, ev *v1.FinalizedCheckpointEvent) error) (*nats.Subscription, error)
+	// OnHead is called when the head is received.
 	OnHead(ctx context.Context, handler func(ctx context.Context, ev *v1.HeadEvent) error) (*nats.Subscription, error)
+	// OnChainReOrg is called when a chain reorg is received.
 	OnChainReOrg(ctx context.Context, handler func(ctx context.Context, ev *v1.ChainReorgEvent) error) (*nats.Subscription, error)
+	// OnVoluntaryExit is called when a voluntary exit is received.
 	OnVoluntaryExit(ctx context.Context, handler func(ctx context.Context, ev *phase0.VoluntaryExit) error) (*nats.Subscription, error)
 
 	// - Custom events
+	// OnReady is called when the node is ready.
 	OnReady(ctx context.Context, handler func(ctx context.Context, event *ReadyEvent) error) (*nats.Subscription, error)
+	// OnEpochChanged is called when the current epoch changes.
 	OnEpochChanged(ctx context.Context, handler func(ctx context.Context, event *EpochChangedEvent) error) (*nats.Subscription, error)
+	// OnSlotChanged is called when the current slot changes.
 	OnSlotChanged(ctx context.Context, handler func(ctx context.Context, event *SlotChangedEvent) error) (*nats.Subscription, error)
+	// OnEpochSlotChanged is called when the current epoch or slot changes.
 	OnEpochSlotChanged(ctx context.Context, handler func(ctx context.Context, event *EpochSlotChangedEvent) error) (*nats.Subscription, error)
+	// OnBlockInserted is called when a block is inserted.
 	OnBlockInserted(ctx context.Context, handler func(ctx context.Context, event *BlockInsertedEvent) error) (*nats.Subscription, error)
+	// OnSyncStatus is called when the sync status changes.
 	OnSyncStatus(ctx context.Context, handler func(ctx context.Context, event *SyncStatusEvent) error) (*nats.Subscription, error)
+	// OnNodeVersionUpdated is called when the node version is updated.
 	OnNodeVersionUpdated(ctx context.Context, handler func(ctx context.Context, event *NodeVersionUpdatedEvent) error) (*nats.Subscription, error)
+	// OnPeersUpdated is called when the peers are updated.
 	OnPeersUpdated(ctx context.Context, handler func(ctx context.Context, event *PeersUpdatedEvent) error) (*nats.Subscription, error)
+	// OnSpecUpdated is called when the spec is updated.
+	OnSpecUpdated(ctx context.Context, handler func(ctx context.Context, event *SpecUpdatedEvent) error) (*nats.Subscription, error)
 }
 
 // Node represents an Ethereum beacon node. It computes values based on the spec.
@@ -150,6 +175,10 @@ func (n *node) GetSyncState(ctx context.Context) (*v1.SyncState, error) {
 	return n.syncing, nil
 }
 
+func (n *node) GetGenesis(ctx context.Context) (*v1.Genesis, error) {
+	return n.genesis, nil
+}
+
 func (n *node) tick(ctx context.Context) {
 	if n.state == nil {
 		if err := n.initializeState(ctx); err != nil {
@@ -164,12 +193,12 @@ func (n *node) tick(ctx context.Context) {
 			n.log.WithError(err).Error("Failed to subscribe to self")
 		}
 
-		//nolint:errcheck // we dont care if this errors out since it runs indefinitely in a goroutine
-		go n.ensureBeaconSubscription(ctx)
-
 		if err := n.publishReady(ctx); err != nil {
 			n.log.WithError(err).Error("Failed to publish ready")
 		}
+
+		//nolint:errcheck // we dont care if this errors out since it runs indefinitely in a goroutine
+		go n.ensureBeaconSubscription(ctx)
 	}
 }
 
@@ -275,6 +304,12 @@ func (n *node) handleStateEpochChanged(ctx context.Context, epoch phase0.Epoch) 
 		}
 	}
 
+	// Delete old epochs
+	previousEpoch := epoch - 5
+	if err := n.state.DeleteEpoch(ctx, previousEpoch); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -299,7 +334,7 @@ func (n *node) initializeState(ctx context.Context) error {
 		return err
 	}
 
-	genesis, err := n.GetGenesis(ctx)
+	genesis, err := n.fetchGenesis(ctx)
 	if err != nil {
 		return err
 	}
@@ -311,6 +346,8 @@ func (n *node) initializeState(ctx context.Context) error {
 	}
 
 	n.state = &st
+
+	n.log.Info("Beacon state initialized!")
 
 	return nil
 }
@@ -327,6 +364,10 @@ func (n *node) getSpec(ctx context.Context) (*state.Spec, error) {
 	}
 
 	sp := state.NewSpec(data)
+
+	if err := n.publishSpecUpdated(ctx, &sp); err != nil {
+		return nil, err
+	}
 
 	return &sp, nil
 }

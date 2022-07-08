@@ -52,6 +52,10 @@ func (e *Epochs) Exists(number phase0.Epoch) bool {
 func (e *Epochs) NewInitializedEpoch(number phase0.Epoch) (*Epoch, error) {
 	epoch := NewEpoch(number, e.spec.SlotsPerEpoch, e.bundle)
 
+	if err := epoch.InitializeSlots(); err != nil {
+		return nil, err
+	}
+
 	if err := e.AddEpoch(number, &epoch); err != nil {
 		return nil, err
 	}

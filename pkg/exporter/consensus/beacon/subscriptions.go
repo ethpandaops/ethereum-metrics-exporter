@@ -177,6 +177,5 @@ func (n *node) handleVoluntaryExit(ctx context.Context, event *v1.Event) error {
 
 func (n *node) handleContributionAndProof(ctx context.Context, event *v1.Event) error {
 	// Do nothing for now
-
 	return nil
 }

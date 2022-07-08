@@ -114,3 +114,10 @@ func (n *node) OnPeersUpdated(ctx context.Context, handler func(ctx context.Cont
 		handler(ctx, event)
 	})
 }
+
+func (n *node) OnSpecUpdated(ctx context.Context, handler func(ctx context.Context, event *SpecUpdatedEvent) error) (*nats.Subscription, error) {
+	return n.broker.Subscribe(topicSpecUpdated, func(event *SpecUpdatedEvent) {
+		//nolint:errcheck // safe to ignore)
+		handler(ctx, event)
+	})
+}

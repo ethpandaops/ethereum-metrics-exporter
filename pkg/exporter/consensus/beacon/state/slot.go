@@ -9,6 +9,7 @@ import (
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 )
 
+// Slot is a slot in the beacon chain.
 type Slot struct {
 	block        *TimedBlock
 	proposerDuty *v1.ProposerDuty
@@ -17,6 +18,7 @@ type Slot struct {
 	mu           *sync.Mutex
 }
 
+// NewSlot returns a new slot.
 func NewSlot(number phase0.Slot, bundle BlockTimeCalculatorBundle) Slot {
 	return Slot{
 		block:        nil,
@@ -27,10 +29,12 @@ func NewSlot(number phase0.Slot, bundle BlockTimeCalculatorBundle) Slot {
 	}
 }
 
+// Number returns the slot number.
 func (m *Slot) Number() phase0.Slot {
 	return m.number
 }
 
+// Block returns the block for the slot (if it exists).
 func (m *Slot) Block() (*TimedBlock, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -42,6 +46,7 @@ func (m *Slot) Block() (*TimedBlock, error) {
 	return m.block, nil
 }
 
+// AddBlock adds a block to the slot.
 func (m *Slot) AddBlock(timedBlock *TimedBlock) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -68,6 +73,7 @@ func (m *Slot) AddBlock(timedBlock *TimedBlock) error {
 	return nil
 }
 
+// ProposerDelay calculates the amount of time it took for the proposer to publish the block.
 func (m *Slot) ProposerDelay() (time.Duration, error) {
 	if m.block == nil {
 		return 0, errors.New("block does not exist")
@@ -80,6 +86,7 @@ func (m *Slot) ProposerDelay() (time.Duration, error) {
 	return delay, nil
 }
 
+// ProposerDuty returns the proposer duty for the slot (if it exists).
 func (m *Slot) ProposerDuty() (*v1.ProposerDuty, error) {
 	if m.proposerDuty == nil {
 		return nil, errors.New("proposer duty does not exist")
@@ -88,6 +95,7 @@ func (m *Slot) ProposerDuty() (*v1.ProposerDuty, error) {
 	return m.proposerDuty, nil
 }
 
+// SetProposerDuty sets the proposer duty for the slot.
 func (m *Slot) SetProposerDuty(proposerDuty *v1.ProposerDuty) error {
 	if proposerDuty.Slot != m.number {
 		return errors.New("proposer duty slot does not match slot")

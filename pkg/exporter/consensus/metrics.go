@@ -108,12 +108,42 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac beacon.N
 }
 
 func (m *metrics) StartAsync(ctx context.Context) {
-	go m.generalMetrics.Start(ctx)
-	go m.specMetrics.Start(ctx)
-	go m.syncMetrics.Start(ctx)
-	go m.forkMetrics.Start(ctx)
-	go m.beaconMetrics.Start(ctx)
-	go m.eventMetrics.Start(ctx)
+	go func() {
+		if err := m.generalMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start general metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.specMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start spec metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.syncMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start sync metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.forkMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start fork metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.beaconMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start beacon metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.eventMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start event metrics: %v", err)
+		}
+	}()
+
 	go m.subscriptionLoop(ctx)
 }
 

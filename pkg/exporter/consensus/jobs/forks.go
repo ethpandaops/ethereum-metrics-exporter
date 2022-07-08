@@ -75,7 +75,6 @@ func (f *Forks) Name() string {
 func (f *Forks) Start(ctx context.Context) error {
 	if _, err := f.beacon.OnBlockInserted(ctx, func(ctx context.Context, event *beacon.BlockInsertedEvent) error {
 		return f.calculateCurrent(ctx, event.Slot)
-
 	}); err != nil {
 		return err
 	}

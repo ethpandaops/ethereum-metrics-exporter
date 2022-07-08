@@ -4,6 +4,7 @@ import (
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 )
 
 const (
@@ -16,6 +17,7 @@ const (
 	topicSyncStatus         = "sync_status"
 	topicNodeVersionUpdated = "node_version_updated"
 	topicPeersUpdated       = "peers_updated"
+	topicSpecUpdated        = "spec_updated"
 
 	// Official beacon events that are proxied
 	topicAttestation          = "attestation"
@@ -58,4 +60,8 @@ type NodeVersionUpdatedEvent struct {
 
 type PeersUpdatedEvent struct {
 	Peers types.Peers
+}
+
+type SpecUpdatedEvent struct {
+	Spec *state.Spec
 }

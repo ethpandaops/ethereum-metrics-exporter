@@ -8,7 +8,7 @@ import (
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 )
 
-func (n *node) GetGenesis(ctx context.Context) (*v1.Genesis, error) {
+func (n *node) fetchGenesis(ctx context.Context) (*v1.Genesis, error) {
 	provider, isProvider := n.client.(eth2client.GenesisProvider)
 	if !isProvider {
 		return nil, errors.New("client does not implement eth2client.GenesisProvider")
