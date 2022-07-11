@@ -185,7 +185,7 @@ func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, beac beacon
 		EmptySlots: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
-				Name:        "empty_slots",
+				Name:        "empty_slots_count",
 				Help:        "The number of slots that have expired without a block proposed.",
 				ConstLabels: constLabels,
 			},

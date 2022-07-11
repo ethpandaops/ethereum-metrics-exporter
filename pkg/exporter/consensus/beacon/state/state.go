@@ -169,7 +169,7 @@ func (c *Container) AddBeaconBlock(ctx context.Context, beaconBlock *spec.Versio
 		"slot":           slotNumber,
 		"proposer_delay": delay.String(),
 		"proposer_index": proposer,
-	}).Info("Inserted beacon block")
+	}).Debug("Inserted beacon block")
 
 	c.publishBlockInserted(ctx, epochNumber, *slot)
 

@@ -61,7 +61,7 @@ func (g *General) Name() string {
 
 func (g *General) Start(ctx context.Context) error {
 	if _, err := g.beacon.OnNodeVersionUpdated(ctx, func(ctx context.Context, event *beacon.NodeVersionUpdatedEvent) error {
-		g.log.WithField("version", event.Version).Info("Got node version")
+		g.log.WithField("version", event.Version).Debug("Got node version")
 
 		g.NodeVersion.Reset()
 		g.NodeVersion.WithLabelValues(event.Version).Set(1)
