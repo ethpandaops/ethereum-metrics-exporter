@@ -61,11 +61,7 @@ func (g *General) Name() string {
 
 func (g *General) Start(ctx context.Context) error {
 	if _, err := g.beacon.OnNodeVersionUpdated(ctx, func(ctx context.Context, event *beacon.NodeVersionUpdatedEvent) error {
-		g.log.WithField("version", event.Version).Debug("Got node version")
-
-		g.NodeVersion.Reset()
-		g.NodeVersion.WithLabelValues(event.Version).Set(1)
-
+		g.observeNodeVersion(ctx, event.Version)
 		return nil
 	}); err != nil {
 		return err
@@ -85,5 +81,27 @@ func (g *General) Start(ctx context.Context) error {
 		return err
 	}
 
+	if err := g.initialFetch(ctx); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (g *General) initialFetch(ctx context.Context) error {
+	version, err := g.beacon.GetNodeVersion(ctx)
+	if err != nil {
+		return err
+	}
+
+	g.observeNodeVersion(ctx, version)
+
+	return nil
+}
+
+func (g *General) observeNodeVersion(ctx context.Context, version string) {
+	g.log.WithField("version", version).Debug("Got node version")
+
+	g.NodeVersion.Reset()
+	g.NodeVersion.WithLabelValues(version).Set(1)
 }

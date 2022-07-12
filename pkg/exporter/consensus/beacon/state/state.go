@@ -281,7 +281,7 @@ func (c *Container) checkForNewCurrentEpochAndSlot(ctx context.Context) error {
 		// We can't safely check if the previous slot was missed if
 		// we potentially started up _after_ the slot had started.
 		// So we'll just not bother checking in that case.
-		if time.Since(c.startedAt) > (c.spec.SecondsPerSlot * 2) {
+		if time.Since(c.startedAt) > (c.spec.SecondsPerSlot * 3) {
 			if err := c.checkForEmptySlot(ctx, previousSlot); err != nil {
 				c.log.WithError(err).Error("Failed to check for empty slot")
 			}

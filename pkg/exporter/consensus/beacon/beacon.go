@@ -36,6 +36,8 @@ type Node interface {
 	GetSyncState(ctx context.Context) (*v1.SyncState, error)
 	// GetGenesis returns the genesis for the node.
 	GetGenesis(ctx context.Context) (*v1.Genesis, error)
+	// GetNodeVersion returns the node version.
+	GetNodeVersion(ctx context.Context) (string, error)
 
 	// Subscriptions
 	// - Proxied Beacon events
@@ -189,6 +191,10 @@ func (n *node) GetSyncState(ctx context.Context) (*v1.SyncState, error) {
 
 func (n *node) GetGenesis(ctx context.Context) (*v1.Genesis, error) {
 	return n.genesis, nil
+}
+
+func (n *node) GetNodeVersion(ctx context.Context) (string, error) {
+	return n.nodeVersion, nil
 }
 
 func (n *node) bootstrap(ctx context.Context) error {
