@@ -116,6 +116,10 @@ func (n *node) Start(ctx context.Context) error {
 		return err
 	}
 
+	if err := n.fetchSyncStatus(ctx); err != nil {
+		return err
+	}
+
 	s := gocron.NewScheduler(time.Local)
 
 	if _, err := s.Every("15s").Do(func() {
@@ -254,6 +258,10 @@ func (n *node) fetchPeers(ctx context.Context) error {
 func (n *node) subscribeToSelf(ctx context.Context) error {
 	// Listen for beacon block events and insert them in to our state
 	if _, err := n.OnBlock(ctx, func(ctx context.Context, ev *v1.BlockEvent) error {
+		if n.syncing.IsSyncing {
+			return nil
+		}
+
 		start := time.Now()
 
 		// Grab the entire block from the beacon node
@@ -316,6 +324,10 @@ func (n *node) handleDownstreamBlockInserted(ctx context.Context, epoch phase0.E
 }
 
 func (n *node) handleDownstreamEmptySlot(ctx context.Context, epoch phase0.Epoch, slot state.Slot) error {
+	if n.syncing.IsSyncing {
+		return nil
+	}
+
 	if err := n.publishEmptySlot(ctx, slot.Number()); err != nil {
 		return err
 	}
@@ -336,6 +348,10 @@ func (n *node) handleStateEpochSlotChanged(ctx context.Context, epochNumber phas
 		}
 
 		if epoch.HaveProposerDuties() {
+			continue
+		}
+
+		if n.syncing.IsSyncing {
 			continue
 		}
 

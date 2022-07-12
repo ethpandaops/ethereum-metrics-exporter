@@ -21,6 +21,7 @@ func (n *node) ensureBeaconSubscription(ctx context.Context) error {
 				continue
 			}
 
+			// Only resubscribe if we haven't received an event after 5 minutes.
 			if time.Since(n.lastEventTime) < (5 * time.Minute) {
 				continue
 			}
@@ -74,6 +75,13 @@ func (n *node) subscribeToBeaconEvents(ctx context.Context) error {
 func (n *node) handleEvent(ctx context.Context, event *v1.Event) error {
 	if err := n.publishEvent(ctx, event); err != nil {
 		n.log.WithError(err).Error("Failed to publish raw event")
+	}
+
+	// If we are syncing, only forward on "head" and "block" events
+	if n.syncing.IsSyncing {
+		if event.Topic != topicBlock && event.Topic != topicHead {
+			return nil
+		}
 	}
 
 	switch event.Topic {

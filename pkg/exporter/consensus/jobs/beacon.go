@@ -373,6 +373,7 @@ func (b *Beacon) handleSingleBlock(blockID string, block *spec.VersionedSignedBe
 		b.Attestations.Reset()
 		b.Deposits.Reset()
 		b.VoluntaryExits.Reset()
+		b.Slot.Reset()
 
 		b.currentVersion = block.Version.String()
 	}
