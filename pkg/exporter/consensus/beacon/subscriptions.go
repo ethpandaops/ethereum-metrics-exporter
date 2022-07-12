@@ -27,6 +27,10 @@ func (n *node) ensureBeaconSubscription(ctx context.Context) error {
 			}
 
 			// Don't resubscribe if we are pre-genesis.
+			if n.genesis == nil {
+				continue
+			}
+
 			if !time.Now().After(n.genesis.GenesisTime) {
 				continue
 			}
