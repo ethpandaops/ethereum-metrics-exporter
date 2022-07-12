@@ -21,7 +21,8 @@ type Container struct {
 
 	currentEpoch phase0.Epoch
 	currentSlot  phase0.Slot
-	startingSlot phase0.Slot
+
+	startedAt time.Time
 
 	callbacksEpochChanged     []func(ctx context.Context, epoch phase0.Epoch) error
 	callbacksSlotChanged      []func(ctx context.Context, slot phase0.Slot) error
@@ -45,7 +46,8 @@ func NewContainer(ctx context.Context, log logrus.FieldLogger, sp *Spec, genesis
 
 		currentEpoch: 0,
 		currentSlot:  0,
-		startingSlot: 0,
+
+		startedAt: time.Now(),
 
 		epochs: NewEpochs(sp, genesis),
 	}
@@ -279,13 +281,9 @@ func (c *Container) checkForNewCurrentEpochAndSlot(ctx context.Context) error {
 		// We can't safely check if the previous slot was missed if
 		// we potentially started up _after_ the slot had started.
 		// So we'll just not bother checking in that case.
-		if c.startingSlot == 0 {
-			if previousSlot != 0 {
-				c.startingSlot = previousSlot
-			} else {
-				if err := c.checkForEmptySlot(ctx, previousSlot); err != nil {
-					c.log.WithError(err).Error("Failed to check for empty slot")
-				}
+		if time.Since(c.startedAt) > (c.spec.SecondsPerSlot * 2) {
+			if err := c.checkForEmptySlot(ctx, previousSlot); err != nil {
+				return err
 			}
 		}
 	}

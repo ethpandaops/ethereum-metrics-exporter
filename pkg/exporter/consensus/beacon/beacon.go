@@ -110,6 +110,10 @@ func NewNode(ctx context.Context, log logrus.FieldLogger, ap api.ConsensusClient
 }
 
 func (n *node) Start(ctx context.Context) error {
+	if err := n.bootstrap(ctx); err != nil {
+		return err
+	}
+
 	s := gocron.NewScheduler(time.Local)
 
 	if _, err := s.Every("15s").Do(func() {
@@ -132,12 +136,6 @@ func (n *node) Start(ctx context.Context) error {
 		if err := n.fetchPeers(ctx); err != nil {
 			n.log.WithError(err).Error("Failed to fetch peers")
 		}
-	}); err != nil {
-		return err
-	}
-
-	if _, err := s.Every("1s").Do(func() {
-		n.tick(ctx)
 	}); err != nil {
 		return err
 	}
@@ -193,27 +191,27 @@ func (n *node) GetGenesis(ctx context.Context) (*v1.Genesis, error) {
 	return n.genesis, nil
 }
 
-func (n *node) tick(ctx context.Context) {
-	if n.state == nil {
-		if err := n.initializeState(ctx); err != nil {
-			n.log.WithError(err).Error("Failed to initialize state")
-		}
-
-		if err := n.subscribeDownstream(ctx); err != nil {
-			n.log.WithError(err).Error("Failed to subscribe to downstream")
-		}
-
-		if err := n.subscribeToSelf(ctx); err != nil {
-			n.log.WithError(err).Error("Failed to subscribe to self")
-		}
-
-		if err := n.publishReady(ctx); err != nil {
-			n.log.WithError(err).Error("Failed to publish ready")
-		}
-
-		//nolint:errcheck // we dont care if this errors out since it runs indefinitely in a goroutine
-		go n.ensureBeaconSubscription(ctx)
+func (n *node) bootstrap(ctx context.Context) error {
+	if err := n.initializeState(ctx); err != nil {
+		return err
 	}
+
+	if err := n.subscribeDownstream(ctx); err != nil {
+		return err
+	}
+
+	if err := n.subscribeToSelf(ctx); err != nil {
+		return err
+	}
+
+	if err := n.publishReady(ctx); err != nil {
+		return err
+	}
+
+	//nolint:errcheck // we dont care if this errors out since it runs indefinitely in a goroutine
+	go n.ensureBeaconSubscription(ctx)
+
+	return nil
 }
 
 func (n *node) fetchSyncStatus(ctx context.Context) error {
@@ -323,7 +321,7 @@ func (n *node) handleStateEpochSlotChanged(ctx context.Context, epochNumber phas
 	n.log.WithFields(logrus.Fields{
 		"epoch": epochNumber,
 		"slot":  slot,
-	}).Info("Current epoch/slot changed")
+	}).Debug("Current epoch/slot changed")
 
 	for i := epochNumber; i < epochNumber+1; i++ {
 		epoch, err := n.state.GetEpoch(ctx, i)

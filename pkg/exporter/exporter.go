@@ -127,6 +127,20 @@ func (e *exporter) Config(ctx context.Context) *Config {
 }
 
 func (e *exporter) Serve(ctx context.Context, port int) error {
+	e.log.
+		WithField("consensus_url", e.config.Consensus.URL).
+		WithField("execution_url", e.execution.URL()).
+		Info(fmt.Sprintf("Starting metrics server on :%v", port))
+
+	http.Handle("/metrics", promhttp.Handler())
+
+	go func() {
+		err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
+		if err != nil {
+			e.log.Fatal(err)
+		}
+	}()
+
 	if e.config.Execution.Enabled {
 		e.log.WithField("execution_url", e.execution.URL()).Info("Starting execution metrics...")
 
@@ -140,56 +154,47 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 	}
 
 	if e.config.Pair.Enabled && e.config.Execution.Enabled && e.config.Consensus.Enabled {
-		go func() {
-			if err := e.ensureConsensusClients(ctx); err != nil {
-				e.log.Fatal(err)
-			}
+		if err := e.ensureConsensusClients(ctx); err != nil {
+			e.log.Fatal(err)
+		}
 
-			if _, err := e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
-				e.pairMetrics.StartAsync(ctx)
-				return nil
-			}); err != nil {
-				e.log.WithError(err).Error("Failed to subscribe to beacon node ready event")
-			}
+		if _, err := e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
+			e.pairMetrics.StartAsync(ctx)
+			return nil
+		}); err != nil {
+			e.log.WithError(err).Error("Failed to subscribe to beacon node ready event")
+		}
 
-			if err := e.startPairExporter(ctx); err != nil {
-				e.log.WithError(err).Error("failed to start pair metrics")
+		if err := e.startPairExporter(ctx); err != nil {
+			e.log.WithError(err).Error("failed to start pair metrics")
 
-				e.log.Fatal(err)
-			}
-		}()
+			e.log.Fatal(err)
+		}
 	}
 
 	if e.config.Consensus.Enabled {
-		go func() {
-			if err := e.startConsensusExporter(ctx); err != nil {
-				e.log.WithError(err).Error("failed to start consensus")
+		if err := e.ensureConsensusClients(ctx); err != nil {
+			e.log.Fatal(err)
+		}
 
-				e.log.Fatal(err)
-			}
+		if err := e.startConsensusExporter(ctx); err != nil {
+			e.log.WithError(err).Error("failed to start consensus")
 
-			if _, err := e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
-				e.consensus.StartAsync(ctx)
+			e.log.Fatal(err)
+		}
 
-				return nil
-			}); err != nil {
-				e.log.WithError(err).Error("Failed to subscribe to beacon node ready event")
-			}
+		if _, err := e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
+			e.consensus.StartAsync(ctx)
 
-			e.beacon.StartAsync(ctx)
-		}()
+			return nil
+		}); err != nil {
+			e.log.WithError(err).Error("Failed to subscribe to beacon node ready event")
+		}
+
+		e.beacon.StartAsync(ctx)
 	}
 
-	e.log.
-		WithField("consensus_url", e.config.Consensus.URL).
-		WithField("execution_url", e.execution.URL()).
-		Info(fmt.Sprintf("Starting metrics server on :%v", port))
-
-	http.Handle("/metrics", promhttp.Handler())
-
-	err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
-
-	return err
+	return nil
 }
 
 func (e *exporter) bootstrapConsensusClients(ctx context.Context) error {
