@@ -234,7 +234,7 @@ func (c *Container) createEpoch(ctx context.Context, epochNumber phase0.Epoch) (
 		return nil, err
 	}
 
-	c.log.WithField("epoch", epochNumber).Info("Created new epoch")
+	c.log.WithField("epoch", epochNumber).Debug("Created new epoch")
 
 	return epoch, nil
 }

@@ -401,7 +401,7 @@ func (n *node) getSpec(ctx context.Context) (*state.Spec, error) {
 }
 
 func (n *node) getProserDuties(ctx context.Context, epoch phase0.Epoch) ([]*v1.ProposerDuty, error) {
-	n.log.WithField("epoch", epoch).Info("Fetching proposer duties")
+	n.log.WithField("epoch", epoch).Debug("Fetching proposer duties")
 
 	provider, isProvider := n.client.(eth2client.ProposerDutiesProvider)
 	if !isProvider {

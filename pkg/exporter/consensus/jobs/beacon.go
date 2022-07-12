@@ -237,7 +237,7 @@ func (b *Beacon) setupSubscriptions(ctx context.Context) error {
 }
 
 func (b *Beacon) handleEmptySlot(ctx context.Context, event *beacon.EmptySlotEvent) error {
-	b.log.WithField("slot", event.Slot).Info("Empty slot detected")
+	b.log.WithField("slot", event.Slot).Debug("Empty slot detected")
 
 	b.EmptySlots.Inc()
 
