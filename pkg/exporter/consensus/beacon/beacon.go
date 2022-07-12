@@ -264,10 +264,17 @@ func (n *node) subscribeToSelf(ctx context.Context) error {
 
 		start := time.Now()
 
+		// Sleep a little for the beacon node to actually save the block
+		time.Sleep(200 * time.Millisecond)
+
 		// Grab the entire block from the beacon node
 		block, err := n.getBlock(ctx, fmt.Sprintf("%v", ev.Slot))
 		if err != nil {
 			return err
+		}
+
+		if block == nil {
+			return errors.New("fetched block is nil")
 		}
 
 		// Insert the beacon block into the state

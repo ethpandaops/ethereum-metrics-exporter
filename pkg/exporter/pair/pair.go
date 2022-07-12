@@ -166,8 +166,14 @@ func (p *pair) deriveConsensusMechanism(ctx context.Context) error {
 
 	consensusMechanism := DefaultConsensusMechanism
 
+	networkID := uint64(1)
+
+	if p.networkID != nil {
+		networkID = p.networkID.Uint64()
+	}
+
 	// Support networks like Goerli that use Proof of Authority as the default consensus mechanism.
-	if value, exists := DefaultNetworkConsensusMechanism[p.networkID.Uint64()]; exists {
+	if value, exists := DefaultNetworkConsensusMechanism[networkID]; exists {
 		consensusMechanism = value
 	}
 
