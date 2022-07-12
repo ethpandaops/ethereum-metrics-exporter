@@ -9,6 +9,7 @@ import (
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/jobs"
 	"github.com/sirupsen/logrus"
 )
@@ -33,7 +34,7 @@ type metrics struct {
 }
 
 // NewMetrics returns a new metrics object.
-func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, nodeName, namespace string) Metrics {
+func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac beacon.Node, log logrus.FieldLogger, nodeName, namespace string) Metrics {
 	constLabels := make(prometheus.Labels)
 	constLabels["ethereum_role"] = "consensus"
 	constLabels["node_name"] = nodeName
@@ -41,12 +42,12 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.Fi
 	m := &metrics{
 		log:            log,
 		client:         client,
-		generalMetrics: jobs.NewGeneralJob(client, ap, log, namespace, constLabels),
-		specMetrics:    jobs.NewSpecJob(client, ap, log, namespace, constLabels),
-		syncMetrics:    jobs.NewSyncJob(client, ap, log, namespace, constLabels),
-		forkMetrics:    jobs.NewForksJob(client, ap, log, namespace, constLabels),
-		beaconMetrics:  jobs.NewBeaconJob(client, ap, log, namespace, constLabels),
-		eventMetrics:   jobs.NewEventJob(client, ap, log, namespace, constLabels),
+		generalMetrics: jobs.NewGeneralJob(beac, log, namespace, constLabels),
+		specMetrics:    jobs.NewSpecJob(beac, log, namespace, constLabels),
+		syncMetrics:    jobs.NewSyncJob(beac, log, namespace, constLabels),
+		forkMetrics:    jobs.NewForksJob(beac, log, namespace, constLabels),
+		beaconMetrics:  jobs.NewBeaconJob(client, ap, beac, log, namespace, constLabels),
+		eventMetrics:   jobs.NewEventJob(client, beac, log, namespace, constLabels),
 	}
 
 	prometheus.MustRegister(m.generalMetrics.NodeVersion)
@@ -98,6 +99,8 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.Fi
 	prometheus.MustRegister(m.beaconMetrics.ReOrgDepth)
 	prometheus.MustRegister(m.beaconMetrics.FinalityCheckpointHash)
 	prometheus.MustRegister(m.beaconMetrics.HeadSlotHash)
+	prometheus.MustRegister(m.beaconMetrics.ProposerDelay)
+	prometheus.MustRegister(m.beaconMetrics.EmptySlots)
 
 	prometheus.MustRegister(m.eventMetrics.Count)
 	prometheus.MustRegister(m.eventMetrics.TimeSinceLastEvent)
@@ -106,12 +109,42 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, log logrus.Fi
 }
 
 func (m *metrics) StartAsync(ctx context.Context) {
-	go m.generalMetrics.Start(ctx)
-	go m.specMetrics.Start(ctx)
-	go m.syncMetrics.Start(ctx)
-	go m.forkMetrics.Start(ctx)
-	go m.beaconMetrics.Start(ctx)
-	go m.eventMetrics.Start(ctx)
+	go func() {
+		if err := m.generalMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start general metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.specMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start spec metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.syncMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start sync metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.forkMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start fork metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.beaconMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start beacon metrics: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := m.eventMetrics.Start(ctx); err != nil {
+			m.log.Errorf("Failed to start event metrics: %v", err)
+		}
+	}()
+
 	go m.subscriptionLoop(ctx)
 }
 
@@ -169,10 +202,5 @@ func (m *metrics) startSubscriptions(ctx context.Context) error {
 }
 
 func (m *metrics) handleEvent(ctx context.Context, event *v1.Event) {
-	m.generalMetrics.HandleEvent(ctx, event)
-	m.specMetrics.HandleEvent(ctx, event)
-	m.syncMetrics.HandleEvent(ctx, event)
-	m.forkMetrics.HandleEvent(ctx, event)
 	m.beaconMetrics.HandleEvent(ctx, event)
-	m.eventMetrics.HandleEvent(ctx, event)
 }

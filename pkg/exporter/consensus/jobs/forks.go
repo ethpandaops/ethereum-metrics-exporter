@@ -2,27 +2,21 @@ package jobs
 
 import (
 	"context"
-	"errors"
-	"strings"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 
-	eth2client "github.com/attestantio/go-eth2-client"
-	v1 "github.com/attestantio/go-eth2-client/api/v1"
+	"github.com/attestantio/go-eth2-client/spec/phase0"
 )
 
 // Forks reports the state of any forks (previous, active or upcoming).
 type Forks struct {
-	Epochs              prometheus.GaugeVec
-	Activated           prometheus.GaugeVec
-	Current             prometheus.GaugeVec
-	client              eth2client.Service
-	log                 logrus.FieldLogger
-	previousCurrentFork string
+	Epochs    prometheus.GaugeVec
+	Activated prometheus.GaugeVec
+	Current   prometheus.GaugeVec
+	beacon    beacon.Node
+	log       logrus.FieldLogger
 }
 
 const (
@@ -30,13 +24,13 @@ const (
 )
 
 // NewForksJob returns a new Forks instance.
-func NewForksJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Forks {
+func NewForksJob(beac beacon.Node, log logrus.FieldLogger, namespace string, constLabels map[string]string) Forks {
 	constLabels["module"] = NameFork
 
 	namespace += "_fork"
 
 	return Forks{
-		client: client,
+		beacon: beac,
 		log:    log,
 		Epochs: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -71,8 +65,6 @@ func NewForksJob(client eth2client.Service, ap api.ConsensusClient, log logrus.F
 				"fork",
 			},
 		),
-
-		previousCurrentFork: "",
 	}
 }
 
@@ -80,111 +72,45 @@ func (f *Forks) Name() string {
 	return NameFork
 }
 
-func (f *Forks) Start(ctx context.Context) {
-	f.tick(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Second * 600):
-			f.tick(ctx)
-		}
-	}
-}
-
-func (f *Forks) tick(ctx context.Context) {
-	if err := f.ForkEpochs(ctx); err != nil {
-		f.log.WithError(err).Error("Failed to fetch fork epochs")
-	}
-
-	if err := f.GetCurrent(ctx); err != nil {
-		f.log.WithError(err).Error("Failed to fetch current fork")
-	}
-}
-
-func (f *Forks) HandleEvent(ctx context.Context, event *v1.Event) {
-}
-
-func (f *Forks) ForkEpochs(ctx context.Context) error {
-	spec, err := f.getSpec(ctx)
-	if err != nil {
+func (f *Forks) Start(ctx context.Context) error {
+	if _, err := f.beacon.OnBlockInserted(ctx, func(ctx context.Context, event *beacon.BlockInsertedEvent) error {
+		return f.calculateCurrent(ctx, event.Slot)
+	}); err != nil {
 		return err
-	}
-
-	for k, v := range spec {
-		if strings.Contains(k, "_FORK_EPOCH") {
-			f.ObserveForkEpoch(strings.ReplaceAll(k, "_FORK_EPOCH", ""), cast.ToUint64(v))
-		}
 	}
 
 	return nil
 }
 
-func (f *Forks) GetCurrent(ctx context.Context) error {
-	// Get the current head slot.
-	provider, isProvider := f.client.(eth2client.BeaconBlockHeadersProvider)
-	if !isProvider {
-		return errors.New("client does not implement eth2client.BeaconBlockHeadersProvider")
-	}
-
-	headSlot, err := provider.BeaconBlockHeader(ctx, "head")
+func (f *Forks) calculateCurrent(ctx context.Context, slot phase0.Slot) error {
+	spec, err := f.beacon.GetSpec(ctx)
 	if err != nil {
 		return err
 	}
 
-	spec, err := f.getSpec(ctx)
+	slotsPerEpoch := spec.SlotsPerEpoch
+
+	f.Activated.Reset()
+	f.Epochs.Reset()
+
+	for _, fork := range spec.ForkEpochs {
+		f.Epochs.WithLabelValues(fork.Name).Set(float64(fork.Epoch))
+
+		if fork.Active(slot, slotsPerEpoch) {
+			f.Activated.WithLabelValues(fork.Name).Set(1)
+		} else {
+			f.Activated.WithLabelValues(fork.Name).Set(0)
+		}
+	}
+
+	current, err := spec.ForkEpochs.CurrentFork(slot, slotsPerEpoch)
 	if err != nil {
-		return err
-	}
+		f.log.WithError(err).Error("Failed to set current fork")
+	} else {
+		f.Current.Reset()
 
-	slotsPerEpoch := 32
-	if v, ok := spec["SLOTS_PER_EPOCH"]; ok {
-		slotsPerEpoch = cast.ToInt(v)
-	}
-
-	current := ""
-	currentSlot := 0
-
-	for k, v := range spec {
-		if strings.Contains(k, "_FORK_EPOCH") {
-			forkName := strings.ReplaceAll(k, "_FORK_EPOCH", "")
-
-			if int(headSlot.Header.Message.Slot)/slotsPerEpoch > cast.ToInt(v) {
-				f.Activated.WithLabelValues(forkName).Set(1)
-			} else {
-				f.Activated.WithLabelValues(forkName).Set(0)
-			}
-
-			if currentSlot < cast.ToInt(v) {
-				current = forkName
-				currentSlot = cast.ToInt(v)
-			}
-		}
-	}
-
-	if current != f.previousCurrentFork {
-		f.Current.WithLabelValues(current).Set(1)
-
-		if f.previousCurrentFork != "" {
-			f.Current.WithLabelValues(f.previousCurrentFork).Set(0)
-		}
-
-		f.previousCurrentFork = current
+		f.Current.WithLabelValues(current.Name).Set(1)
 	}
 
 	return nil
-}
-
-func (f *Forks) getSpec(ctx context.Context) (map[string]interface{}, error) {
-	provider, isProvider := f.client.(eth2client.SpecProvider)
-	if !isProvider {
-		return nil, errors.New("client does not implement eth2client.SpecProvider")
-	}
-
-	return provider.Spec(ctx)
-}
-
-func (f *Forks) ObserveForkEpoch(name string, epoch uint64) {
-	f.Epochs.WithLabelValues(name).Set(float64(epoch))
 }

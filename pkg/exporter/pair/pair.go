@@ -3,18 +3,14 @@ package pair
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"time"
 
-	eth2client "github.com/attestantio/go-eth2-client"
-	"github.com/attestantio/go-eth2-client/http"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rs/zerolog"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 )
 
 // Metrics reports pair metrics
@@ -29,30 +25,27 @@ type pair struct {
 	consensusMechanism *prometheus.GaugeVec
 
 	executionClient *ethclient.Client
-	consensusClient eth2client.Service
+	beacon          beacon.Node
 	ethrpcClient    *ethrpc.EthRPC
 	bootstrapped    bool
-	consensusURL    string
 	executionURL    string
 
-	totalDifficulty         *big.Int
-	terminalTotalDifficulty *big.Int
-	networkID               *big.Int
+	totalDifficulty *big.Int
+	networkID       *big.Int
 
 	networkIDFetchedAt time.Time
-	ttdFetchedAt       time.Time
 	tdFetchedAt        time.Time
 }
 
 // NewMetrics returns a new Metrics instance.
-func NewMetrics(ctx context.Context, log logrus.FieldLogger, namespace, consensusURL, executionURL string) (Metrics, error) {
+func NewMetrics(ctx context.Context, log logrus.FieldLogger, namespace string, beac beacon.Node, executionURL string) (Metrics, error) {
 	p := &pair{
 		log: log,
 
 		executionURL: executionURL,
-		consensusURL: consensusURL,
 
-		consensusClient: nil,
+		beacon: beac,
+
 		executionClient: nil,
 		ethrpcClient:    nil,
 
@@ -70,8 +63,7 @@ func NewMetrics(ctx context.Context, log logrus.FieldLogger, namespace, consensu
 			},
 		),
 
-		totalDifficulty:         big.NewInt(0),
-		terminalTotalDifficulty: big.NewInt(0),
+		totalDifficulty: big.NewInt(0),
 	}
 
 	prometheus.MustRegister(p.consensusMechanism)
@@ -80,16 +72,6 @@ func NewMetrics(ctx context.Context, log logrus.FieldLogger, namespace, consensu
 }
 
 func (p *pair) Bootstrap(ctx context.Context) error {
-	consenusClient, err := http.New(ctx,
-		http.WithAddress(p.consensusURL),
-		http.WithLogLevel(zerolog.Disabled),
-	)
-	if err != nil {
-		return err
-	}
-
-	p.consensusClient = consenusClient
-
 	executionClient, err := ethclient.Dial(p.executionURL)
 	if err != nil {
 		return err
@@ -114,12 +96,6 @@ func (p *pair) StartAsync(ctx context.Context) {
 				if !p.bootstrapped {
 					if err := p.Bootstrap(ctx); err != nil {
 						continue
-					}
-				}
-
-				if time.Since(p.ttdFetchedAt) > 15*time.Minute {
-					if err := p.fetchTerminalTotalDifficulty(ctx); err != nil {
-						p.log.WithError(err).Error("Failed to fetch terminal total difficulty")
 					}
 				}
 
@@ -174,43 +150,14 @@ func (p *pair) fetchNetworkID(ctx context.Context) error {
 	return nil
 }
 
-func (p *pair) fetchTerminalTotalDifficulty(ctx context.Context) error {
-	provider, isProvider := p.consensusClient.(eth2client.SpecProvider)
-	if !isProvider {
-		return errors.New("client does not implement eth2client.SpecProvider")
-	}
-
-	spec, err := provider.Spec(ctx)
+func (p *pair) deriveConsensusMechanism(ctx context.Context) error {
+	spec, err := p.beacon.GetSpec(ctx)
 	if err != nil {
 		return err
 	}
 
-	terminalTotalDifficulty, exists := spec["TERMINAL_TOTAL_DIFFICULTY"]
-	if !exists {
-		return errors.New("TERMINAL_TOTAL_DIFFICULTY not found in spec")
-	}
-
-	ttd := cast.ToString(fmt.Sprintf("%v", terminalTotalDifficulty))
-
-	asBigInt, success := big.NewInt(0).SetString(ttd, 10)
-	if !success {
-		return errors.New("TERMINAL_TOTAL_DIFFICULTY not a valid integer")
-	}
-
-	p.terminalTotalDifficulty = asBigInt
-
-	p.ttdFetchedAt = time.Now()
-
-	return nil
-}
-
-func (p *pair) deriveConsensusMechanism(ctx context.Context) error {
 	if p.totalDifficulty == big.NewInt(0) {
 		return errors.New("total difficulty not fetched")
-	}
-
-	if p.terminalTotalDifficulty == big.NewInt(0) {
-		return errors.New("terminal total difficulty not fetched")
 	}
 
 	if p.networkID == big.NewInt(0) {
@@ -224,7 +171,7 @@ func (p *pair) deriveConsensusMechanism(ctx context.Context) error {
 		consensusMechanism = value
 	}
 
-	if p.totalDifficulty.Cmp(p.terminalTotalDifficulty) >= 0 {
+	if p.totalDifficulty.Cmp(&spec.TerminalTotalDifficulty) >= 0 {
 		consensusMechanism = ProofOfStake
 	}
 

@@ -7,7 +7,7 @@ import (
 	eth2client "github.com/attestantio/go-eth2-client"
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,6 +17,8 @@ type Event struct {
 	Count              prometheus.CounterVec
 	TimeSinceLastEvent prometheus.Gauge
 
+	beacon beacon.Node
+
 	LastEventTime time.Time
 }
 
@@ -25,12 +27,13 @@ const (
 )
 
 // NewEvent creates a new Event instance.
-func NewEventJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Event {
+func NewEventJob(client eth2client.Service, bc beacon.Node, log logrus.FieldLogger, namespace string, constLabels map[string]string) Event {
 	constLabels["module"] = NameEvent
 	namespace += "_event"
 
 	return Event{
-		log: log,
+		log:    log,
+		beacon: bc,
 		Count: *prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
@@ -54,28 +57,34 @@ func NewEventJob(client eth2client.Service, ap api.ConsensusClient, log logrus.F
 	}
 }
 
-func (b *Event) Name() string {
+func (e *Event) Name() string {
 	return NameEvent
 }
 
-func (b *Event) Start(ctx context.Context) {
+func (e *Event) Start(ctx context.Context) error {
+	if _, err := e.beacon.OnEvent(ctx, e.HandleEvent); err != nil {
+		return err
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		case <-time.After(time.Second * 1):
-			b.tick(ctx)
+			e.tick(ctx)
 		}
 	}
 }
 
 //nolint:unparam // ctx will probably be used in the future
-func (b *Event) tick(ctx context.Context) {
-	b.TimeSinceLastEvent.Set(float64(time.Since(b.LastEventTime).Milliseconds()))
+func (e *Event) tick(ctx context.Context) {
+	e.TimeSinceLastEvent.Set(float64(time.Since(e.LastEventTime).Milliseconds()))
 }
 
-func (b *Event) HandleEvent(ctx context.Context, event *v1.Event) {
-	b.Count.WithLabelValues(event.Topic).Inc()
-	b.LastEventTime = time.Now()
-	b.TimeSinceLastEvent.Set(0)
+func (e *Event) HandleEvent(ctx context.Context, event *v1.Event) error {
+	e.Count.WithLabelValues(event.Topic).Inc()
+	e.LastEventTime = time.Now()
+	e.TimeSinceLastEvent.Set(0)
+
+	return nil
 }

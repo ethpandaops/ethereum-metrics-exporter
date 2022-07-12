@@ -2,22 +2,18 @@ package jobs
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"math/big"
 	"time"
 
-	eth2client "github.com/attestantio/go-eth2-client"
-	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 )
 
 // Spec reports metrics about the configured consensus spec.
 type Spec struct {
-	client                           eth2client.Service
+	beacon                           beacon.Node
 	log                              logrus.FieldLogger
 	SafeSlotsToUpdateJustified       prometheus.Gauge
 	DepositChainID                   prometheus.Gauge
@@ -50,14 +46,14 @@ const (
 )
 
 // NewSpecJob returns a new Spec instance.
-func NewSpecJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Spec {
+func NewSpecJob(bc beacon.Node, log logrus.FieldLogger, namespace string, constLabels map[string]string) Spec {
 	constLabels["module"] = NameSpec
 
 	namespace += "_spec"
 
 	return Spec{
-		client: client,
 		log:    log,
+		beacon: bc,
 		SafeSlotsToUpdateJustified: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -259,144 +255,76 @@ func (s *Spec) Name() string {
 	return NameSpec
 }
 
-func (s *Spec) Start(ctx context.Context) {
+func (s *Spec) Start(ctx context.Context) error {
+	if _, err := s.beacon.OnSpecUpdated(ctx, func(ctx context.Context, event *beacon.SpecUpdatedEvent) error {
+		return s.observeSpec(ctx, event.Spec)
+	}); err != nil {
+		return err
+	}
+
 	s.tick(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
-			return
-		case <-time.After(time.Second * 600):
+			return ctx.Err()
+		case <-time.After(time.Minute * 5):
 			s.tick(ctx)
 		}
 	}
 }
 
 func (s *Spec) tick(ctx context.Context) {
-	if err := s.GetSpec(ctx); err != nil {
+	if err := s.getSpec(ctx); err != nil {
 		s.log.WithError(err).Error("Failed to fetch spec")
 	}
 }
 
-func (s *Spec) HandleEvent(ctx context.Context, event *v1.Event) {
+func (s *Spec) observeSpec(ctx context.Context, spec *state.Spec) error {
+	s.ConfigName.Reset()
+	s.ConfigName.WithLabelValues(spec.ConfigName).Set(1)
 
-}
+	s.PresetBase.Reset()
+	s.PresetBase.WithLabelValues(spec.PresetBase).Set(1)
 
-func (s *Spec) GetSpec(ctx context.Context) error {
-	provider, isProvider := s.client.(eth2client.SpecProvider)
-	if !isProvider {
-		return errors.New("client does not implement eth2client.SpecProvider")
-	}
+	s.SafeSlotsToUpdateJustified.Set(float64(spec.SafeSlotsToUpdateJustified))
+	s.DepositChainID.Set(float64(spec.DepositChainID))
+	s.MaxValidatorsPerCommittee.Set(float64(spec.MaxValidatorsPerCommittee))
+	// nolint:unconvert // false positive
+	s.SecondsPerEth1Block.Set(float64(spec.SecondsPerEth1Block.Seconds()))
+	s.BaseRewardFactor.Set(float64(spec.BaseRewardFactor))
+	s.EpochsPerSyncCommitteePeriod.Set(float64(spec.EpochsPerSyncCommitteePeriod))
+	s.EffectiveBalanceIncrement.Set(float64(spec.EffectiveBalanceIncrement))
+	s.MaxAttestations.Set(float64(spec.MaxAttestations))
+	s.MinSyncCommitteeParticipants.Set(float64(spec.MinSyncCommitteeParticipants))
+	// nolint:unconvert // false positive
+	s.GenesisDelay.Set(float64(spec.GenesisDelay.Seconds()))
+	// nolint:unconvert // false positive
+	s.SecondsPerSlot.Set(float64(spec.SecondsPerSlot.Seconds()))
+	s.MaxEffectiveBalance.Set(float64(spec.MaxEffectiveBalance))
+	s.MaxDeposits.Set(float64(spec.MaxDeposits))
+	s.MinGenesisActiveValidatorCount.Set(float64(spec.MinGenesisActiveValidatorCount))
+	s.TargetCommitteeSize.Set(float64(spec.TargetCommitteeSize))
+	s.SyncCommitteeSize.Set(float64(spec.SyncCommitteeSize))
+	s.Eth1FollowDistance.Set(float64(spec.Eth1FollowDistance))
+	s.TerminalBlockHashActivationEpoch.Set(float64(spec.TerminalBlockHashActivationEpoch))
+	s.MinDepositAmount.Set(float64(spec.MinDepositAmount))
+	s.SlotsPerEpoch.Set(float64(spec.SlotsPerEpoch))
 
-	spec, err := provider.Spec(ctx)
-	if err != nil {
-		return err
-	}
-
-	s.Update(spec)
+	trillion := big.NewInt(1e12)
+	divided := new(big.Int).Div(&spec.TerminalTotalDifficulty, trillion)
+	asFloat, _ := new(big.Float).SetInt(divided).Float64()
+	s.TerminalTotalDifficultyTrillions.Set(asFloat)
+	s.TerminalTotalDifficulty.Set(float64(spec.TerminalTotalDifficulty.Uint64()))
 
 	return nil
 }
 
-func (s *Spec) Update(spec map[string]interface{}) {
-	if safeSlotsToUpdateJustified, exists := spec["SAFE_SLOTS_TO_UPDATE_JUSTIFIED"]; exists {
-		s.SafeSlotsToUpdateJustified.Set(cast.ToFloat64(safeSlotsToUpdateJustified))
+func (s *Spec) getSpec(ctx context.Context) error {
+	spec, err := s.beacon.GetSpec(ctx)
+	if err != nil {
+		return err
 	}
 
-	if depositChainID, exists := spec["DEPOSIT_CHAIN_ID"]; exists {
-		s.DepositChainID.Set(cast.ToFloat64(depositChainID))
-	}
-
-	if configName, exists := spec["CONFIG_NAME"]; exists {
-		s.ConfigName.WithLabelValues(cast.ToString(configName)).Set(1)
-	}
-
-	if maxValidatorsPerCommittee, exists := spec["MAX_VALIDATORS_PER_COMMITTEE"]; exists {
-		s.MaxValidatorsPerCommittee.Set(cast.ToFloat64(maxValidatorsPerCommittee))
-	}
-
-	if secondsPerEth1Block, exists := spec["SECONDS_PER_ETH1_BLOCK"]; exists {
-		s.SecondsPerEth1Block.Set(float64(cast.ToDuration(secondsPerEth1Block)))
-	}
-
-	if baseRewardFactor, exists := spec["BASE_REWARD_FACTOR"]; exists {
-		s.BaseRewardFactor.Set(cast.ToFloat64(baseRewardFactor))
-	}
-
-	if epochsPerSyncComitteePeriod, exists := spec["EPOCHS_PER_SYNC_COMMITTEE_PERIOD"]; exists {
-		s.EpochsPerSyncCommitteePeriod.Set(cast.ToFloat64(epochsPerSyncComitteePeriod))
-	}
-
-	if effectiveBalanceIncrement, exists := spec["EFFECTIVE_BALANCE_INCREMENT"]; exists {
-		s.EffectiveBalanceIncrement.Set(cast.ToFloat64(effectiveBalanceIncrement))
-	}
-
-	if maxAttestations, exists := spec["MAX_ATTESTATIONS"]; exists {
-		s.MaxAttestations.Set(cast.ToFloat64(maxAttestations))
-	}
-
-	if minSyncCommitteeParticipants, exists := spec["MIN_SYNC_COMMITTEE_PARTICIPANTS"]; exists {
-		s.MinSyncCommitteeParticipants.Set(cast.ToFloat64(minSyncCommitteeParticipants))
-	}
-
-	if genesisDelay, exists := spec["GENESIS_DELAY"]; exists {
-		s.GenesisDelay.Set(float64(cast.ToDuration(genesisDelay)))
-	}
-
-	if secondsPerSlot, exists := spec["SECONDS_PER_SLOT"]; exists {
-		s.SecondsPerSlot.Set(float64(cast.ToDuration(secondsPerSlot)))
-	}
-
-	if maxEffectiveBalance, exists := spec["MAX_EFFECTIVE_BALANCE"]; exists {
-		s.MaxEffectiveBalance.Set(cast.ToFloat64(maxEffectiveBalance))
-	}
-
-	if terminalTotalDifficulty, exists := spec["TERMINAL_TOTAL_DIFFICULTY"]; exists {
-		ttd := cast.ToString(fmt.Sprintf("%v", terminalTotalDifficulty))
-
-		asBigInt, success := big.NewInt(0).SetString(ttd, 10)
-		if success {
-			trillion := big.NewInt(1e12)
-			divided := new(big.Int).Div(asBigInt, trillion)
-			asFloat, _ := new(big.Float).SetInt(divided).Float64()
-			s.TerminalTotalDifficultyTrillions.Set(asFloat)
-			s.TerminalTotalDifficulty.Set(float64(asBigInt.Uint64()))
-		}
-	}
-
-	if maxDeposits, exists := spec["MAX_DEPOSITS"]; exists {
-		s.MaxDeposits.Set(cast.ToFloat64((maxDeposits)))
-	}
-
-	if minGenesisActiveValidatorCount, exists := spec["MIN_GENESIS_ACTIVE_VALIDATOR_COUNT"]; exists {
-		s.MinGenesisActiveValidatorCount.Set(cast.ToFloat64(minGenesisActiveValidatorCount))
-	}
-
-	if targetCommitteeSize, exists := spec["TARGET_COMMITTEE_SIZE"]; exists {
-		s.TargetCommitteeSize.Set(cast.ToFloat64(targetCommitteeSize))
-	}
-
-	if syncCommitteeSize, exists := spec["SYNC_COMMITTEE_SIZE"]; exists {
-		s.SyncCommitteeSize.Set(cast.ToFloat64(syncCommitteeSize))
-	}
-
-	if eth1FollowDistance, exists := spec["ETH1_FOLLOW_DISTANCE"]; exists {
-		s.Eth1FollowDistance.Set(cast.ToFloat64(eth1FollowDistance))
-	}
-
-	if terminalBlockHashActivationEpoch, exists := spec["TERMINAL_BLOCK_HASH_ACTIVATION_EPOCH"]; exists {
-		s.TerminalBlockHashActivationEpoch.Set(cast.ToFloat64(terminalBlockHashActivationEpoch))
-	}
-
-	if minDepositAmount, exists := spec["MIN_DEPOSIT_AMOUNT"]; exists {
-		s.MinDepositAmount.Set(cast.ToFloat64(minDepositAmount))
-	}
-
-	if slotsPerEpoch, exists := spec["SLOTS_PER_EPOCH"]; exists {
-		s.SlotsPerEpoch.Set(cast.ToFloat64(slotsPerEpoch))
-	}
-
-	if presetBase, exists := spec["PRESET_BASE"]; exists {
-		s.PresetBase.WithLabelValues(cast.ToString(presetBase)).Set(1)
-	}
+	return s.observeSpec(ctx, spec)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/attestantio/go-eth2-client/spec"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,6 +19,7 @@ import (
 type Beacon struct {
 	client                 eth2client.Service
 	log                    logrus.FieldLogger
+	beaconNode             beacon.Node
 	Slot                   prometheus.GaugeVec
 	Transactions           prometheus.GaugeVec
 	Slashings              prometheus.GaugeVec
@@ -29,6 +31,8 @@ type Beacon struct {
 	ReOrgDepth             prometheus.Counter
 	HeadSlotHash           prometheus.Gauge
 	FinalityCheckpointHash prometheus.GaugeVec
+	EmptySlots             prometheus.Counter
+	ProposerDelay          prometheus.Histogram
 	currentVersion         string
 }
 
@@ -40,13 +44,14 @@ const (
 )
 
 // NewBeacon creates a new Beacon instance.
-func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, log logrus.FieldLogger, namespace string, constLabels map[string]string) Beacon {
+func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, beac beacon.Node, log logrus.FieldLogger, namespace string, constLabels map[string]string) Beacon {
 	constLabels["module"] = NameBeacon
 	namespace += "_beacon"
 
 	return Beacon{
-		client: client,
-		log:    log,
+		client:     client,
+		beaconNode: beac,
+		log:        log,
 		Slot: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -168,6 +173,23 @@ func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, log logrus.
 				"checkpoint",
 			},
 		),
+		ProposerDelay: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Namespace:   namespace,
+				Name:        "proposer_delay",
+				Help:        "The delay of the proposer.",
+				ConstLabels: constLabels,
+				Buckets:     prometheus.LinearBuckets(0, 1000, 13),
+			},
+		),
+		EmptySlots: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace:   namespace,
+				Name:        "empty_slots_count",
+				Help:        "The number of slots that have expired without a block proposed.",
+				ConstLabels: constLabels,
+			},
+		),
 	}
 }
 
@@ -175,15 +197,19 @@ func (b *Beacon) Name() string {
 	return NameBeacon
 }
 
-func (b *Beacon) Start(ctx context.Context) {
+func (b *Beacon) Start(ctx context.Context) error {
 	b.tick(ctx)
+
+	if err := b.setupSubscriptions(ctx); err != nil {
+		return err
+	}
 
 	go b.getInitialData(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		case <-time.After(time.Second * 5):
 			b.tick(ctx)
 		}
@@ -194,6 +220,57 @@ func (b *Beacon) tick(ctx context.Context) {
 
 }
 
+func (b *Beacon) setupSubscriptions(ctx context.Context) error {
+	if _, err := b.beaconNode.OnBlockInserted(ctx, b.handleBlockInserted); err != nil {
+		return err
+	}
+
+	if _, err := b.beaconNode.OnChainReOrg(ctx, b.handleChainReorg); err != nil {
+		return err
+	}
+
+	if _, err := b.beaconNode.OnEmptySlot(ctx, b.handleEmptySlot); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *Beacon) handleEmptySlot(ctx context.Context, event *beacon.EmptySlotEvent) error {
+	b.log.WithField("slot", event.Slot).Debug("Empty slot detected")
+
+	b.EmptySlots.Inc()
+
+	return nil
+}
+
+func (b *Beacon) handleBlockInserted(ctx context.Context, event *beacon.BlockInsertedEvent) error {
+	// Fetch the slot
+	slot, err := b.beaconNode.GetSlot(ctx, event.Slot)
+	if err != nil {
+		return err
+	}
+
+	timedBlock, err := slot.Block()
+	if err != nil {
+		return err
+	}
+
+	// nolint:gocritic // False positive
+	if err = b.handleSingleBlock("head", timedBlock.Block); err != nil {
+		return err
+	}
+
+	delay, err := slot.ProposerDelay()
+	if err != nil {
+		return err
+	}
+
+	b.ProposerDelay.Observe(float64(delay.Milliseconds()))
+
+	return nil
+}
+
 func (b *Beacon) getInitialData(ctx context.Context) {
 	for {
 		if b.client == nil {
@@ -201,7 +278,6 @@ func (b *Beacon) getInitialData(ctx context.Context) {
 			continue
 		}
 
-		b.updateBeaconBlock(ctx)
 		b.updateFinalizedCheckpoint(ctx)
 
 		break
@@ -209,27 +285,16 @@ func (b *Beacon) getInitialData(ctx context.Context) {
 }
 
 func (b *Beacon) HandleEvent(ctx context.Context, event *v1.Event) {
-	if event.Topic == EventTopicBlock {
-		b.handleBlockEvent(ctx, event)
-	}
-
 	if event.Topic == EventTopicFinalizedCheckpoint {
 		b.handleFinalizedCheckpointEvent(ctx, event)
 	}
-
-	if event.Topic == EventTopicChainReorg {
-		b.handleChainReorg(event)
-	}
 }
 
-func (b *Beacon) handleChainReorg(event *v1.Event) {
-	reorg, ok := event.Data.(*v1.ChainReorgEvent)
-	if !ok {
-		return
-	}
-
+func (b *Beacon) handleChainReorg(ctx context.Context, event *v1.ChainReorgEvent) error {
 	b.ReOrgs.Inc()
-	b.ReOrgDepth.Add(float64(reorg.Depth))
+	b.ReOrgDepth.Add(float64(event.Depth))
+
+	return nil
 }
 
 func (b *Beacon) handleFinalizedCheckpointEvent(ctx context.Context, event *v1.Event) {
@@ -249,21 +314,6 @@ func (b *Beacon) updateFinalizedCheckpoint(ctx context.Context) {
 	if err := b.GetSignedBeaconBlock(ctx, "finalized"); err != nil {
 		b.log.WithError(err).Error("Failed to get signed beacon block")
 	}
-}
-
-func (b *Beacon) updateBeaconBlock(ctx context.Context) {
-	if err := b.GetSignedBeaconBlock(ctx, "head"); err != nil {
-		b.log.WithError(err).Error("Failed to get signed beacon block")
-	}
-}
-
-func (b *Beacon) handleBlockEvent(ctx context.Context, event *v1.Event) {
-	_, ok := event.Data.(*v1.BlockEvent)
-	if !ok {
-		return
-	}
-
-	b.updateBeaconBlock(ctx)
 }
 
 func (b *Beacon) GetSignedBeaconBlock(ctx context.Context, blockID string) error {
@@ -323,6 +373,7 @@ func (b *Beacon) handleSingleBlock(blockID string, block *spec.VersionedSignedBe
 		b.Attestations.Reset()
 		b.Deposits.Reset()
 		b.VoluntaryExits.Reset()
+		b.Slot.Reset()
 
 		b.currentVersion = block.Version.String()
 	}
