@@ -18,6 +18,8 @@ type Epoch struct {
 	EndTime   time.Time
 	Duration  time.Duration
 	bundle    BlockTimeCalculatorBundle
+
+	haveProposerDuties bool
 }
 
 func NewEpoch(epochNumber phase0.Epoch, slotsPerEpoch phase0.Slot, bundle BlockTimeCalculatorBundle) Epoch {
@@ -34,6 +36,8 @@ func NewEpoch(epochNumber phase0.Epoch, slotsPerEpoch phase0.Slot, bundle BlockT
 		EndTime:   bundle.Genesis.GenesisTime.Add((time.Duration(lastSlot) * bundle.SecondsPerSlot)).Add(bundle.SecondsPerSlot),
 		Duration:  bundle.SecondsPerSlot * time.Duration(slotsPerEpoch),
 		bundle:    bundle,
+
+		haveProposerDuties: false,
 	}
 
 	return e
@@ -81,7 +85,13 @@ func (e *Epoch) SetProposerDuties(duties []*v1.ProposerDuty) error {
 		}
 	}
 
+	e.haveProposerDuties = true
+
 	return nil
+}
+
+func (e *Epoch) HaveProposerDuties() bool {
+	return e.haveProposerDuties
 }
 
 func (e *Epoch) GetSlot(slotNumber phase0.Slot) (*Slot, error) {

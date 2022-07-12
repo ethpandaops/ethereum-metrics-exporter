@@ -6,37 +6,38 @@ import (
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 )
 
+func (c *Container) handleCallbackError(err error, topic string) {
+	if err != nil {
+		c.log.WithError(err).WithField("topic", topic).Error("Receieved error from subscriber callback")
+	}
+}
+
 func (c *Container) publishEpochChanged(ctx context.Context, epoch phase0.Epoch) {
 	for _, cb := range c.callbacksEpochChanged {
-		//nolint:errcheck // we dont care if the callback fails
-		cb(ctx, epoch)
+		c.handleCallbackError(cb(ctx, epoch), "epochs_changed")
 	}
 }
 
 func (c *Container) publishSlotChanged(ctx context.Context, slot phase0.Slot) {
 	for _, cb := range c.callbacksSlotChanged {
-		//nolint:errcheck // we dont care if the callback fails
-		cb(ctx, slot)
+		c.handleCallbackError(cb(ctx, slot), "slots_changed")
 	}
 }
 
 func (c *Container) publishEpochSlotChanged(ctx context.Context, epoch phase0.Epoch, slot phase0.Slot) {
 	for _, cb := range c.callbacksEpochSlotChanged {
-		//nolint:errcheck // we dont care if the callback fails
-		cb(ctx, epoch, slot)
+		c.handleCallbackError(cb(ctx, epoch, slot), "epoch_slots_changed")
 	}
 }
 
 func (c *Container) publishBlockInserted(ctx context.Context, epoch phase0.Epoch, slot Slot) {
 	for _, cb := range c.callbacksBlockInserted {
-		//nolint:errcheck // we dont care if the callback fails
-		cb(ctx, epoch, slot)
+		c.handleCallbackError(cb(ctx, epoch, slot), "block_inserted")
 	}
 }
 
 func (c *Container) publishEmptySlot(ctx context.Context, epoch phase0.Epoch, slot Slot) {
 	for _, cb := range c.callbacksEmptySlot {
-		//nolint:errcheck // we dont care if the callback fails
-		cb(ctx, epoch, slot)
+		c.handleCallbackError(cb(ctx, epoch, slot), "empty_slot")
 	}
 }

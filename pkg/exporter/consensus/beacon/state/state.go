@@ -21,6 +21,7 @@ type Container struct {
 
 	currentEpoch phase0.Epoch
 	currentSlot  phase0.Slot
+	startingSlot phase0.Slot
 
 	callbacksEpochChanged     []func(ctx context.Context, epoch phase0.Epoch) error
 	callbacksSlotChanged      []func(ctx context.Context, slot phase0.Slot) error
@@ -37,13 +38,14 @@ const (
 // NewContainer creates a new state container instance
 func NewContainer(ctx context.Context, log logrus.FieldLogger, sp *Spec, genesis *v1.Genesis) Container {
 	return Container{
-		log:  log,
+		log:  log.WithField("sub_module", "state"),
 		spec: sp,
 
 		genesis: genesis,
 
 		currentEpoch: 0,
 		currentSlot:  0,
+		startingSlot: 0,
 
 		epochs: NewEpochs(sp, genesis),
 	}
@@ -107,10 +109,6 @@ func (c *Container) tick(ctx context.Context) {
 	if err := c.hydrateEpochs(ctx); err != nil {
 		c.log.WithError(err).Error("Failed to hydrate epochs")
 	}
-
-	if err := c.checkForNewCurrentEpochAndSlot(ctx); err != nil {
-		c.log.WithError(err).Error("Failed to check for new current epoch and slot")
-	}
 }
 
 // AddBeaconBlock adds a beacon block to the state container.
@@ -128,9 +126,7 @@ func (c *Container) AddBeaconBlock(ctx context.Context, beaconBlock *spec.Versio
 	epochNumber := c.calculateEpochFromSlot(slotNumber)
 
 	if exists := c.epochs.Exists(epochNumber); !exists {
-		if _, err = c.createEpoch(ctx, epochNumber); err != nil {
-			return err
-		}
+		return fmt.Errorf("epoch %d does not exist", epochNumber)
 	}
 
 	// Get the epoch
@@ -227,10 +223,16 @@ func (c *Container) SetProposerDuties(ctx context.Context, epochNumber phase0.Ep
 }
 
 func (c *Container) createEpoch(ctx context.Context, epochNumber phase0.Epoch) (*Epoch, error) {
+	if _, err := c.epochs.GetEpoch(epochNumber); err == nil {
+		return nil, fmt.Errorf("epoch %d already exists", epochNumber)
+	}
+
 	epoch, err := c.epochs.NewInitializedEpoch(epochNumber)
 	if err != nil {
 		return nil, err
 	}
+
+	c.log.WithField("epoch", epochNumber).Info("Created new epoch")
 
 	return epoch, nil
 }
@@ -248,6 +250,10 @@ func (c *Container) checkForNewCurrentEpochAndSlot(ctx context.Context) error {
 
 		epochChanged = true
 
+		if err := c.hydrateEpochs(ctx); err != nil {
+			return err
+		}
+
 		// Notify the listeners of the new epoch.
 		go c.publishEpochChanged(ctx, epoch)
 
@@ -261,9 +267,7 @@ func (c *Container) checkForNewCurrentEpochAndSlot(ctx context.Context) error {
 	slotChanged := false
 
 	if slot != c.currentSlot {
-		if err := c.checkForEmptySlot(ctx, c.currentSlot); err != nil {
-			c.log.WithError(err).Error("Failed to check for empty slot")
-		}
+		previousSlot := c.currentSlot
 
 		c.currentSlot = slot
 
@@ -271,6 +275,19 @@ func (c *Container) checkForNewCurrentEpochAndSlot(ctx context.Context) error {
 
 		// Notify the listeners of the new slot.
 		go c.publishSlotChanged(ctx, slot)
+
+		// We can't safely check if the previous slot was missed if
+		// we potentially started up _after_ the slot had started.
+		// So we'll just not bother checking in that case.
+		if c.startingSlot == 0 {
+			if previousSlot != 0 {
+				c.startingSlot = previousSlot
+			} else {
+				if err := c.checkForEmptySlot(ctx, previousSlot); err != nil {
+					c.log.WithError(err).Error("Failed to check for empty slot")
+				}
+			}
+		}
 	}
 
 	if epochChanged || slotChanged {

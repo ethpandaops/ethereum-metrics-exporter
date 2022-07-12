@@ -98,7 +98,7 @@ type node struct {
 
 func NewNode(ctx context.Context, log logrus.FieldLogger, ap api.ConsensusClient, client eth2client.Service, broker *nats.EncodedConn) Node {
 	return &node{
-		log:    log,
+		log:    log.WithField("module", "consensus/beacon"),
 		api:    ap,
 		client: client,
 		broker: broker,
@@ -272,7 +272,7 @@ func (n *node) subscribeToSelf(ctx context.Context) error {
 }
 
 func (n *node) subscribeDownstream(ctx context.Context) error {
-	if err := n.state.OnEpochChanged(ctx, n.handleStateEpochChanged); err != nil {
+	if err := n.state.OnEpochSlotChanged(ctx, n.handleStateEpochSlotChanged); err != nil {
 		return err
 	}
 
@@ -319,12 +319,22 @@ func (n *node) handleDownstreamEmptySlot(ctx context.Context, epoch phase0.Epoch
 	return nil
 }
 
-func (n *node) handleStateEpochChanged(ctx context.Context, epoch phase0.Epoch) error {
+func (n *node) handleStateEpochSlotChanged(ctx context.Context, epochNumber phase0.Epoch, slot phase0.Slot) error {
 	n.log.WithFields(logrus.Fields{
-		"epoch": epoch,
-	}).Info("Current epoch changed")
+		"epoch": epochNumber,
+		"slot":  slot,
+	}).Info("Current epoch/slot changed")
 
-	for i := epoch; i < epoch+1; i++ {
+	for i := epochNumber; i < epochNumber+1; i++ {
+		epoch, err := n.state.GetEpoch(ctx, i)
+		if err != nil {
+			return err
+		}
+
+		if epoch.HaveProposerDuties() {
+			continue
+		}
+
 		if err := n.fetchEpochProposerDuties(ctx, i); err != nil {
 			return err
 		}
@@ -367,7 +377,7 @@ func (n *node) initializeState(ctx context.Context) error {
 
 	n.state = &st
 
-	n.log.Info("Beacon state initialized!")
+	n.log.Info("Beacon state initialized! Ready to serve requests...")
 
 	return nil
 }
