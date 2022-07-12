@@ -26,6 +26,11 @@ func (n *node) ensureBeaconSubscription(ctx context.Context) error {
 				continue
 			}
 
+			// Don't resubscribe if we are pre-genesis.
+			if !time.Now().After(n.genesis.GenesisTime) {
+				continue
+			}
+
 			n.log.
 				WithField("last_event_time", n.lastEventTime.Local().String()).
 				Info("Haven't received any events for 5 minutes, re-subscribing")
