@@ -130,6 +130,10 @@ func (p *pair) fetchTotalDifficulty(ctx context.Context) error {
 		return err
 	}
 
+	if block == nil {
+		return errors.New("empty block found")
+	}
+
 	p.totalDifficulty = &block.TotalDifficulty
 
 	p.tdFetchedAt = time.Now()
