@@ -53,6 +53,13 @@ docker run -d -it --name ethereum-metrics-exporter -p 9090:9090 -it samcm/ethere
 docker run -d -it --name ethereum-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/exporter/config.yaml -p 9090:9090 -it samcm/ethereum-metrics-exporter --config /opt/exporter/config.yaml
 
 ```
+### Kubernetes via Helm
+[Read more](https://github.com/skylenet/ethereum-helm-charts/tree/master/charts/ethereum-metrics-exporter)
+```
+helm repo add ethereum-helm-charts https://skylenet.github.io/ethereum-helm-charts
+
+helm install ethereum-metrics-exporter ethereum-helm-charts/ethereum-metrics-exporter -f your_values.yaml
+```
 
 ### Standalone
 **Downloading a release**
