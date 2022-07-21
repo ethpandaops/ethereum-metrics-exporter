@@ -233,6 +233,10 @@ func (b *Beacon) setupSubscriptions(ctx context.Context) error {
 		return err
 	}
 
+	if _, err := b.beaconNode.OnFinalizedCheckpoint(ctx, b.handleFinalizedCheckpointEvent); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -284,12 +288,6 @@ func (b *Beacon) getInitialData(ctx context.Context) {
 	}
 }
 
-func (b *Beacon) HandleEvent(ctx context.Context, event *v1.Event) {
-	if event.Topic == EventTopicFinalizedCheckpoint {
-		b.handleFinalizedCheckpointEvent(ctx, event)
-	}
-}
-
 func (b *Beacon) handleChainReorg(ctx context.Context, event *v1.ChainReorgEvent) error {
 	b.ReOrgs.Inc()
 	b.ReOrgDepth.Add(float64(event.Depth))
@@ -297,13 +295,10 @@ func (b *Beacon) handleChainReorg(ctx context.Context, event *v1.ChainReorgEvent
 	return nil
 }
 
-func (b *Beacon) handleFinalizedCheckpointEvent(ctx context.Context, event *v1.Event) {
-	_, ok := event.Data.(*v1.FinalizedCheckpointEvent)
-	if !ok {
-		return
-	}
-
+func (b *Beacon) handleFinalizedCheckpointEvent(ctx context.Context, event *v1.FinalizedCheckpointEvent) error {
 	b.updateFinalizedCheckpoint(ctx)
+
+	return nil
 }
 
 func (b *Beacon) updateFinalizedCheckpoint(ctx context.Context) {
