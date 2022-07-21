@@ -31,8 +31,11 @@ func (n *node) ensureBeaconSubscription(ctx context.Context) error {
 				continue
 			}
 
-			if !time.Now().After(n.genesis.GenesisTime) {
-				continue
+			timeTillGenesis := time.Until(n.genesis.GenesisTime)
+			if timeTillGenesis > 0 {
+				n.log.WithField("time_until_genesis", timeTillGenesis.String()).Info("We are pre-genesis, not subscribing upstream yet...")
+
+				time.Sleep(timeTillGenesis)
 			}
 
 			n.log.
@@ -44,7 +47,7 @@ func (n *node) ensureBeaconSubscription(ctx context.Context) error {
 					n.log.WithError(err).Error("Failed to subscribe to beacon")
 				}
 
-				time.Sleep(time.Second * 60)
+				time.Sleep(time.Minute * 15)
 			}
 		}
 	}
