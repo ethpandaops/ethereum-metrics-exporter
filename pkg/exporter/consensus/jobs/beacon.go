@@ -260,7 +260,7 @@ func (b *Beacon) handleBlockInserted(ctx context.Context, event *beacon.BlockIns
 		return err
 	}
 
-	// nolint:gocritic // False positive
+	//nolint:gocritic // False positive
 	if err = b.handleSingleBlock("head", timedBlock.Block); err != nil {
 		return err
 	}
