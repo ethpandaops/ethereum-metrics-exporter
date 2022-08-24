@@ -290,16 +290,16 @@ func (s *Spec) observeSpec(ctx context.Context, spec *state.Spec) error {
 	s.SafeSlotsToUpdateJustified.Set(float64(spec.SafeSlotsToUpdateJustified))
 	s.DepositChainID.Set(float64(spec.DepositChainID))
 	s.MaxValidatorsPerCommittee.Set(float64(spec.MaxValidatorsPerCommittee))
-	// nolint:unconvert // false positive
+	//nolint:unconvert // false positive
 	s.SecondsPerEth1Block.Set(float64(spec.SecondsPerEth1Block.Seconds()))
 	s.BaseRewardFactor.Set(float64(spec.BaseRewardFactor))
 	s.EpochsPerSyncCommitteePeriod.Set(float64(spec.EpochsPerSyncCommitteePeriod))
 	s.EffectiveBalanceIncrement.Set(float64(spec.EffectiveBalanceIncrement))
 	s.MaxAttestations.Set(float64(spec.MaxAttestations))
 	s.MinSyncCommitteeParticipants.Set(float64(spec.MinSyncCommitteeParticipants))
-	// nolint:unconvert // false positive
+	//nolint:unconvert // false positive
 	s.GenesisDelay.Set(float64(spec.GenesisDelay.Seconds()))
-	// nolint:unconvert // false positive
+	//nolint:unconvert // false positive
 	s.SecondsPerSlot.Set(float64(spec.SecondsPerSlot.Seconds()))
 	s.MaxEffectiveBalance.Set(float64(spec.MaxEffectiveBalance))
 	s.MaxDeposits.Set(float64(spec.MaxDeposits))
