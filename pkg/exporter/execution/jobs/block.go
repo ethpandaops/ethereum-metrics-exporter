@@ -223,6 +223,10 @@ func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
 		return err
 	}
 
+	if block == nil {
+		return errors.New("block is nil")
+	}
+
 	b.HeadGasUsed.Set(float64(block.GasUsed))
 	b.HeadGasLimit.Set(float64(block.GasLimit))
 	b.HeadBlockSize.Set(float64(block.Size))
