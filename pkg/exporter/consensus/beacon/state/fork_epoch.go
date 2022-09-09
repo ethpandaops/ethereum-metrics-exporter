@@ -14,7 +14,7 @@ type ForkEpoch struct {
 
 // Active returns true if the fork is active at the given slot.
 func (f *ForkEpoch) Active(slot, slotsPerEpoch phase0.Slot) bool {
-	return phase0.Epoch(int(slot)/int(slotsPerEpoch)) > f.Epoch
+	return phase0.Epoch(int(slot)/int(slotsPerEpoch)) >= f.Epoch
 }
 
 // ForkEpochs is a list of forks that activate at specific epochs.
