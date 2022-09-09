@@ -210,7 +210,7 @@ func (b *Beacon) Start(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(time.Second * 30):
+		case <-time.After(time.Second * 60):
 			b.tick(ctx)
 		}
 	}
