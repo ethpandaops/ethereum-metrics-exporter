@@ -49,6 +49,7 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac beacon.N
 
 	prometheus.MustRegister(m.generalMetrics.NodeVersion)
 	prometheus.MustRegister(m.generalMetrics.Peers)
+	prometheus.MustRegister(m.generalMetrics.PeerAgents)
 
 	prometheus.MustRegister(m.syncMetrics.Percentage)
 	prometheus.MustRegister(m.syncMetrics.EstimatedHighestSlot)

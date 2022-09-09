@@ -18,6 +18,11 @@ type Peer struct {
 	LastSeenP2PAddress string `json:"last_seen_p2p_address"`
 	State              string `json:"state"`
 	Direction          string `json:"direction"`
+	Agent              string `json:"agent"`
+}
+
+func (p *Peer) DeriveAgent() Agent {
+	return AgentFromString(p.Agent)
 }
 
 type Peers []Peer
@@ -63,4 +68,41 @@ func (p *Peers) ByStateAndDirection(state, direction string) Peers {
 	}
 
 	return peers
+}
+
+func (p *Peers) ByAgent(agent Agent) Peers {
+	var peers []Peer
+
+	for _, peer := range *p {
+		if peer.DeriveAgent() == agent {
+			peers = append(peers, peer)
+		}
+	}
+
+	return peers
+}
+
+func (p *Peers) AgentCount() AgentCount {
+	count := AgentCount{}
+
+	for _, agent := range AllAgents {
+		numberOfAgents := len(p.ByAgent(agent))
+
+		switch agent {
+		case AgentUnknown:
+			count.Unknown = numberOfAgents
+		case AgentLighthouse:
+			count.Lighthouse = numberOfAgents
+		case AgentNimbus:
+			count.Nimbus = numberOfAgents
+		case AgentTeku:
+			count.Teku = numberOfAgents
+		case AgentPrysm:
+			count.Prysm = numberOfAgents
+		case AgentLodestar:
+			count.Lodestar = numberOfAgents
+		}
+	}
+
+	return count
 }
