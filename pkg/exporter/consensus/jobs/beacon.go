@@ -234,7 +234,7 @@ func (b *Beacon) setupSubscriptions(ctx context.Context) error {
 	}
 
 	if _, err := b.beaconNode.OnFinalizedCheckpoint(ctx, func(ctx context.Context, ev *v1.FinalizedCheckpointEvent) error {
-		// Sleep for 5 seconds to allow the beacon node to process the finalized checkpoint.
+		// Sleep for 3 seconds to allow the beacon node to process the finalized checkpoint.
 		time.Sleep(3 * time.Second)
 
 		b.updateFinalizedCheckpoint(ctx)
