@@ -129,13 +129,18 @@ func (e *exporter) Config(ctx context.Context) *Config {
 func (e *exporter) Serve(ctx context.Context, port int) error {
 	e.log.
 		WithField("consensus_url", e.config.Consensus.URL).
-		WithField("execution_url", e.execution.URL()).
+		WithField("execution_url", e.config.Execution.URL).
 		Info(fmt.Sprintf("Starting metrics server on :%v", port))
+
+	s := &http.Server{
+		Addr:              fmt.Sprintf(":%v", port),
+		ReadHeaderTimeout: 30 * time.Second,
+	}
 
 	http.Handle("/metrics", promhttp.Handler())
 
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
+		err := s.ListenAndServe()
 		if err != nil {
 			e.log.Fatal(err)
 		}
