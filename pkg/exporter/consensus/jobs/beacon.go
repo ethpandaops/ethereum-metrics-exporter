@@ -210,14 +210,14 @@ func (b *Beacon) Start(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(time.Second * 5):
+		case <-time.After(time.Second * 60):
 			b.tick(ctx)
 		}
 	}
 }
 
 func (b *Beacon) tick(ctx context.Context) {
-
+	b.updateFinalizedCheckpoint(ctx)
 }
 
 func (b *Beacon) setupSubscriptions(ctx context.Context) error {
@@ -233,7 +233,14 @@ func (b *Beacon) setupSubscriptions(ctx context.Context) error {
 		return err
 	}
 
-	if _, err := b.beaconNode.OnFinalizedCheckpoint(ctx, b.handleFinalizedCheckpointEvent); err != nil {
+	if _, err := b.beaconNode.OnFinalizedCheckpoint(ctx, func(ctx context.Context, ev *v1.FinalizedCheckpointEvent) error {
+		// Sleep for 3 seconds to allow the beacon node to process the finalized checkpoint.
+		time.Sleep(3 * time.Second)
+
+		b.updateFinalizedCheckpoint(ctx)
+
+		return nil
+	}); err != nil {
 		return err
 	}
 
