@@ -132,10 +132,15 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 		WithField("execution_url", e.config.Execution.URL).
 		Info(fmt.Sprintf("Starting metrics server on :%v", port))
 
+	server := &http.Server{
+		Addr:              fmt.Sprintf(":%v", port),
+		ReadHeaderTimeout: 30 * time.Second,
+	}
+
 	http.Handle("/metrics", promhttp.Handler())
 
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
+		err := server.ListenAndServe()
 		if err != nil {
 			e.log.Fatal(err)
 		}
