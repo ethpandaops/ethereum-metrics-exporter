@@ -1,93 +1,163 @@
-# 🦄 Ethereum Metrics Exporter 🦄
+# 🦄 Ethereum Balance Metrics Exporter 🦄
 
-> A Prometheus metrics exporter for Ethereum execution & consensus nodes
+A Prometheus metrics exporter for Ethereum externally owned account and contract balances including;
 
-Ethereum client implementations expose extensive Prometheus metrics however there is minimal standardization around the metrics structure. This makes observability across multiple clients a painful experience. This exporter hopes to help alleviate this problem by creating a client-agnostic set of metrics that operators can run without any additional configuration to dashboards or alerting.
+- Externally owned account addresses
+- [ERC20](https://eips.ethereum.org/EIPS/eip-20) contracts
+- [ERC721](https://eips.ethereum.org/EIPS/eip-20) contracts
+- [ERC1155](https://eips.ethereum.org/EIPS/eip-20) contracts
+- [Uniswap pair](https://v2.info.uniswap.org/pairs) contracts
+- [Chainlink data feed](https://v2.info.uniswap.org/pairs) contracts
 
-To provide these client-agnostic metrics the exporter relies entirely on these well-defined APIs:
-- Execution clients
-  - [JSON-RPC](https://geth.ethereum.org/docs/rpc/server)
-- Consensus clients
-  - [Beacon Node API](https://ethereum.github.io/beacon-APIs/#/)
-
-Naturally this means that the exporter is limited to metrics that are exposed by these APIs.
-
-## Built With
-
-* [pf13/cobra-cli](https://github.com/spf13/cobra-cli)
-* [ethereum/go-ethereum](https://github.com/ethereum/go-ethereum)
-* [attestantio/go-eth2-client](github.com/attestantio/go-eth2-client)
-## Usage
+# Usage
+Ethereum Balance Metrics Exporter requires a config file. An example file can be found [here](https://github.com/savid/ethereum-balance-metrics-exporter/blob/master/example_config.yaml).
 
 ```
-A tool to export the state of ethereum nodes
+A tool to export the ethereum address state
 
 Usage:
-  ethereum-metrics-exporter [flags]
+  ethereum-balance-metrics-exporter [flags]
 
 Flags:
-      --config string                   config file (default is $HOME/.ethereum-metrics-exporter.yaml)
-      --consensus-url string            (optional) URL to the consensus node
-      --execution-modules strings       (optional) execution modules that are enabled on the node
-      --execution-url string            (optional) URL to the execution node
-  -h, --help                            help for ethereum-metrics-exporter
-      --metrics-port int                Port to serve Prometheus metrics on (default 9090)
-      --monitored-directories strings   (optional) directories to monitor for disk usage
-  -t, --toggle                          Help message for toggle
+      --config string   config file (default is config.yaml) (default "config.yaml")
+  -h, --help            help for ethereum-balance-metrics-exporter
 ```
+
+## Configuration
+
+Ethereum Balance Metrics Exporter relies entirely on a single `yaml` config file.
+
+| Name | Default | Description |
+| --- | --- | --- |
+| global.logging | `warn` | Log level (`panic`, `fatal`, `warn`, `info`, `debug`, `trace`) |
+| global.metricsAddr | `:9090` | The address the metrics server will listen on |
+| global.namespace | `eth_address` | The prefix added to every metric |
+| global.labels[] |  | Key value pair of labels to add to every metric |
+| execution.url | `http://localhost:8545` | URL to the execution node |
+| addresses.eoa |  | List of ethereum externally owned account addresses |
+| addresses.eoa[].name |  | Name of the address, will be a label on the metric |
+| addresses.eoa[].address |  | Ethereum externally owned account address |
+| addresses.erc20 |  | List of ethereum [ERC20](https://eips.ethereum.org/EIPS/eip-20) addresses |
+| addresses.erc20[].name |  | Name of the address, will be a label on the metric |
+| addresses.erc20[].address |  | Ethereum address |
+| addresses.erc20[].contract |  | Ethereum contract address |
+| addresses.erc721 |  | List of ethereum [ERC721](https://eips.ethereum.org/EIPS/eip-721) addresses |
+| addresses.erc721[].name |  | Name of the address, will be a label on the metric |
+| addresses.erc721[].address |  | Ethereum address |
+| addresses.erc721[].contract |  | Ethereum contract address |
+| addresses.erc1155 |  | List of ethereum [ERC1155](https://eips.ethereum.org/EIPS/eip-1155) addresses |
+| addresses.erc1155[].name |  | Name of the address, will be a label on the metric |
+| addresses.erc1155[].address |  | Ethereum address |
+| addresses.erc1155[].contract |  | Ethereum contract address |
+| addresses.erc1155[].tokenID |  | NFT Token Identifier |
+| addresses.uniswapPair |  | List of [uniswap pair](https://v2.info.uniswap.org/pairs) addresses |
+| addresses.uniswapPair[].name |  | Name of the address, will be a label on the metric |
+| addresses.uniswapPair[].from |  | First symbol name, will be a label on the metric |
+| addresses.uniswapPair[].to |  | Second symbol name, will be a label on the metric |
+| addresses.uniswapPair[].contract |  | Ethereum contract address of the [uniswap pair](https://v2.info.uniswap.org/pairs) |
+| addresses.chainlinkDataFeed |  | List of [chainlink data feed](https://docs.chain.link/docs/ethereum-addresses/) addresses |
+| addresses.chainlinkDataFeed[].name |  | Name of the address, will be a label on the metric |
+| addresses.chainlinkDataFeed[].from |  | First symbol name, will be a label on the metric |
+| addresses.chainlinkDataFeed[].to |  | Second symbol name, will be a label on the metric |
+| addresses.chainlinkDataFeed[].contract |  | Ethereum contract address of the [chainlink data feed](https://docs.chain.link/docs/ethereum-addresses/) |
+
+
+### Example
+
+```yaml
+global:
+  logging: "debug" # panic,fatal,warm,info,debug,trace
+  metricsAddr: ":9090"
+  namespace: eth_address
+  labels:
+    extra: label
+
+execution:
+  url: "http://localhost:8545"
+
+addresses:
+  eoa:
+    - name: John smith
+      address: 0x4B1D3c9BEf9D097F564DcD6cdF4558CB389bE3d5
+    - name: Jane Doe
+      address: 0x4B1Df3549940C56d962F248f211788D66B4aAF39
+  erc20:
+    - name: Some ERC20 Contract
+      contract: 0x4B1DB272F63E03Dd37ea45330266AC9328A66DB6
+      address: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
+  erc721:
+    - name: Some ERC721 Contract
+      contract: 0x4B1D23bf5018189fDad68a0E607b6005ccF7E593
+      address: 0x4B1DB5c493955C8eF6D2a30CFf47495023b85C8d
+  erc1155:
+    - name: Some ERC1155 Contract
+      contract: 0x4B1D8DC12da8f658FA8BF0cdB18BB7D4dABB2DB3
+      tokenID: 100
+      address: 0x4B1D6D35f293AB699Bfc6DE141E031F3E3997BBe
+  # https://v2.info.uniswap.org/pairs
+  uniswapPair:
+    - name: eth->usdt
+      from: eth
+      to: usdt
+      contract: 0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852
+  # https://docs.chain.link/docs/ethereum-addresses/
+  chainlinkDataFeed:
+    - name: eth->usd
+      from: eth
+      to: usd
+      contract: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
+```
+
 ## Getting Started
 
-### Grafana
-* [Single instance dashboard](https://grafana.com/grafana/dashboards/16277)
-* [The Merge overview dashboard](https://grafana.com/grafana/dashboards/16395)
+### Download a release
+Download the latest release from the [Releases page](https://github.com/savid/ethereum-balance-metrics-exporter/releases). Extract and run with:
+```
+./ethereum-balance-metrics-exporter --config your-config.yaml
+```
 
 ### Docker
-Available as a docker image at `samcm/ethereum-metrics-exporter`
+Available as a docker image at [savid/ethereum-balance-metrics-exporter](https://hub.docker.com/r/savid/ethereum-balance-metrics-exporter/tags)
+#### Images
+- `latest` - distroless, multiarch
+- `latest-debian` - debian, multiarch
+- `$version` - distroless, multiarch, pinned to a release (i.e. `0.4.0`)
+- `$version-debian` - debian, multiarch, pinned to a release (i.e. `0.4.0-debian`)
 
 **Quick start**
 ```
-docker run -d -it --name ethereum-metrics-exporter -p 9090:9090 -it samcm/ethereum-metrics-exporter --consensus-url=http://localhost:5052 --execution-url=http://localhost:8545
-````
-**With a config file**
+docker run -d  --name ethereum-balance-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/ethereum-balance-metrics-exporter/config.yaml -p 9090:9090 -p 5555:5555 -it savid/ethereum-balance-metrics-exporter:latest --config /opt/ethereum-balance-metrics-exporter/config.yaml;
+docker logs -f ethereum-balance-metrics-exporter;
 ```
-docker run -d -it --name ethereum-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/exporter/config.yaml -p 9090:9090 -it samcm/ethereum-metrics-exporter --config /opt/exporter/config.yaml
 
-```
 ### Kubernetes via Helm
-[Read more](https://github.com/skylenet/ethereum-helm-charts/tree/master/charts/ethereum-metrics-exporter)
+[Read more](https://github.com/skylenet/ethereum-helm-charts/tree/master/charts/ethereum-balance-metrics-exporter)
 ```
 helm repo add ethereum-helm-charts https://skylenet.github.io/ethereum-helm-charts
 
-helm install ethereum-metrics-exporter ethereum-helm-charts/ethereum-metrics-exporter -f your_values.yaml
+helm install ethereum-balance-metrics-exporter ethereum-helm-charts/ethereum-balance-metrics-exporter -f your_values.yaml
 ```
-
-### Standalone
-**Downloading a release**
-
-Coming soon.
-
+### Grafana
 
 **Building yourself (requires Go)**
 
 1. Clone the repo
    ```sh
-   go get github.com/samcm/ethereum-metrics-exporter
+   go get github.com/savid/ethereum-balance-metrics-exporter
    ```
 2. Change directories
    ```sh
-   cd ./ethereum-metrics-exporter
+   cd ./ethereum-balance-metrics-exporter
    ```
 3. Build the binary
    ```sh  
-    go build -o ethereum-metrics-exporter .
+    go build -o ethereum-balance-metrics-exporter .
    ```
 4. Run the exporter
    ```sh  
-    ./ethereum-metrics-exporter
+    ./ethereum-balance-metrics-exporter
    ```
 
-### Screenshots
-![Example](./example.png)
 ## Contributing
 
 Contributions are greatly appreciated! Pull requests will be reviewed and merged promptly if you're interested in improving the exporter! 
@@ -101,6 +171,8 @@ Contributions are greatly appreciated! Pull requests will be reviewed and merged
     -`git push origin feat/new-metric-profit`
 5. Open a pull request
 
-## Contact
-
-Sam - [@samcmau](https://twitter.com/samcmau)
+### Running locally
+#### Backend
+```
+go run main.go --config your_config.yaml
+```

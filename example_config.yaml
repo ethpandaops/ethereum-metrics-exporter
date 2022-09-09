@@ -1,17 +1,41 @@
-consensus:
-  enabled: true
-  url: "http://localhost:5053"
-  name: "consensus-client"
+global:
+  logging: "debug" # panic,fatal,warm,info,debug,trace
+  metricsAddr: ":9090"
+  namespace: eth_address
+  labels:
+    extra: label
+
 execution:
-  enabled: true
   url: "http://localhost:8545"
-  name: "execution-client"
-  modules:
-    - "eth"
-    - "net"
-    - "web3"
-    - "txpool"
-diskUsage:
-  enabled: false
-  directories:
-  - /data/ethereum
+
+addresses:
+  eoa:
+    - name: John smith
+      address: 0x4B1D3c9BEf9D097F564DcD6cdF4558CB389bE3d5
+    - name: Jane Doe
+      address: 0x4B1Df3549940C56d962F248f211788D66B4aAF39
+  erc20:
+    - name: Some ERC20 Contract
+      contract: 0x4B1DB272F63E03Dd37ea45330266AC9328A66DB6
+      address: 0x4B1D1465b14cA06e72b942F361Fd3352Aa9c5368
+  erc721:
+    - name: Some ERC721 Contract
+      contract: 0x4B1D23bf5018189fDad68a0E607b6005ccF7E593
+      address: 0x4B1DB5c493955C8eF6D2a30CFf47495023b85C8d
+  erc1155:
+    - name: Some ERC1155 Contract
+      contract: 0x4B1D8DC12da8f658FA8BF0cdB18BB7D4dABB2DB3
+      tokenID: 100
+      address: 0x4B1D6D35f293AB699Bfc6DE141E031F3E3997BBe
+  # https://v2.info.uniswap.org/pairs
+  uniswapPair:
+    - name: eth->usdt
+      from: eth
+      to: usdt
+      contract: 0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852
+  # https://docs.chain.link/docs/ethereum-addresses/
+  chainlinkDataFeed:
+    - name: eth->usd
+      from: eth
+      to: usd
+      contract: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419

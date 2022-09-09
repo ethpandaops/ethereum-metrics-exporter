@@ -24,10 +24,8 @@ linters:
     - deadcode
     - depguard
     - dogsled
-    - dupl
     - errcheck
     - exportloopref
-    - exhaustive
     - goconst
     - gocritic
     - gofmt
@@ -36,7 +34,6 @@ linters:
     - gosec
     - gosimple
     - govet
-    - ineffassign
     - misspell
     - nolintlint
     - nakedret
