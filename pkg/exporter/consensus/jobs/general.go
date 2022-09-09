@@ -16,6 +16,7 @@ type General struct {
 	NodeVersion prometheus.GaugeVec
 	ClientName  prometheus.GaugeVec
 	Peers       prometheus.GaugeVec
+	PeerAgents  prometheus.GaugeVec
 }
 
 const (
@@ -52,6 +53,17 @@ func NewGeneralJob(beac beacon.Node, log logrus.FieldLogger, namespace string, c
 				"direction",
 			},
 		),
+		PeerAgents: *prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "peer_agents",
+				Help:        "The count of peers connected to beacon node by agent.",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"agent",
+			},
+		),
 	}
 }
 
@@ -74,6 +86,12 @@ func (g *General) Start(ctx context.Context) error {
 			for _, direction := range types.PeerDirections {
 				g.Peers.WithLabelValues(state, direction).Set(float64(len(event.Peers.ByStateAndDirection(state, direction))))
 			}
+		}
+
+		connected := event.Peers.ByState("connected")
+
+		for _, agent := range types.AllAgents {
+			g.PeerAgents.WithLabelValues(string(agent)).Set(float64(len(connected.ByAgent(agent))))
 		}
 
 		return nil
