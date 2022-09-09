@@ -1,2 +1,5 @@
-ethereum-metrics-exporter
-test_config.yaml
+bin
+.vscode
+config.yaml
+__debug_bin
+ethereum-balance-metrics-exporter

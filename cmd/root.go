@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"context"
 	"os"
 
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter"
+	"github.com/creasty/defaults"
+	"github.com/savid/ethereum-balance-metrics-exporter/pkg/exporter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -12,33 +12,21 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "ethereum-metrics-exporter",
-	Short: "A tool to export the state of ethereum nodes",
+	Use:   "ethereum-balance-metrics-exporter",
+	Short: "A tool to export the ethereum address state",
 	Run: func(cmd *cobra.Command, args []string) {
-		initCommon()
+		cfg := initCommon()
 
-		err := export.Serve(cmd.Context(), metricsPort)
-		if err != nil {
-			logr.Fatal(err)
+		export := exporter.NewExporter(log, cfg)
+		if err := export.Start(cmd.Context()); err != nil {
+			log.WithError(err).Fatal("failed to init")
 		}
 	},
 }
 
 var (
-	metricsPort          int
-	cfgFile              string
-	config               *exporter.Config //nolint:deadcode // False positive
-	export               exporter.Exporter
-	ctx                  context.Context
-	logr                 logrus.FieldLogger
-	executionURL         string
-	consensusURL         string
-	monitoredDirectories []string
-	executionModules     []string
-)
-
-const (
-	DefaultMetricsPort = 9090
+	cfgFile string
+	log     = logrus.New()
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -51,69 +39,51 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ethereum-metrics-exporter.yaml)")
-	rootCmd.PersistentFlags().IntVarP(&metricsPort, "metrics-port", "", DefaultMetricsPort, "Port to serve Prometheus metrics on")
-	rootCmd.PersistentFlags().StringVarP(&executionURL, "execution-url", "", "", "(optional) URL to the execution node")
-	rootCmd.PersistentFlags().StringVarP(&consensusURL, "consensus-url", "", "", "(optional) URL to the consensus node")
-	rootCmd.PersistentFlags().StringSliceVarP(&monitoredDirectories, "monitored-directories", "", []string{}, "(optional) directories to monitor for disk usage")
-	rootCmd.PersistentFlags().StringSliceVarP(&executionModules, "execution-modules", "", []string{}, "(optional) execution modules that are enabled on the node")
-
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "config.yaml", "config file (default is config.yaml)")
 }
 
 func loadConfigFromFile(file string) (*exporter.Config, error) {
 	if file == "" {
-		return exporter.DefaultConfig(), nil
+		file = "config.yaml"
 	}
 
-	config := exporter.DefaultConfig()
+	cfg := &exporter.Config{}
+
+	if err := defaults.Set(cfg); err != nil {
+		return nil, err
+	}
 
 	yamlFile, err := os.ReadFile(file)
+
 	if err != nil {
 		return nil, err
 	}
 
-	if err := yaml.Unmarshal(yamlFile, &config); err != nil {
+	type plain exporter.Config
+
+	if err := yaml.Unmarshal(yamlFile, (*plain)(cfg)); err != nil {
 		return nil, err
 	}
 
-	return config, nil
+	return cfg, nil
 }
 
-func initCommon() {
-	ctx = context.Background()
-	log := logrus.New()
-	log.SetFormatter(&logrus.JSONFormatter{})
-	logr = log
+func initCommon() *exporter.Config {
+	log.SetFormatter(&logrus.TextFormatter{})
 
-	log.WithField("cfgFile", cfgFile).Info("Loading config")
+	log.WithField("cfgFile", cfgFile).Info("loading config")
 
-	config, err := loadConfigFromFile(cfgFile)
+	cfg, err := loadConfigFromFile(cfgFile)
 	if err != nil {
-		logr.Fatal(err)
+		log.Fatal(err)
 	}
 
-	if executionURL != "" {
-		config.Execution.Enabled = true
-		config.Execution.URL = executionURL
+	logLevel, err := logrus.ParseLevel(cfg.GlobalConfig.LoggingLevel)
+	if err != nil {
+		log.WithField("logLevel", cfg.GlobalConfig.LoggingLevel).Fatal("invalid logging level")
 	}
 
-	if consensusURL != "" {
-		config.Consensus.Enabled = true
-		config.Consensus.URL = consensusURL
-	}
+	log.SetLevel(logLevel)
 
-	if len(monitoredDirectories) > 0 {
-		config.DiskUsage.Enabled = true
-		config.DiskUsage.Directories = monitoredDirectories
-	}
-
-	if len(executionModules) > 0 {
-		config.Execution.Modules = executionModules
-	}
-
-	export = exporter.NewExporter(log, config)
-	if err := export.Init(ctx); err != nil {
-		logrus.Fatal(err)
-	}
+	return cfg
 }
