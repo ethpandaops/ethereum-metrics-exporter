@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/savid/ethereum-balance-metrics-exporter/cmd"
+	"github.com/savid/ethereum-address-metrics-exporter/cmd"
 )
 
 func main() {

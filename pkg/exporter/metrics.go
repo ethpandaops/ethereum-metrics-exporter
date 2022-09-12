@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/onrik/ethrpc"
-	"github.com/savid/ethereum-balance-metrics-exporter/pkg/exporter/jobs"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/jobs"
 	"github.com/sirupsen/logrus"
 )
 

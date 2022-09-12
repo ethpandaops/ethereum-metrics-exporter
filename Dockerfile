@@ -11,5 +11,5 @@ RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-reco
   ca-certificates \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /bin/app /ethereum-balance-metrics-exporter
-ENTRYPOINT ["/ethereum-balance-metrics-exporter"]
+COPY --from=builder /bin/app /ethereum-address-metrics-exporter
+ENTRYPOINT ["/ethereum-address-metrics-exporter"]

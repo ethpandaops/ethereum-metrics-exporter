@@ -1,6 +1,6 @@
-# 🦄 Ethereum Balance Metrics Exporter 🦄
+# 🦄 Ethereum Address Metrics Exporter 🦄
 
-A Prometheus metrics exporter for Ethereum externally owned account and contract balances including;
+A Prometheus metrics exporter for Ethereum externally owned account and contract addresses including;
 
 - Externally owned account addresses
 - [ERC20](https://eips.ethereum.org/EIPS/eip-20) contracts
@@ -10,22 +10,22 @@ A Prometheus metrics exporter for Ethereum externally owned account and contract
 - [Chainlink data feed](https://v2.info.uniswap.org/pairs) contracts
 
 # Usage
-Ethereum Balance Metrics Exporter requires a config file. An example file can be found [here](https://github.com/savid/ethereum-balance-metrics-exporter/blob/master/example_config.yaml).
+Ethereum Address Metrics Exporter requires a config file. An example file can be found [here](https://github.com/savid/ethereum-address-metrics-exporter/blob/master/example_config.yaml).
 
 ```
 A tool to export the ethereum address state
 
 Usage:
-  ethereum-balance-metrics-exporter [flags]
+  ethereum-address-metrics-exporter [flags]
 
 Flags:
       --config string   config file (default is config.yaml) (default "config.yaml")
-  -h, --help            help for ethereum-balance-metrics-exporter
+  -h, --help            help for ethereum-address-metrics-exporter
 ```
 
 ## Configuration
 
-Ethereum Balance Metrics Exporter relies entirely on a single `yaml` config file.
+Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file.
 
 | Name | Default | Description |
 | --- | --- | --- |
@@ -111,13 +111,13 @@ addresses:
 ## Getting Started
 
 ### Download a release
-Download the latest release from the [Releases page](https://github.com/savid/ethereum-balance-metrics-exporter/releases). Extract and run with:
+Download the latest release from the [Releases page](https://github.com/savid/ethereum-address-metrics-exporter/releases). Extract and run with:
 ```
-./ethereum-balance-metrics-exporter --config your-config.yaml
+./ethereum-address-metrics-exporter --config your-config.yaml
 ```
 
 ### Docker
-Available as a docker image at [savid/ethereum-balance-metrics-exporter](https://hub.docker.com/r/savid/ethereum-balance-metrics-exporter/tags)
+Available as a docker image at [savid/ethereum-address-metrics-exporter](https://hub.docker.com/r/savid/ethereum-address-metrics-exporter/tags)
 #### Images
 - `latest` - distroless, multiarch
 - `latest-debian` - debian, multiarch
@@ -126,16 +126,16 @@ Available as a docker image at [savid/ethereum-balance-metrics-exporter](https:/
 
 **Quick start**
 ```
-docker run -d  --name ethereum-balance-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/ethereum-balance-metrics-exporter/config.yaml -p 9090:9090 -p 5555:5555 -it savid/ethereum-balance-metrics-exporter:latest --config /opt/ethereum-balance-metrics-exporter/config.yaml;
-docker logs -f ethereum-balance-metrics-exporter;
+docker run -d  --name ethereum-address-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/ethereum-address-metrics-exporter/config.yaml -p 9090:9090 -p 5555:5555 -it savid/ethereum-address-metrics-exporter:latest --config /opt/ethereum-address-metrics-exporter/config.yaml;
+docker logs -f ethereum-address-metrics-exporter;
 ```
 
 ### Kubernetes via Helm
-[Read more](https://github.com/skylenet/ethereum-helm-charts/tree/master/charts/ethereum-balance-metrics-exporter)
+[Read more](https://github.com/skylenet/ethereum-helm-charts/tree/master/charts/ethereum-address-metrics-exporter)
 ```
 helm repo add ethereum-helm-charts https://skylenet.github.io/ethereum-helm-charts
 
-helm install ethereum-balance-metrics-exporter ethereum-helm-charts/ethereum-balance-metrics-exporter -f your_values.yaml
+helm install ethereum-address-metrics-exporter ethereum-helm-charts/ethereum-address-metrics-exporter -f your_values.yaml
 ```
 ### Grafana
 
@@ -143,19 +143,19 @@ helm install ethereum-balance-metrics-exporter ethereum-helm-charts/ethereum-bal
 
 1. Clone the repo
    ```sh
-   go get github.com/savid/ethereum-balance-metrics-exporter
+   go get github.com/savid/ethereum-address-metrics-exporter
    ```
 2. Change directories
    ```sh
-   cd ./ethereum-balance-metrics-exporter
+   cd ./ethereum-address-metrics-exporter
    ```
 3. Build the binary
    ```sh  
-    go build -o ethereum-balance-metrics-exporter .
+    go build -o ethereum-address-metrics-exporter .
    ```
 4. Run the exporter
    ```sh  
-    ./ethereum-balance-metrics-exporter
+    ./ethereum-address-metrics-exporter
    ```
 
 ## Contributing

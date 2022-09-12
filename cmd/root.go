@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/creasty/defaults"
-	"github.com/savid/ethereum-balance-metrics-exporter/pkg/exporter"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -12,7 +12,7 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "ethereum-balance-metrics-exporter",
+	Use:   "ethereum-address-metrics-exporter",
 	Short: "A tool to export the ethereum address state",
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := initCommon()
