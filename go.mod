@@ -1,8 +1,8 @@
-module github.com/savid/ethereum-balance-metrics-exporter
+module github.com/savid/ethereum-address-metrics-exporter
 
 go 1.17
 
-// replace github.com/savid/ethereum-balance-metrics-exporter/pkg/exporter => ./pkg/ethereum-balance-metrics-exporter
+// replace github.com/savid/ethereum-address-metrics-exporter/pkg/exporter => ./pkg/ethereum-address-metrics-exporter
 
 require (
 	github.com/creasty/defaults v1.6.0
