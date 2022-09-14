@@ -2,17 +2,16 @@ package jobs
 
 import (
 	"context"
-	"math/big"
 	"time"
 
-	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/sirupsen/logrus"
 )
 
 // Eth exposes metrics for ethereum externally owned account addresses
 type EOA struct {
-	client     *ethrpc.EthRPC
+	client     api.ExecutionClient
 	log        logrus.FieldLogger
 	EOABalance prometheus.GaugeVec
 	addresses  []*AddressEOA
@@ -32,7 +31,7 @@ func (n *EOA) Name() string {
 }
 
 // NewEOA returns a new EOA instance.
-func NewEOA(client *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressEOA) EOA {
+func NewEOA(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressEOA) EOA {
 	namespace += "_" + NameEOA
 
 	instance := EOA{
@@ -80,12 +79,12 @@ func (n *EOA) tick(ctx context.Context) {
 }
 
 func (n *EOA) getBalance(address *AddressEOA) error {
-	balance, err := n.client.EthGetBalance(address.Address, "latest")
+	balance, err := n.client.ETHGetBalance(address.Address, "latest")
 	if err != nil {
 		return err
 	}
 
-	balanceFloat64, _ := new(big.Float).SetInt(&balance).Float64()
+	balanceFloat64 := hexStringToFloat64(balance)
 	n.EOABalance.WithLabelValues(address.Name, address.Address).Set(balanceFloat64)
 
 	return nil

@@ -6,14 +6,14 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/sirupsen/logrus"
 )
 
 // ERC1155 exposes metrics for ethereum ERC115 contract by address and token id
 type ERC1155 struct {
-	client         *ethrpc.EthRPC
+	client         api.ExecutionClient
 	log            logrus.FieldLogger
 	ERC1155Balance prometheus.GaugeVec
 	addresses      []*AddressERC1155
@@ -35,7 +35,7 @@ func (n *ERC1155) Name() string {
 }
 
 // NewERC1155 returns a new ERC1155 instance.
-func NewERC1155(client *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC1155) ERC1155 {
+func NewERC1155(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC1155) ERC1155 {
 	namespace += "_" + NameERC1155
 
 	instance := ERC1155{
@@ -83,11 +83,12 @@ func (n *ERC1155) tick(ctx context.Context) {
 }
 
 func (n *ERC1155) getBalance(address *AddressERC1155) error {
-	balanceStr, err := n.client.EthCall(ethrpc.T{
+	// call balanceOf(address,uint256) which is 0x00fdd58e
+	balanceOfData := "0x00fdd58e000000000000000000000000" + address.Address[2:] + fmt.Sprintf("%064x", &address.TokenID)
+
+	balanceStr, err := n.client.ETHCall(&api.ETHCallTransaction{
 		To:   address.Contract,
-		From: "0x0000000000000000000000000000000000000000",
-		// call balanceOf(address,uint256) which is 0x00fdd58e
-		Data: "0x00fdd58e000000000000000000000000" + address.Address[2:] + fmt.Sprintf("%064x", &address.TokenID),
+		Data: &balanceOfData,
 	}, "latest")
 	if err != nil {
 		return err

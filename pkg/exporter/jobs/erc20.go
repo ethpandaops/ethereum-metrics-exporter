@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/sirupsen/logrus"
 )
 
 // ERC20 exposes metrics for ethereum ERC20 contract by address
 type ERC20 struct {
-	client       *ethrpc.EthRPC
+	client       api.ExecutionClient
 	log          logrus.FieldLogger
 	ERC20Balance prometheus.GaugeVec
 	addresses    []*AddressERC20
@@ -32,7 +32,7 @@ func (n *ERC20) Name() string {
 }
 
 // NewERC20 returns a new ERC20 instance.
-func NewERC20(client *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC20) ERC20 {
+func NewERC20(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC20) ERC20 {
 	namespace += "_" + NameERC20
 
 	instance := ERC20{
@@ -80,21 +80,23 @@ func (n *ERC20) tick(ctx context.Context) {
 }
 
 func (n *ERC20) getBalance(address *AddressERC20) error {
-	balanceStr, err := n.client.EthCall(ethrpc.T{
+	// call balanceOf(address) which is 0x70a08231
+	balanceOfData := "0x70a08231000000000000000000000000" + address.Address[2:]
+
+	balanceStr, err := n.client.ETHCall(&api.ETHCallTransaction{
 		To:   address.Contract,
-		From: "0x0000000000000000000000000000000000000000",
-		// call balanceOf(address) which is 0x70a08231
-		Data: "0x70a08231000000000000000000000000" + address.Address[2:],
+		Data: &balanceOfData,
 	}, "latest")
 	if err != nil {
 		return err
 	}
 
-	symbolHex, err := n.client.EthCall(ethrpc.T{
+	// call symbol() which is 0x95d89b41
+	symbolData := "0x95d89b41000000000000000000000000"
+
+	symbolHex, err := n.client.ETHCall(&api.ETHCallTransaction{
 		To:   address.Contract,
-		From: "0x0000000000000000000000000000000000000000",
-		// call symbol() which is 0x95d89b41
-		Data: "0x95d89b41000000000000000000000000",
+		Data: &symbolData,
 	}, "latest")
 	if err != nil {
 		return err
