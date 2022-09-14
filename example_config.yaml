@@ -7,6 +7,9 @@ global:
 
 execution:
   url: "http://localhost:8545"
+  timeout: 10s
+  headers:
+    authorization: "Basic abc123"
 
 addresses:
   eoa:

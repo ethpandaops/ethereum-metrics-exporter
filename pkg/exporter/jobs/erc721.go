@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/sirupsen/logrus"
 )
 
 // ERC721 exposes metrics for ethereum ERC721 contract by address
 type ERC721 struct {
-	client        *ethrpc.EthRPC
+	client        api.ExecutionClient
 	log           logrus.FieldLogger
 	ERC721Balance prometheus.GaugeVec
 	addresses     []*AddressERC721
@@ -32,7 +32,7 @@ func (n *ERC721) Name() string {
 }
 
 // NewERC721 returns a new ERC721 instance.
-func NewERC721(client *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC721) ERC721 {
+func NewERC721(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC721) ERC721 {
 	namespace += "_" + NameERC721
 
 	instance := ERC721{
@@ -80,11 +80,12 @@ func (n *ERC721) tick(ctx context.Context) {
 }
 
 func (n *ERC721) getBalance(address *AddressERC721) error {
-	balanceStr, err := n.client.EthCall(ethrpc.T{
+	// call balanceOf(address) which is 0x70a08231
+	balanceOfData := "0x70a08231000000000000000000000000" + address.Address[2:]
+
+	balanceStr, err := n.client.ETHCall(&api.ETHCallTransaction{
 		To:   address.Contract,
-		From: "0x0000000000000000000000000000000000000000",
-		// call balanceOf(address) which is 0x70a08231
-		Data: "0x70a08231000000000000000000000000" + address.Address[2:],
+		Data: &balanceOfData,
 	}, "latest")
 	if err != nil {
 		return err

@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/sirupsen/logrus"
 )
 
 // UniswapPair exposes metrics for ethereum uniswap pair contract
 type UniswapPair struct {
-	client             *ethrpc.EthRPC
+	client             api.ExecutionClient
 	log                logrus.FieldLogger
 	UniswapPairBalance prometheus.GaugeVec
 	addresses          []*AddressUniswapPair
@@ -33,7 +33,7 @@ func (n *UniswapPair) Name() string {
 }
 
 // NewUniswapPair returns a new UniswapPair instance.
-func NewUniswapPair(client *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressUniswapPair) UniswapPair {
+func NewUniswapPair(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressUniswapPair) UniswapPair {
 	namespace += "_" + NameUniswapPair
 
 	instance := UniswapPair{
@@ -81,11 +81,12 @@ func (n *UniswapPair) tick(ctx context.Context) {
 }
 
 func (n *UniswapPair) getBalance(address *AddressUniswapPair) error {
-	balanceStr, err := n.client.EthCall(ethrpc.T{
+	// call getReserves() which is 0x0902f1ac
+	getReservesData := "0x0902f1ac000000000000000000000000"
+
+	balanceStr, err := n.client.ETHCall(&api.ETHCallTransaction{
 		To:   address.Contract,
-		From: "0x0000000000000000000000000000000000000000",
-		// call getReserves() which is 0x0902f1ac
-		Data: "0x0902f1ac000000000000000000000000",
+		Data: &getReservesData,
 	}, "latest")
 	if err != nil {
 		return err
