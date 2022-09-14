@@ -34,6 +34,8 @@ Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file
 | global.namespace | `eth_address` | The prefix added to every metric |
 | global.labels[] |  | Key value pair of labels to add to every metric |
 | execution.url | `http://localhost:8545` | URL to the execution node |
+| execution.timeout | `10s` | Timeout for requests to the execution node |
+| execution.headers[] |  | Key value pair of headers to add on every request |
 | addresses.eoa |  | List of ethereum externally owned account addresses |
 | addresses.eoa[].name |  | Name of the address, will be a label on the metric |
 | addresses.eoa[].address |  | Ethereum externally owned account address |
@@ -74,6 +76,8 @@ global:
 
 execution:
   url: "http://localhost:8545"
+  headers:
+    authorization: "Basic abc123"
 
 addresses:
   eoa:

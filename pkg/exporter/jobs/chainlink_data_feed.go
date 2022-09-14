@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/sirupsen/logrus"
 )
 
 // ChainlinkDataFeed exposes metrics for ethereum chainlink data feed contract
 type ChainlinkDataFeed struct {
-	client                   *ethrpc.EthRPC
+	client                   api.ExecutionClient
 	log                      logrus.FieldLogger
 	ChainlinkDataFeedBalance prometheus.GaugeVec
 	addresses                []*AddressChainlinkDataFeed
@@ -33,7 +33,7 @@ func (n *ChainlinkDataFeed) Name() string {
 }
 
 // NewChainlinkDataFeed returns a new ChainlinkDataFeed instance.
-func NewChainlinkDataFeed(client *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressChainlinkDataFeed) ChainlinkDataFeed {
+func NewChainlinkDataFeed(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressChainlinkDataFeed) ChainlinkDataFeed {
 	namespace += "_" + NameChainlinkDataFeed
 
 	instance := ChainlinkDataFeed{
@@ -81,11 +81,12 @@ func (n *ChainlinkDataFeed) tick(ctx context.Context) {
 }
 
 func (n *ChainlinkDataFeed) getBalance(address *AddressChainlinkDataFeed) error {
-	balanceStr, err := n.client.EthCall(ethrpc.T{
+	// call latestAnswer() which is 0x50d25bcd
+	latestAnswerData := "0x50d25bcd000000000000000000000000"
+
+	balanceStr, err := n.client.ETHCall(&api.ETHCallTransaction{
 		To:   address.Contract,
-		From: "0x0000000000000000000000000000000000000000",
-		// call latestAnswer() which is 0x50d25bcd
-		Data: "0x50d25bcd000000000000000000000000",
+		Data: &latestAnswerData,
 	}, "latest")
 	if err != nil {
 		return err

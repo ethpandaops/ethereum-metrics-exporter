@@ -3,7 +3,7 @@ package exporter
 import (
 	"context"
 
-	"github.com/onrik/ethrpc"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/jobs"
 	"github.com/sirupsen/logrus"
 )
@@ -27,7 +27,7 @@ type metrics struct {
 }
 
 // NewMetrics creates a new execution Metrics instance
-func NewMetrics(client *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
+func NewMetrics(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses *Addresses) Metrics {
 	m := &metrics{
 		log:                      log,
 		eoaMetrics:               jobs.NewEOA(client, log, namespace, constLabels, addresses.EOA),

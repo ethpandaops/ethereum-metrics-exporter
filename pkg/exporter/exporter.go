@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/onrik/ethrpc"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,8 +33,8 @@ type exporter struct {
 	// Helpers
 	log logrus.FieldLogger
 	Cfg *Config
-	// Exporters
-	execution *ethrpc.EthRPC
+
+	execution api.ExecutionClient
 	// Metrics
 	metrics Metrics
 }
@@ -42,12 +42,12 @@ type exporter struct {
 func (e *exporter) Start(ctx context.Context) error {
 	e.log.Info("Initializing...")
 
-	e.execution = ethrpc.New(e.Cfg.Execution.URL)
+	e.execution = api.NewExecutionClient(e.log, e.Cfg.Execution.URL, e.Cfg.Execution.Headers, e.Cfg.Execution.Timeout)
 
 	e.metrics = NewMetrics(e.execution, e.log, e.Cfg.GlobalConfig.Namespace, e.Cfg.GlobalConfig.Labels, &e.Cfg.Addresses)
 
 	e.log.
-		WithField("execution_url", e.execution.URL()).
+		WithField("execution_url", e.Cfg.Execution.URL).
 		Info(fmt.Sprintf("Starting metrics server on %v", e.Cfg.GlobalConfig.MetricsAddr))
 
 	http.Handle("/metrics", promhttp.Handler())

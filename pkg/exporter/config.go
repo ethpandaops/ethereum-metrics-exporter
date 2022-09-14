@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/jobs"
 )
@@ -24,7 +25,9 @@ type GlobalConfig struct {
 
 // ExecutionNode represents a single ethereum execution client.
 type ExecutionNode struct {
-	URL string `yaml:"url" default:"http://localhost:8545"`
+	URL     string            `yaml:"url" default:"http://localhost:8545"`
+	Headers map[string]string `yaml:"headers"`
+	Timeout time.Duration     `yaml:"timeout" default:"10s"`
 }
 
 type Addresses struct {
