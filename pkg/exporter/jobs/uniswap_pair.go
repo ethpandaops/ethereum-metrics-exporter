@@ -92,6 +92,15 @@ func (n *UniswapPair) getBalance(address *AddressUniswapPair) error {
 		return err
 	}
 
+	if len(balanceStr) < 130 {
+		n.log.WithFields(logrus.Fields{
+			"address": address,
+			"balance": balanceStr,
+		}).Warn("Got empty uniswap pair balance")
+
+		return nil
+	}
+
 	fromBalance := hexStringToFloat64(balanceStr[0:66])
 	toBalance := hexStringToFloat64("0x" + balanceStr[66:130])
 
