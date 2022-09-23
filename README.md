@@ -32,36 +32,42 @@ Ethereum Address Metrics Exporter relies entirely on a single `yaml` config file
 | global.logging | `warn` | Log level (`panic`, `fatal`, `warn`, `info`, `debug`, `trace`) |
 | global.metricsAddr | `:9090` | The address the metrics server will listen on |
 | global.namespace | `eth_address` | The prefix added to every metric |
-| global.labels[] |  | Key value pair of labels to add to every metric |
+| global.labels[] |  | Key value pair of labels to add to every metric (optional) |
 | execution.url | `http://localhost:8545` | URL to the execution node |
 | execution.timeout | `10s` | Timeout for requests to the execution node |
 | execution.headers[] |  | Key value pair of headers to add on every request |
 | addresses.eoa |  | List of ethereum externally owned account addresses |
 | addresses.eoa[].name |  | Name of the address, will be a label on the metric |
 | addresses.eoa[].address |  | Ethereum externally owned account address |
+| addresses.eoa[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 | addresses.erc20 |  | List of ethereum [ERC20](https://eips.ethereum.org/EIPS/eip-20) addresses |
 | addresses.erc20[].name |  | Name of the address, will be a label on the metric |
 | addresses.erc20[].address |  | Ethereum address |
 | addresses.erc20[].contract |  | Ethereum contract address |
+| addresses.erc20[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 | addresses.erc721 |  | List of ethereum [ERC721](https://eips.ethereum.org/EIPS/eip-721) addresses |
 | addresses.erc721[].name |  | Name of the address, will be a label on the metric |
 | addresses.erc721[].address |  | Ethereum address |
 | addresses.erc721[].contract |  | Ethereum contract address |
+| addresses.erc721[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 | addresses.erc1155 |  | List of ethereum [ERC1155](https://eips.ethereum.org/EIPS/eip-1155) addresses |
 | addresses.erc1155[].name |  | Name of the address, will be a label on the metric |
 | addresses.erc1155[].address |  | Ethereum address |
 | addresses.erc1155[].contract |  | Ethereum contract address |
 | addresses.erc1155[].tokenID |  | NFT Token Identifier |
+| addresses.erc1155[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 | addresses.uniswapPair |  | List of [uniswap pair](https://v2.info.uniswap.org/pairs) addresses |
 | addresses.uniswapPair[].name |  | Name of the address, will be a label on the metric |
 | addresses.uniswapPair[].from |  | First symbol name, will be a label on the metric |
 | addresses.uniswapPair[].to |  | Second symbol name, will be a label on the metric |
 | addresses.uniswapPair[].contract |  | Ethereum contract address of the [uniswap pair](https://v2.info.uniswap.org/pairs) |
+| addresses.uniswapPair[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 | addresses.chainlinkDataFeed |  | List of [chainlink data feed](https://docs.chain.link/docs/ethereum-addresses/) addresses |
 | addresses.chainlinkDataFeed[].name |  | Name of the address, will be a label on the metric |
 | addresses.chainlinkDataFeed[].from |  | First symbol name, will be a label on the metric |
 | addresses.chainlinkDataFeed[].to |  | Second symbol name, will be a label on the metric |
 | addresses.chainlinkDataFeed[].contract |  | Ethereum contract address of the [chainlink data feed](https://docs.chain.link/docs/ethereum-addresses/) |
+| addresses.chainlinkDataFeed[].labels[] |  | Key value pair of labels to add to this address only (optional) |
 
 
 ### Example
@@ -84,8 +90,13 @@ addresses:
   eoa:
     - name: John smith
       address: 0x4B1D3c9BEf9D097F564DcD6cdF4558CB389bE3d5
+      labels:
+        type: friend
     - name: Jane Doe
       address: 0x4B1Df3549940C56d962F248f211788D66B4aAF39
+      labels:
+        type: acquaintance
+        company: NSA
   erc20:
     - name: Some ERC20 Contract
       contract: 0x4B1DB272F63E03Dd37ea45330266AC9328A66DB6

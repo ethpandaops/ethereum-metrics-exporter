@@ -15,12 +15,14 @@ type ERC20 struct {
 	log          logrus.FieldLogger
 	ERC20Balance prometheus.GaugeVec
 	addresses    []*AddressERC20
+	labelsMap    map[string]int
 }
 
 type AddressERC20 struct {
-	Address  string `yaml:"address"`
-	Contract string `yaml:"contract"`
-	Name     string `yaml:"name"`
+	Address  string            `yaml:"address"`
+	Contract string            `yaml:"contract"`
+	Name     string            `yaml:"name"`
+	Labels   map[string]string `yaml:"labels"`
 }
 
 const (
@@ -35,10 +37,31 @@ func (n *ERC20) Name() string {
 func NewERC20(client api.ExecutionClient, log logrus.FieldLogger, namespace string, constLabels map[string]string, addresses []*AddressERC20) ERC20 {
 	namespace += "_" + NameERC20
 
+	labelsMap := map[string]int{
+		LabelName:     0,
+		LabelAddress:  1,
+		LabelContract: 2,
+		LabelSymbol:   3,
+	}
+
+	for address := range addresses {
+		for label := range addresses[address].Labels {
+			if _, ok := labelsMap[label]; !ok {
+				labelsMap[label] = len(labelsMap)
+			}
+		}
+	}
+
+	labels := make([]string, len(labelsMap))
+	for label, index := range labelsMap {
+		labels[index] = label
+	}
+
 	instance := ERC20{
 		client:    client,
 		log:       log.WithField("module", NameERC20),
 		addresses: addresses,
+		labelsMap: labelsMap,
 		ERC20Balance: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -46,7 +69,7 @@ func NewERC20(client api.ExecutionClient, log logrus.FieldLogger, namespace stri
 				Help:        "The balance of a ethereum ERC20 contract by address.",
 				ConstLabels: constLabels,
 			},
-			[]string{"name", "address", "contract", "symbol"},
+			labels,
 		),
 	}
 
@@ -79,6 +102,31 @@ func (n *ERC20) tick(ctx context.Context) {
 	}
 }
 
+func (n *ERC20) getLabelValues(address *AddressERC20, symbol string) []string {
+	values := make([]string, len(n.labelsMap))
+
+	for label, index := range n.labelsMap {
+		if address.Labels != nil && address.Labels[label] != "" {
+			values[index] = address.Labels[label]
+		} else {
+			switch label {
+			case LabelName:
+				values[index] = address.Name
+			case LabelAddress:
+				values[index] = address.Address
+			case LabelContract:
+				values[index] = address.Contract
+			case LabelSymbol:
+				values[index] = symbol
+			default:
+				values[index] = LabelDefaultValue
+			}
+		}
+	}
+
+	return values
+}
+
 func (n *ERC20) getBalance(address *AddressERC20) error {
 	// call balanceOf(address) which is 0x70a08231
 	balanceOfData := "0x70a08231000000000000000000000000" + address.Address[2:]
@@ -107,7 +155,7 @@ func (n *ERC20) getBalance(address *AddressERC20) error {
 		return err
 	}
 
-	n.ERC20Balance.WithLabelValues(address.Name, address.Address, address.Contract, symbol).Set(hexStringToFloat64(balanceStr))
+	n.ERC20Balance.WithLabelValues(n.getLabelValues(address, symbol)...).Set(hexStringToFloat64(balanceStr))
 
 	return nil
 }
