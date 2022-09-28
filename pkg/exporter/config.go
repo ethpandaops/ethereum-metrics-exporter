@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/jobs"
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/jobs"
 )
 
 // Config holds the configuration for the ethereum sync status tool.

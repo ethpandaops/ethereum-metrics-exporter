@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
 	"github.com/sirupsen/logrus"
 )
 

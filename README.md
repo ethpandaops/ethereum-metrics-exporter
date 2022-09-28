@@ -10,7 +10,7 @@ A Prometheus metrics exporter for Ethereum externally owned account and contract
 - [Chainlink data feed](https://v2.info.uniswap.org/pairs) contracts
 
 # Usage
-Ethereum Address Metrics Exporter requires a config file. An example file can be found [here](https://github.com/savid/ethereum-address-metrics-exporter/blob/master/example_config.yaml).
+Ethereum Address Metrics Exporter requires a config file. An example file can be found [here](https://github.com/ethpandaops/ethereum-address-metrics-exporter/blob/master/example_config.yaml).
 
 ```
 A tool to export the ethereum address state
@@ -127,13 +127,13 @@ addresses:
 ## Getting Started
 
 ### Download a release
-Download the latest release from the [Releases page](https://github.com/savid/ethereum-address-metrics-exporter/releases). Extract and run with:
+Download the latest release from the [Releases page](https://github.com/ethpandaops/ethereum-address-metrics-exporter/releases). Extract and run with:
 ```
 ./ethereum-address-metrics-exporter --config your-config.yaml
 ```
 
 ### Docker
-Available as a docker image at [savid/ethereum-address-metrics-exporter](https://hub.docker.com/r/savid/ethereum-address-metrics-exporter/tags)
+Available as a docker image at [ethpandaops/ethereum-address-metrics-exporter](https://hub.docker.com/r/ethpandaops/ethereum-address-metrics-exporter/tags)
 #### Images
 - `latest` - distroless, multiarch
 - `latest-debian` - debian, multiarch
@@ -142,7 +142,7 @@ Available as a docker image at [savid/ethereum-address-metrics-exporter](https:/
 
 **Quick start**
 ```
-docker run -d  --name ethereum-address-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/ethereum-address-metrics-exporter/config.yaml -p 9090:9090 -p 5555:5555 -it savid/ethereum-address-metrics-exporter:latest --config /opt/ethereum-address-metrics-exporter/config.yaml;
+docker run -d  --name ethereum-address-metrics-exporter -v $HOST_DIR_CHANGE_ME/config.yaml:/opt/ethereum-address-metrics-exporter/config.yaml -p 9090:9090 -p 5555:5555 -it ethpandaops/ethereum-address-metrics-exporter:latest --config /opt/ethereum-address-metrics-exporter/config.yaml;
 docker logs -f ethereum-address-metrics-exporter;
 ```
 
@@ -159,7 +159,7 @@ helm install ethereum-address-metrics-exporter ethereum-helm-charts/ethereum-add
 
 1. Clone the repo
    ```sh
-   go get github.com/savid/ethereum-address-metrics-exporter
+   go get github.com/ethpandaops/ethereum-address-metrics-exporter
    ```
 2. Change directories
    ```sh

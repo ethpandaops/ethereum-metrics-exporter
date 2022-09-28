@@ -3,8 +3,8 @@ package exporter
 import (
 	"context"
 
-	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/api"
-	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter/jobs"
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/api"
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter/jobs"
 	"github.com/sirupsen/logrus"
 )
 
