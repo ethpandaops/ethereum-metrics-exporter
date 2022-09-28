@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/creasty/defaults"
-	"github.com/savid/ethereum-address-metrics-exporter/pkg/exporter"
+	"github.com/ethpandaops/ethereum-address-metrics-exporter/pkg/exporter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
