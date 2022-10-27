@@ -71,7 +71,7 @@ Coming soon.
 
 1. Clone the repo
    ```sh
-   go get github.com/samcm/ethereum-metrics-exporter
+   go get github.com/ethpandaops/ethereum-metrics-exporter
    ```
 2. Change directories
    ```sh

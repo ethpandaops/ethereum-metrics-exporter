@@ -3,9 +3,9 @@ package jobs
 import (
 	"context"
 
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/sirupsen/logrus"
 )
 

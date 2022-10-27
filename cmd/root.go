@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
