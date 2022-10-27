@@ -10,11 +10,11 @@ import (
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/attestantio/go-eth2-client/spec"
 	"github.com/attestantio/go-eth2-client/spec/phase0"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 	"github.com/go-co-op/gocron"
 	"github.com/nats-io/nats.go"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 	"github.com/sirupsen/logrus"
 )
 

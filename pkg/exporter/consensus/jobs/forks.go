@@ -3,8 +3,8 @@ package jobs
 import (
 	"context"
 
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/sirupsen/logrus"
 
 	"github.com/attestantio/go-eth2-client/spec/phase0"

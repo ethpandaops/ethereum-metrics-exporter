@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 	"github.com/sirupsen/logrus"
 )
 

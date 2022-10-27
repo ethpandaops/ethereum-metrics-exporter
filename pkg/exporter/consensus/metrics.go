@@ -4,10 +4,10 @@ import (
 	"context"
 
 	eth2client "github.com/attestantio/go-eth2-client"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/jobs"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/jobs"
 	"github.com/sirupsen/logrus"
 )
 

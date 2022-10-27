@@ -10,16 +10,16 @@ import (
 
 	eth2client "github.com/attestantio/go-eth2-client"
 	ehttp "github.com/attestantio/go-eth2-client/http"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/api"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/disk"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/execution"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/pair"
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/disk"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/execution"
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/pair"
 	"github.com/sirupsen/logrus"
 )
 

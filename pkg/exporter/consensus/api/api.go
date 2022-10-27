@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/samcm/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
 	"github.com/sirupsen/logrus"
 )
 

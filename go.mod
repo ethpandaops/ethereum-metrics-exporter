@@ -1,8 +1,8 @@
-module github.com/samcm/ethereum-metrics-exporter
+module github.com/ethpandaops/ethereum-metrics-exporter
 
 go 1.17
 
-// replace github.com/samcm/ethereum-metrics-exporter/pkg/exporter => ./pkg/ethereum-metrics-exporter
+// replace github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter => ./pkg/ethereum-metrics-exporter
 
 require (
 	github.com/spf13/cobra v1.4.0
