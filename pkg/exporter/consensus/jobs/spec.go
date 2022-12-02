@@ -2,7 +2,6 @@ package jobs
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -28,8 +27,6 @@ type Spec struct {
 	GenesisDelay                     prometheus.Gauge
 	SecondsPerSlot                   prometheus.Gauge
 	MaxEffectiveBalance              prometheus.Gauge
-	TerminalTotalDifficulty          prometheus.Gauge
-	TerminalTotalDifficultyTrillions prometheus.Gauge
 	MaxDeposits                      prometheus.Gauge
 	MinGenesisActiveValidatorCount   prometheus.Gauge
 	TargetCommitteeSize              prometheus.Gauge
@@ -156,22 +153,6 @@ func NewSpecJob(bc beacon.Node, log logrus.FieldLogger, namespace string, constL
 				Namespace:   namespace,
 				Name:        "max_effective_balance",
 				Help:        "The maximum effective balance.",
-				ConstLabels: constLabels,
-			},
-		),
-		TerminalTotalDifficulty: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "terminal_total_difficulty",
-				Help:        "The terminal total difficulty.",
-				ConstLabels: constLabels,
-			},
-		),
-		TerminalTotalDifficultyTrillions: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "terminal_total_difficulty_trillions",
-				Help:        "The terminal total difficulty in trillions.",
 				ConstLabels: constLabels,
 			},
 		),
@@ -308,12 +289,6 @@ func (s *Spec) observeSpec(ctx context.Context, spec *state.Spec) error {
 	s.TerminalBlockHashActivationEpoch.Set(float64(spec.TerminalBlockHashActivationEpoch))
 	s.MinDepositAmount.Set(float64(spec.MinDepositAmount))
 	s.SlotsPerEpoch.Set(float64(spec.SlotsPerEpoch))
-
-	trillion := big.NewInt(1e12)
-	divided := new(big.Int).Div(&spec.TerminalTotalDifficulty, trillion)
-	asFloat, _ := new(big.Float).SetInt(divided).Float64()
-	s.TerminalTotalDifficultyTrillions.Set(asFloat)
-	s.TerminalTotalDifficulty.Set(float64(spec.TerminalTotalDifficulty.Uint64()))
 
 	return nil
 }

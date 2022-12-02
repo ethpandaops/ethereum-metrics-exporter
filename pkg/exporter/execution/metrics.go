@@ -80,8 +80,6 @@ func NewMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, ethRP
 		prometheus.MustRegister(m.blockMetrics.HeadGasUsed)
 		prometheus.MustRegister(m.blockMetrics.HeadTransactionCount)
 		prometheus.MustRegister(m.blockMetrics.HeadBaseFeePerGas)
-		prometheus.MustRegister(m.blockMetrics.HeadTotalDifficulty)
-		prometheus.MustRegister(m.blockMetrics.HeadTotalDifficultyTrillions)
 
 		prometheus.MustRegister(m.blockMetrics.SafeBaseFeePerGas)
 		prometheus.MustRegister(m.blockMetrics.SafeBlockSize)
@@ -101,8 +99,6 @@ func NewMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, ethRP
 		m.log.Info("Enabling admin metrics")
 		m.enabledJobs[m.adminMetrics.Name()] = true
 
-		prometheus.MustRegister(m.adminMetrics.TotalDifficulty)
-		prometheus.MustRegister(m.adminMetrics.TotalDifficultyTrillions)
 		prometheus.MustRegister(m.adminMetrics.NodeInfo)
 		prometheus.MustRegister(m.adminMetrics.Port)
 		prometheus.MustRegister(m.adminMetrics.Peers)

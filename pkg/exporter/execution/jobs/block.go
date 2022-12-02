@@ -23,13 +23,11 @@ type BlockMetrics struct {
 
 	MostRecentBlockNumber prometheus.GaugeVec
 
-	HeadGasUsed                  prometheus.Gauge
-	HeadGasLimit                 prometheus.Gauge
-	HeadBaseFeePerGas            prometheus.Gauge
-	HeadBlockSize                prometheus.Gauge
-	HeadTransactionCount         prometheus.Gauge
-	HeadTotalDifficulty          prometheus.Gauge
-	HeadTotalDifficultyTrillions prometheus.Gauge
+	HeadGasUsed          prometheus.Gauge
+	HeadGasLimit         prometheus.Gauge
+	HeadBaseFeePerGas    prometheus.Gauge
+	HeadBlockSize        prometheus.Gauge
+	HeadTransactionCount prometheus.Gauge
 
 	SafeGasUsed          prometheus.Counter
 	SafeGasLimit         prometheus.Counter
@@ -117,22 +115,6 @@ func NewBlockMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, 
 				Namespace:   namespace,
 				Name:        "head_transactions_in_block",
 				Help:        "The number of transactions in the most recent block.",
-				ConstLabels: constLabels,
-			},
-		),
-		HeadTotalDifficulty: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "head_total_difficulty",
-				Help:        "The total difficulty of the head block.",
-				ConstLabels: constLabels,
-			},
-		),
-		HeadTotalDifficultyTrillions: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace:   namespace,
-				Name:        "head_total_difficulty_trillions",
-				Help:        "The total difficulty of the head block (in trillions).",
 				ConstLabels: constLabels,
 			},
 		),
@@ -232,12 +214,6 @@ func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
 	b.HeadBlockSize.Set(float64(block.Size))
 	b.HeadTransactionCount.Set(float64(len(block.Transactions)))
 	// b.HeadBaseFeePerGas.Set(float64(block.BaseFee().Int64())) TODO(sam.calder-mason): Fix me
-
-	b.HeadTotalDifficulty.Set(float64(block.TotalDifficulty.Uint64()))
-	// Since we can't represent a big.Int as a float64, and the TD on mainnet is beyond float64, we'll divide the number by a trillion
-	trillion := big.NewInt(1e12)
-	divided := new(big.Int).Quo(&block.TotalDifficulty, trillion)
-	b.HeadTotalDifficultyTrillions.Set(float64(divided.Uint64()))
 
 	return nil
 }
