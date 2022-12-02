@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon/state"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/beacon"
+	"github.com/samcm/beacon/state"
 	"github.com/sirupsen/logrus"
 )
 
@@ -256,11 +256,9 @@ func (s *Spec) Name() string {
 }
 
 func (s *Spec) Start(ctx context.Context) error {
-	if _, err := s.beacon.OnSpecUpdated(ctx, func(ctx context.Context, event *beacon.SpecUpdatedEvent) error {
+	s.beacon.OnSpecUpdated(ctx, func(ctx context.Context, event *beacon.SpecUpdatedEvent) error {
 		return s.observeSpec(ctx, event.Spec)
-	}); err != nil {
-		return err
-	}
+	})
 
 	s.tick(ctx)
 
@@ -291,16 +289,16 @@ func (s *Spec) observeSpec(ctx context.Context, spec *state.Spec) error {
 	s.DepositChainID.Set(float64(spec.DepositChainID))
 	s.MaxValidatorsPerCommittee.Set(float64(spec.MaxValidatorsPerCommittee))
 	//nolint:unconvert // false positive
-	s.SecondsPerEth1Block.Set(float64(spec.SecondsPerEth1Block.Seconds()))
+	s.SecondsPerEth1Block.Set(float64(spec.SecondsPerEth1Block.AsDuration().Seconds()))
 	s.BaseRewardFactor.Set(float64(spec.BaseRewardFactor))
 	s.EpochsPerSyncCommitteePeriod.Set(float64(spec.EpochsPerSyncCommitteePeriod))
 	s.EffectiveBalanceIncrement.Set(float64(spec.EffectiveBalanceIncrement))
 	s.MaxAttestations.Set(float64(spec.MaxAttestations))
 	s.MinSyncCommitteeParticipants.Set(float64(spec.MinSyncCommitteeParticipants))
 	//nolint:unconvert // false positive
-	s.GenesisDelay.Set(float64(spec.GenesisDelay.Seconds()))
+	s.GenesisDelay.Set(float64(spec.GenesisDelay.AsDuration().Seconds()))
 	//nolint:unconvert // false positive
-	s.SecondsPerSlot.Set(float64(spec.SecondsPerSlot.Seconds()))
+	s.SecondsPerSlot.Set(float64(spec.SecondsPerSlot.AsDuration().Seconds()))
 	s.MaxEffectiveBalance.Set(float64(spec.MaxEffectiveBalance))
 	s.MaxDeposits.Set(float64(spec.MaxDeposits))
 	s.MinGenesisActiveValidatorCount.Set(float64(spec.MinGenesisActiveValidatorCount))
