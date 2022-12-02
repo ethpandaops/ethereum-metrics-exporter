@@ -2,7 +2,6 @@ package exporter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,8 +13,6 @@ import (
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/disk"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/execution"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/pair"
-	"github.com/nats-io/nats-server/v2/server"
-	"github.com/nats-io/nats.go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/samcm/beacon"
@@ -53,10 +50,6 @@ type exporter struct {
 	diskUsage   disk.UsageMetrics
 	pairMetrics pair.Metrics
 
-	// Nats
-	broker     *server.Server
-	brokerConn *nats.EncodedConn
-
 	// Clients
 	beacon beacon.Node
 	client eth2client.Service
@@ -65,33 +58,6 @@ type exporter struct {
 
 func (e *exporter) Init(ctx context.Context) error {
 	e.log.Info("Initializing...")
-
-	natsServer, err := server.NewServer(&server.Options{})
-	if err != nil {
-		return err
-	}
-
-	e.broker = natsServer
-
-	// Start the nats server via goroutine
-	go e.broker.Start()
-
-	if !e.broker.ReadyForConnections(15 * time.Second) {
-		return errors.New("nats server failed to start")
-	}
-
-	nc, err := nats.Connect(e.broker.ClientURL())
-	if err != nil {
-		return err
-	}
-
-	// Create a NATS encoded connection to the nats server
-	conn, err := nats.NewEncodedConn(nc, nats.JSON_ENCODER)
-	if err != nil {
-		return err
-	}
-
-	e.brokerConn = conn
 
 	if e.config.Execution.Enabled {
 		e.log.WithField("modules", strings.Join(e.config.Execution.Modules, ", ")).Info("Initializing execution...")
