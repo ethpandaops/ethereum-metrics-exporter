@@ -12,7 +12,6 @@ import (
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/disk"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/execution"
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/pair"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/samcm/beacon"
@@ -44,11 +43,11 @@ type exporter struct {
 	namespace string
 	log       logrus.FieldLogger
 	config    *Config
+
 	// Exporters
-	consensus   consensus.Metrics
-	execution   execution.Node
-	diskUsage   disk.UsageMetrics
-	pairMetrics pair.Metrics
+	consensus consensus.Metrics
+	execution execution.Node
+	diskUsage disk.UsageMetrics
 
 	// Clients
 	beacon beacon.Node
@@ -126,17 +125,6 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 
 	if e.config.Pair.Enabled && e.config.Execution.Enabled && e.config.Consensus.Enabled {
 		if err := e.ensureConsensusClients(ctx); err != nil {
-			e.log.Fatal(err)
-		}
-
-		e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
-			e.pairMetrics.StartAsync(ctx)
-			return nil
-		})
-
-		if err := e.startPairExporter(ctx); err != nil {
-			e.log.WithError(err).Error("failed to start pair metrics")
-
 			e.log.Fatal(err)
 		}
 	}
@@ -226,21 +214,6 @@ func (e *exporter) startConsensusExporter(ctx context.Context) error {
 	conMetrics := consensus.NewMetrics(e.client, e.api, e.beacon, e.log.WithField("exporter", "consensus"), e.config.Consensus.Name, fmt.Sprintf("%s_con", e.namespace))
 
 	e.consensus = conMetrics
-
-	return nil
-}
-
-func (e *exporter) startPairExporter(ctx context.Context) error {
-	if err := e.ensureConsensusClients(ctx); err != nil {
-		return err
-	}
-
-	pairMetrics, err := pair.NewMetrics(ctx, e.log.WithField("exporter", "pair"), fmt.Sprintf("%s_pair", e.namespace), e.beacon, e.config.Execution.URL)
-	if err != nil {
-		return err
-	}
-
-	e.pairMetrics = pairMetrics
 
 	return nil
 }

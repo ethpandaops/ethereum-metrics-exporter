@@ -70,8 +70,6 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac beacon.N
 	prometheus.MustRegister(m.specMetrics.GenesisDelay)
 	prometheus.MustRegister(m.specMetrics.SecondsPerSlot)
 	prometheus.MustRegister(m.specMetrics.MaxEffectiveBalance)
-	prometheus.MustRegister(m.specMetrics.TerminalTotalDifficulty)
-	prometheus.MustRegister(m.specMetrics.TerminalTotalDifficultyTrillions)
 	prometheus.MustRegister(m.specMetrics.MaxDeposits)
 	prometheus.MustRegister(m.specMetrics.MinGenesisActiveValidatorCount)
 	prometheus.MustRegister(m.specMetrics.TargetCommitteeSize)
