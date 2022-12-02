@@ -3,8 +3,8 @@ package jobs
 import (
 	"context"
 
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/beacon"
 	"github.com/sirupsen/logrus"
 
 	"github.com/attestantio/go-eth2-client/spec/phase0"
@@ -73,11 +73,9 @@ func (f *Forks) Name() string {
 }
 
 func (f *Forks) Start(ctx context.Context) error {
-	if _, err := f.beacon.OnBlockInserted(ctx, func(ctx context.Context, event *beacon.BlockInsertedEvent) error {
+	f.beacon.OnBlockInserted(ctx, func(ctx context.Context, event *beacon.BlockInsertedEvent) error {
 		return f.calculateCurrent(ctx, event.Slot)
-	}); err != nil {
-		return err
-	}
+	})
 
 	return nil
 }

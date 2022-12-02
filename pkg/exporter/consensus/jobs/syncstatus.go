@@ -3,8 +3,8 @@ package jobs
 import (
 	"context"
 
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/beacon"
 	"github.com/sirupsen/logrus"
 )
 
@@ -80,7 +80,7 @@ func (s *Sync) Name() string {
 }
 
 func (s *Sync) Start(ctx context.Context) error {
-	if _, err := s.beacon.OnSyncStatus(ctx, func(ctx context.Context, event *beacon.SyncStatusEvent) error {
+	s.beacon.OnSyncStatus(ctx, func(ctx context.Context, event *beacon.SyncStatusEvent) error {
 		status := event.State
 
 		s.Distance.Set(float64(status.SyncDistance))
@@ -98,9 +98,7 @@ func (s *Sync) Start(ctx context.Context) error {
 		s.Percentage.Set(percent)
 
 		return nil
-	}); err != nil {
-		return err
-	}
+	})
 
 	return nil
 }

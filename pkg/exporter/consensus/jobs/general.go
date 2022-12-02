@@ -3,9 +3,9 @@ package jobs
 import (
 	"context"
 
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/api/types"
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/beacon"
+	"github.com/samcm/beacon/api/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -72,14 +72,12 @@ func (g *General) Name() string {
 }
 
 func (g *General) Start(ctx context.Context) error {
-	if _, err := g.beacon.OnNodeVersionUpdated(ctx, func(ctx context.Context, event *beacon.NodeVersionUpdatedEvent) error {
+	g.beacon.OnNodeVersionUpdated(ctx, func(ctx context.Context, event *beacon.NodeVersionUpdatedEvent) error {
 		g.observeNodeVersion(ctx, event.Version)
 		return nil
-	}); err != nil {
-		return err
-	}
+	})
 
-	if _, err := g.beacon.OnPeersUpdated(ctx, func(ctx context.Context, event *beacon.PeersUpdatedEvent) error {
+	g.beacon.OnPeersUpdated(ctx, func(ctx context.Context, event *beacon.PeersUpdatedEvent) error {
 		g.Peers.Reset()
 
 		for _, state := range types.PeerStates {
@@ -95,9 +93,7 @@ func (g *General) Start(ctx context.Context) error {
 		}
 
 		return nil
-	}); err != nil {
-		return err
-	}
+	})
 
 	if err := g.initialFetch(ctx); err != nil {
 		return err

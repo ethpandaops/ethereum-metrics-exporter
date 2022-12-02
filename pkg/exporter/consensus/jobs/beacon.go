@@ -9,9 +9,9 @@ import (
 	eth2client "github.com/attestantio/go-eth2-client"
 	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/attestantio/go-eth2-client/spec"
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/api"
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/samcm/beacon"
+	"github.com/samcm/beacon/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -221,28 +221,20 @@ func (b *Beacon) tick(ctx context.Context) {
 }
 
 func (b *Beacon) setupSubscriptions(ctx context.Context) error {
-	if _, err := b.beaconNode.OnBlockInserted(ctx, b.handleBlockInserted); err != nil {
-		return err
-	}
+	b.beaconNode.OnBlockInserted(ctx, b.handleBlockInserted)
 
-	if _, err := b.beaconNode.OnChainReOrg(ctx, b.handleChainReorg); err != nil {
-		return err
-	}
+	b.beaconNode.OnChainReOrg(ctx, b.handleChainReorg)
 
-	if _, err := b.beaconNode.OnEmptySlot(ctx, b.handleEmptySlot); err != nil {
-		return err
-	}
+	b.beaconNode.OnEmptySlot(ctx, b.handleEmptySlot)
 
-	if _, err := b.beaconNode.OnFinalizedCheckpoint(ctx, func(ctx context.Context, ev *v1.FinalizedCheckpointEvent) error {
+	b.beaconNode.OnFinalizedCheckpoint(ctx, func(ctx context.Context, ev *v1.FinalizedCheckpointEvent) error {
 		// Sleep for 3 seconds to allow the beacon node to process the finalized checkpoint.
 		time.Sleep(3 * time.Second)
 
 		b.updateFinalizedCheckpoint(ctx)
 
 		return nil
-	}); err != nil {
-		return err
-	}
+	})
 
 	return nil
 }

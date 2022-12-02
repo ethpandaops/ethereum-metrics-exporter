@@ -11,8 +11,6 @@ import (
 	eth2client "github.com/attestantio/go-eth2-client"
 	ehttp "github.com/attestantio/go-eth2-client/http"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus"
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/api"
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus/beacon"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/disk"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/execution"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/pair"
@@ -20,6 +18,8 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
+	"github.com/samcm/beacon"
+	"github.com/samcm/beacon/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -163,12 +163,10 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 			e.log.Fatal(err)
 		}
 
-		if _, err := e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
+		e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
 			e.pairMetrics.StartAsync(ctx)
 			return nil
-		}); err != nil {
-			e.log.WithError(err).Error("Failed to subscribe to beacon node ready event")
-		}
+		})
 
 		if err := e.startPairExporter(ctx); err != nil {
 			e.log.WithError(err).Error("failed to start pair metrics")
@@ -188,13 +186,11 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 			e.log.Fatal(err)
 		}
 
-		if _, err := e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
+		e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
 			e.consensus.StartAsync(ctx)
 
 			return nil
-		}); err != nil {
-			e.log.WithError(err).Error("Failed to subscribe to beacon node ready event")
-		}
+		})
 
 		e.beacon.StartAsync(ctx)
 	}
@@ -212,8 +208,16 @@ func (e *exporter) bootstrapConsensusClients(ctx context.Context) error {
 	}
 
 	e.client = client
-	e.api = api.NewConsensusClient(ctx, e.log, e.config.Consensus.URL)
-	e.beacon = beacon.NewNode(ctx, e.log, e.api, e.client, e.brokerConn)
+	e.api = api.NewConsensusClient(ctx, e.log, e.config.Consensus.URL, *http.DefaultClient)
+
+	opts := *beacon.DefaultOptions().
+		EnableDefaultBeaconSubscription().
+		DisablePrometheusMetrics() // We can derive our own metrics
+
+	e.beacon = beacon.NewNode(e.log, &beacon.Config{
+		Addr: e.config.Consensus.URL,
+		Name: e.config.Consensus.Name,
+	}, "beacon", opts)
 
 	return nil
 }
