@@ -5,8 +5,6 @@ go 1.17
 require (
 	github.com/attestantio/go-eth2-client v0.11.7
 	github.com/ethereum/go-ethereum v1.10.17
-	github.com/nats-io/nats-server/v2 v2.8.4
-	github.com/nats-io/nats.go v1.16.0
 	github.com/onrik/ethrpc v1.0.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rs/zerolog v1.27.0
