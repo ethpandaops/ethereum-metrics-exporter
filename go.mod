@@ -10,7 +10,7 @@ require (
 	github.com/onrik/ethrpc v1.0.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rs/zerolog v1.27.0
-	github.com/samcm/beacon v0.9.0
+	github.com/samcm/beacon v0.10.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.4.0
 	gopkg.in/yaml.v2 v2.4.0
