@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"hash/fnv"
+	"math"
 	"time"
 
 	eth2client "github.com/attestantio/go-eth2-client"
@@ -33,6 +34,10 @@ type Beacon struct {
 	FinalityCheckpointHash prometheus.GaugeVec
 	EmptySlots             prometheus.Counter
 	ProposerDelay          prometheus.Histogram
+	Withdrawals            prometheus.GaugeVec
+	WithdrawalsAmount      prometheus.GaugeVec
+	WithdrawalsIndexMax    prometheus.GaugeVec
+	WithdrawalsIndexMin    prometheus.GaugeVec
 	currentVersion         string
 }
 
@@ -188,6 +193,54 @@ func NewBeaconJob(client eth2client.Service, ap api.ConsensusClient, beac beacon
 				Name:        "empty_slots_count",
 				Help:        "The number of slots that have expired without a block proposed.",
 				ConstLabels: constLabels,
+			},
+		),
+		Withdrawals: *prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "withdrawals",
+				Help:        "The amount of withdrawals in the block.",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"block_id",
+				"version",
+			},
+		),
+		WithdrawalsAmount: *prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "withdrawals_amount_gwei",
+				Help:        "The sum amount of all the withdrawals in the block (in gwei).",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"block_id",
+				"version",
+			},
+		),
+		WithdrawalsIndexMax: *prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "withdrawals_index_max",
+				Help:        "The maximum index of the withdrawals in the block.",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"block_id",
+				"version",
+			},
+		),
+		WithdrawalsIndexMin: *prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "withdrawals_index_min",
+				Help:        "The minimum index of the withdrawals in the block.",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"block_id",
+				"version",
 			},
 		),
 	}
@@ -430,6 +483,36 @@ func (b *Beacon) recordNewBeaconBlock(blockID string, block *spec.VersionedSigne
 		b.log.WithField("compressed_hash", compressedHash).Debug("Calculated state root of head block")
 
 		b.HeadSlotHash.Set(compressedHash)
+	}
+
+	if block.Version == spec.DataVersionCapella {
+		gwei := int64(0)
+		indexMax := int64(0)
+		indexMin := int64(math.MaxInt64)
+
+		for _, withdrawal := range block.Capella.Message.Body.ExecutionPayload.Withdrawals {
+			gwei += int64(withdrawal.Amount)
+
+			index := int64(withdrawal.Index)
+			if index > indexMax {
+				indexMax = index
+			}
+
+			if index < indexMin {
+				indexMin = index
+			}
+		}
+
+		b.WithdrawalsAmount.WithLabelValues(blockID, version).Set(float64(gwei))
+		b.Withdrawals.WithLabelValues(blockID, version).Set(float64(len(block.Capella.Message.Body.ExecutionPayload.Withdrawals)))
+
+		if indexMax > 0 {
+			b.WithdrawalsIndexMax.WithLabelValues(blockID, version).Set(float64(indexMax))
+		}
+
+		if indexMin < math.MaxInt64 {
+			b.WithdrawalsIndexMin.WithLabelValues(blockID, version).Set(float64(indexMin))
+		}
 	}
 }
 
