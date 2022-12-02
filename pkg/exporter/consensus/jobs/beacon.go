@@ -228,6 +228,15 @@ func (b *Beacon) setupSubscriptions(ctx context.Context) error {
 	b.beaconNode.OnEmptySlot(ctx, b.handleEmptySlot)
 
 	b.beaconNode.OnFinalizedCheckpoint(ctx, func(ctx context.Context, ev *v1.FinalizedCheckpointEvent) error {
+		syncState, err := b.beaconNode.GetSyncState(ctx)
+		if err != nil {
+			return err
+		}
+
+		if syncState == nil || syncState.IsSyncing {
+			return nil
+		}
+
 		// Sleep for 3 seconds to allow the beacon node to process the finalized checkpoint.
 		time.Sleep(3 * time.Second)
 
@@ -240,6 +249,15 @@ func (b *Beacon) setupSubscriptions(ctx context.Context) error {
 }
 
 func (b *Beacon) handleEmptySlot(ctx context.Context, event *beacon.EmptySlotEvent) error {
+	syncState, err := b.beaconNode.GetSyncState(ctx)
+	if err != nil {
+		return err
+	}
+
+	if syncState == nil || syncState.IsSyncing {
+		return nil
+	}
+
 	b.log.WithField("slot", event.Slot).Debug("Empty slot detected")
 
 	b.EmptySlots.Inc()
@@ -262,6 +280,15 @@ func (b *Beacon) handleBlockInserted(ctx context.Context, event *beacon.BlockIns
 	//nolint:gocritic // False positive
 	if err = b.handleSingleBlock("head", timedBlock.Block); err != nil {
 		return err
+	}
+
+	syncState, err := b.beaconNode.GetSyncState(ctx)
+	if err != nil {
+		return nil
+	}
+
+	if syncState == nil || syncState.IsSyncing {
+		return nil
 	}
 
 	delay, err := slot.ProposerDelay()
