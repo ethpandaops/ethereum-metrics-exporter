@@ -414,7 +414,7 @@ func (b *Beacon) handleSingleBlock(blockID string, block *spec.VersionedSignedBe
 		return errors.New("block is nil")
 	}
 
-	if b.currentVersion != block.Version.String() {
+	if blockID == "head" && b.currentVersion != block.Version.String() {
 		b.Transactions.Reset()
 		b.Slashings.Reset()
 		b.Attestations.Reset()
