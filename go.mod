@@ -3,7 +3,7 @@ module github.com/ethpandaops/ethereum-metrics-exporter
 go 1.17
 
 require (
-	github.com/attestantio/go-eth2-client v0.11.7
+	github.com/attestantio/go-eth2-client v0.14.5
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/onrik/ethrpc v1.0.0
 	github.com/prometheus/client_golang v1.13.0
@@ -23,7 +23,7 @@ require (
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/ferranbt/fastssz v0.0.0-20220103083642-bc5fefefa28b // indirect
+	github.com/ferranbt/fastssz v0.1.2 // indirect
 	github.com/go-co-op/gocron v1.16.2 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
@@ -36,17 +36,12 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jarcoal/httpmock v1.2.0 // indirect
-	github.com/klauspost/compress v1.14.4 // indirect
-	github.com/klauspost/cpuid/v2 v2.0.11 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/klauspost/cpuid/v2 v2.1.2 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
-	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
-	github.com/mitchellh/mapstructure v1.4.3 // indirect
-	github.com/nats-io/jwt/v2 v2.2.1-0.20220330180145-442af02fd36a // indirect
-	github.com/nats-io/nkeys v0.3.0 // indirect
-	github.com/nats-io/nuid v1.0.1 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
@@ -64,9 +59,9 @@ require (
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect

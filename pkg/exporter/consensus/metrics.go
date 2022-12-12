@@ -97,6 +97,10 @@ func NewMetrics(client eth2client.Service, ap api.ConsensusClient, beac beacon.N
 	prometheus.MustRegister(m.beaconMetrics.HeadSlotHash)
 	prometheus.MustRegister(m.beaconMetrics.ProposerDelay)
 	prometheus.MustRegister(m.beaconMetrics.EmptySlots)
+	prometheus.MustRegister(m.beaconMetrics.Withdrawals)
+	prometheus.MustRegister(m.beaconMetrics.WithdrawalsAmount)
+	prometheus.MustRegister(m.beaconMetrics.WithdrawalsIndexMax)
+	prometheus.MustRegister(m.beaconMetrics.WithdrawalsIndexMin)
 
 	prometheus.MustRegister(m.eventMetrics.Count)
 	prometheus.MustRegister(m.eventMetrics.TimeSinceLastEvent)
