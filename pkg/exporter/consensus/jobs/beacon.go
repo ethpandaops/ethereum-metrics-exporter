@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"hash/fnv"
 	"math"
 	"time"
@@ -274,7 +275,29 @@ func (b *Beacon) tick(ctx context.Context) {
 }
 
 func (b *Beacon) setupSubscriptions(ctx context.Context) error {
-	b.beaconNode.OnBlockInserted(ctx, b.handleBlockInserted)
+	b.beaconNode.OnBlock(ctx, b.handleBlock)
+
+	b.beaconNode.OnBlock(ctx, func(ctx context.Context, event *v1.BlockEvent) error {
+		syncState, err := b.beaconNode.GetSyncState(ctx)
+		if err != nil {
+			return err
+		}
+
+		if syncState == nil || syncState.IsSyncing {
+			return nil
+		}
+
+		block, err := b.beaconNode.FetchBlock(ctx, fmt.Sprintf("%#x", event.Block))
+		if err != nil {
+			return err
+		}
+
+		if err := b.handleSingleBlock("head", block); err != nil {
+			return err
+		}
+
+		return nil
+	})
 
 	b.beaconNode.OnChainReOrg(ctx, b.handleChainReorg)
 
@@ -318,23 +341,7 @@ func (b *Beacon) handleEmptySlot(ctx context.Context, event *beacon.EmptySlotEve
 	return nil
 }
 
-func (b *Beacon) handleBlockInserted(ctx context.Context, event *beacon.BlockInsertedEvent) error {
-	// Fetch the slot
-	slot, err := b.beaconNode.GetSlot(ctx, event.Slot)
-	if err != nil {
-		return err
-	}
-
-	timedBlock, err := slot.Block()
-	if err != nil {
-		return err
-	}
-
-	//nolint:gocritic // False positive
-	if err = b.handleSingleBlock("head", timedBlock.Block); err != nil {
-		return err
-	}
-
+func (b *Beacon) handleBlock(ctx context.Context, event *v1.BlockEvent) error {
 	syncState, err := b.beaconNode.GetSyncState(ctx)
 	if err != nil {
 		return nil
@@ -344,10 +351,19 @@ func (b *Beacon) handleBlockInserted(ctx context.Context, event *beacon.BlockIns
 		return nil
 	}
 
-	delay, err := slot.ProposerDelay()
+	slot := b.beaconNode.Wallclock().Slots().FromNumber(uint64(event.Slot))
+
+	currSlot, _, err := b.beaconNode.Wallclock().Now()
 	if err != nil {
 		return err
 	}
+
+	// We don't care about blocks that are more than 2 slots in the past.
+	if currSlot.Number()-slot.Number() > 2 {
+		return nil
+	}
+
+	delay := time.Since(slot.TimeWindow().Start())
 
 	b.ProposerDelay.Observe(float64(delay.Milliseconds()))
 

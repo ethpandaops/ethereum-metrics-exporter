@@ -8,7 +8,7 @@ require (
 	github.com/onrik/ethrpc v1.0.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rs/zerolog v1.27.0
-	github.com/samcm/beacon v0.10.0
+	github.com/samcm/beacon v0.11.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.4.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -22,6 +22,7 @@ require (
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
+	github.com/ethpandaops/ethwallclock v0.2.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/ferranbt/fastssz v0.1.2 // indirect
 	github.com/go-co-op/gocron v1.16.2 // indirect

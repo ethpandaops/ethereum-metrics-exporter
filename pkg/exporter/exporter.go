@@ -166,6 +166,7 @@ func (e *exporter) bootstrapConsensusClients(ctx context.Context) error {
 
 	opts := *beacon.DefaultOptions().
 		EnableDefaultBeaconSubscription().
+		DisableFetchingProposerDuties().
 		DisablePrometheusMetrics() // We can derive our own metrics
 
 	e.beacon = beacon.NewNode(e.log, &beacon.Config{
