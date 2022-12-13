@@ -9,7 +9,6 @@ import (
 
 	eth2client "github.com/attestantio/go-eth2-client"
 	ehttp "github.com/attestantio/go-eth2-client/http"
-	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/consensus"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/disk"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/execution"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -45,7 +44,6 @@ type exporter struct {
 	config    *Config
 
 	// Exporters
-	consensus consensus.Metrics
 	execution execution.Node
 	diskUsage disk.UsageMetrics
 
@@ -123,30 +121,16 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 		go e.diskUsage.StartAsync(ctx)
 	}
 
-	if e.config.Pair.Enabled && e.config.Execution.Enabled && e.config.Consensus.Enabled {
-		if err := e.ensureConsensusClients(ctx); err != nil {
-			e.log.Fatal(err)
-		}
-	}
-
 	if e.config.Consensus.Enabled {
-		if err := e.ensureConsensusClients(ctx); err != nil {
-			e.log.Fatal(err)
+		e.log.WithField("consensus_url", e.config.Consensus.URL).Info("Starting consensus metrics...")
+
+		if err := e.bootstrapConsensusClients(ctx); err != nil {
+			e.log.WithError(err).Error("failed to bootstrap consensus clients")
+
+			return err
 		}
 
-		if err := e.startConsensusExporter(ctx); err != nil {
-			e.log.WithError(err).Error("failed to start consensus")
-
-			e.log.Fatal(err)
-		}
-
-		e.beacon.OnReady(ctx, func(ctx context.Context, event *beacon.ReadyEvent) error {
-			e.consensus.StartAsync(ctx)
-
-			return nil
-		})
-
-		e.beacon.StartAsync(ctx)
+		go e.beacon.StartAsync(ctx)
 	}
 
 	return nil
@@ -166,55 +150,13 @@ func (e *exporter) bootstrapConsensusClients(ctx context.Context) error {
 
 	opts := *beacon.DefaultOptions().
 		EnableDefaultBeaconSubscription().
-		DisableFetchingProposerDuties().
-		DisablePrometheusMetrics() // We can derive our own metrics
+		EnablePrometheusMetrics().
+		DisableFetchingProposerDuties()
 
 	e.beacon = beacon.NewNode(e.log, &beacon.Config{
 		Addr: e.config.Consensus.URL,
 		Name: e.config.Consensus.Name,
-	}, "beacon", opts)
-
-	return nil
-}
-
-func (e *exporter) ensureConsensusClients(ctx context.Context) error {
-	for {
-		if e.client != nil {
-			_, isProvider := e.client.(eth2client.NodeSyncingProvider)
-			if isProvider {
-				break
-			}
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			time.Sleep(1 * time.Second)
-
-			if err := e.bootstrapConsensusClients(ctx); err != nil {
-				e.log.WithError(err).Error("failed to bootstrap consensus node")
-
-				continue
-			}
-
-			break
-		}
-	}
-
-	return nil
-}
-
-func (e *exporter) startConsensusExporter(ctx context.Context) error {
-	if err := e.ensureConsensusClients(ctx); err != nil {
-		return err
-	}
-
-	e.log.Info("Starting consensus metrics...")
-
-	conMetrics := consensus.NewMetrics(e.client, e.api, e.beacon, e.log.WithField("exporter", "consensus"), e.config.Consensus.Name, fmt.Sprintf("%s_con", e.namespace))
-
-	e.consensus = conMetrics
+	}, "eth_con", opts)
 
 	return nil
 }
