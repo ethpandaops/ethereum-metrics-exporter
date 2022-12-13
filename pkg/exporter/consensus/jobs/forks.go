@@ -7,6 +7,7 @@ import (
 	"github.com/samcm/beacon"
 	"github.com/sirupsen/logrus"
 
+	v1 "github.com/attestantio/go-eth2-client/api/v1"
 	"github.com/attestantio/go-eth2-client/spec/phase0"
 )
 
@@ -73,7 +74,7 @@ func (f *Forks) Name() string {
 }
 
 func (f *Forks) Start(ctx context.Context) error {
-	f.beacon.OnBlockInserted(ctx, func(ctx context.Context, event *beacon.BlockInsertedEvent) error {
+	f.beacon.OnBlock(ctx, func(ctx context.Context, event *v1.BlockEvent) error {
 		return f.calculateCurrent(ctx, event.Slot)
 	})
 
