@@ -7,14 +7,10 @@ import (
 	"strings"
 	"time"
 
-	eth2client "github.com/attestantio/go-eth2-client"
-	ehttp "github.com/attestantio/go-eth2-client/http"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/disk"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/execution"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog"
 	"github.com/samcm/beacon"
-	"github.com/samcm/beacon/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,8 +45,6 @@ type exporter struct {
 
 	// Clients
 	beacon beacon.Node
-	client eth2client.Service
-	api    api.ConsensusClient
 }
 
 func (e *exporter) Init(ctx context.Context) error {
@@ -137,17 +131,6 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 }
 
 func (e *exporter) bootstrapConsensusClients(ctx context.Context) error {
-	client, err := ehttp.New(ctx,
-		ehttp.WithAddress(e.config.Consensus.URL),
-		ehttp.WithLogLevel(zerolog.Disabled),
-	)
-	if err != nil {
-		return err
-	}
-
-	e.client = client
-	e.api = api.NewConsensusClient(ctx, e.log, e.config.Consensus.URL, *http.DefaultClient)
-
 	opts := *beacon.DefaultOptions().
 		EnableDefaultBeaconSubscription().
 		EnablePrometheusMetrics().
