@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethpandaops/beacon/pkg/beacon"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/disk"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/execution"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/samcm/beacon"
 	"github.com/sirupsen/logrus"
 )
 
@@ -133,8 +133,7 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 func (e *exporter) bootstrapConsensusClients(ctx context.Context) error {
 	opts := *beacon.DefaultOptions().
 		EnableDefaultBeaconSubscription().
-		EnablePrometheusMetrics().
-		DisableFetchingProposerDuties()
+		EnablePrometheusMetrics()
 
 	e.beacon = beacon.NewNode(e.log, &beacon.Config{
 		Addr: e.config.Consensus.URL,
