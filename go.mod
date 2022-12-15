@@ -4,9 +4,9 @@ go 1.17
 
 require (
 	github.com/ethereum/go-ethereum v1.10.17
+	github.com/ethpandaops/beacon v0.14.0
 	github.com/onrik/ethrpc v1.0.0
 	github.com/prometheus/client_golang v1.13.0
-	github.com/samcm/beacon v0.12.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.4.0
 	gopkg.in/yaml.v2 v2.4.0
