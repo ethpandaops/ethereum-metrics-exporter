@@ -39,10 +39,15 @@ Flags:
 
 ### Grafana
 * [Single instance dashboard](https://grafana.com/grafana/dashboards/16277)
-* [The Merge overview dashboard](https://grafana.com/grafana/dashboards/16395)
 
 ### Docker
 Available as a docker image at `ethpandaops/ethereum-metrics-exporter`
+
+#### Images
+- `latest` - distroless, multiarch
+- `latest` - debian - debian, multiarch
+- `$version` - distroless, multiarch, pinned to a release (i.e. 0.4.0)
+- `$version-debian` - debian, multiarch, pinned to a release (i.e. 0.4.0-debian)
 
 **Quick start**
 ```
@@ -63,9 +68,7 @@ helm install ethereum-metrics-exporter ethereum-helm-charts/ethereum-metrics-exp
 
 ### Standalone
 **Downloading a release**
-
-Coming soon.
-
+Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releases)
 
 **Building yourself (requires Go)**
 
