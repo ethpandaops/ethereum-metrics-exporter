@@ -56,8 +56,8 @@ github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk5
 github.com/allegro/bigcache v1.2.1-0.20190218064605-e24eb225f156/go.mod h1:Cb/ax3seSYIx7SuZdm2G2xzfwmv3TPSk2ucNfQESPXM=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/apache/arrow/go/arrow v0.0.0-20191024131854-af6fa24be0db/go.mod h1:VTxUBvSJ3s3eHAg65PNgrsn5BtqCRPdmyXh6rAfdxN0=
-github.com/attestantio/go-eth2-client v0.14.5 h1:pKOTcbv9KOiVixVKM5Cr8nJrjD1VOIWmrlNFO0YtF64=
-github.com/attestantio/go-eth2-client v0.14.5/go.mod h1:5kLLzdlyPGboWr8tAwnG/4Kpi43BHd/HWp++WmmP6Ws=
+github.com/attestantio/go-eth2-client v0.15.7 h1:0v7+Z2RZ8bNtU/0mfppXzLiYv+6a8pe2wKyA6CU9jwQ=
+github.com/attestantio/go-eth2-client v0.15.7/go.mod h1:/Oh6YTuHmHhgLN/ZnQRKHGc7HdIzGlDkI2vjNZvOsvA=
 github.com/aws/aws-sdk-go-v2 v1.2.0/go.mod h1:zEQs02YRBw1DjK0PoJv3ygDYOFTre1ejlJWl8FwAuQo=
 github.com/aws/aws-sdk-go-v2/config v1.1.1/go.mod h1:0XsVy9lBI/BCXm+2Tuvt39YmdHwS5unDQmxZOYe8F5Y=
 github.com/aws/aws-sdk-go-v2/credentials v1.1.1/go.mod h1:mM2iIjwl7LULWtS6JCACyInboHirisUUdkBPoTHMOUo=
@@ -132,8 +132,8 @@ github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1m
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/ethereum/go-ethereum v1.10.26 h1:i/7d9RBBwiXCEuyduBQzJw/mKmnvzsN14jqBmytw72s=
 github.com/ethereum/go-ethereum v1.10.26/go.mod h1:EYFyF19u3ezGLD4RqOkLq+ZCXzYbLoNDdZlMt7kyKFg=
-github.com/ethpandaops/beacon v0.21.0 h1:s/088DT9oOYWt/mrDQ+mkhHiyK2wtMAOyE3Voar6nf0=
-github.com/ethpandaops/beacon v0.21.0/go.mod h1:fkS2U962xdB6+VwBn+J+DMK8cTgTtzVtjZWtvTKjbuE=
+github.com/ethpandaops/beacon v0.25.0 h1:pGEZyz/mW8L8vcIxcEEFcLL6ky36ONKJjp73rljC4t8=
+github.com/ethpandaops/beacon v0.25.0/go.mod h1:p+PMyAYXro2hgNEMNbCtzLOvzHund9Q9BTPATvf8/SA=
 github.com/ethpandaops/ethwallclock v0.2.0 h1:EeFKtZ7v6TAdn/oAh0xaPujD7N4amjBxrWIByraUfLM=
 github.com/ethpandaops/ethwallclock v0.2.0/go.mod h1:y0Cu+mhGLlem19vnAV2x0hpFS5KZ7oOi2SWYayv9l24=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=

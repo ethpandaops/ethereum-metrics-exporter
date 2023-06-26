@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/ethereum/go-ethereum v1.10.26
-	github.com/ethpandaops/beacon v0.21.0
+	github.com/ethpandaops/beacon v0.25.0
 	github.com/onrik/ethrpc v1.1.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.0
@@ -14,7 +14,7 @@ require (
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
-	github.com/attestantio/go-eth2-client v0.14.5 // indirect
+	github.com/attestantio/go-eth2-client v0.15.7 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
