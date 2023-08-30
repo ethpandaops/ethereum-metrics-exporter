@@ -61,7 +61,7 @@ docker run -d -it --name ethereum-metrics-exporter -v $HOST_DIR_CHANGE_ME/config
 ### Kubernetes via Helm
 [Read more](https://github.com/skylenet/ethereum-helm-charts/tree/master/charts/ethereum-metrics-exporter)
 ```
-helm repo add ethereum-helm-charts https://skylenet.github.io/ethereum-helm-charts
+helm repo add ethereum-helm-charts https://ethpandaops.github.io/ethereum-helm-charts
 
 helm install ethereum-metrics-exporter ethereum-helm-charts/ethereum-metrics-exporter -f your_values.yaml
 ```
