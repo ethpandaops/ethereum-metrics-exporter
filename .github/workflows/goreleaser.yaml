@@ -7,28 +7,77 @@ on:
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-latest
+    runs-on:
+      - environment=production
+      - size=xxlarge
+      - provider=ethpandaops
+      - realm=platform
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      -
-        name: Set up Go
+          ref: ${{ github.ref }}
+      - name: Derive release suffix from tag (if it exists)
+        run: |
+          # Strip the 'refs/tags/' prefix
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+
+          # Extract suffix from tag name after the last '-' (e.g., 'dencun' from 'v1.0.0-dencun')
+          RELEASE_SUFFIX=${TAG_NAME##*-}
+
+          # Check if the suffix is still a version pattern (e.g., 'v0.0.44'), in which case there's no suffix
+          if [[ $RELEASE_SUFFIX =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            RELEASE_SUFFIX=""
+          fi
+
+          echo "RELEASE_SUFFIX=$RELEASE_SUFFIX" >> $GITHUB_ENV
+
+          echo "Release suffix: $RELEASE_SUFFIX"
+
+      - name: Set up Go
         uses: actions/setup-go@v3
-      -
-        name: Login to DockerHub
+        with:
+          go-version: '1.19'
+      - name: Run apt-get update
+        run: sudo apt-get update
+      - name: Install cross-compiler for linux/arm64
+        run: sudo apt-get -y install gcc-aarch64-linux-gnu
+      - name: Install make
+        run: sudo apt-get -y install make
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Context for Buildx
+        shell: bash
+        id: buildx-context
+        run: |
+          docker context create builders
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builders
+      - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Run GoReleaser
+      - name: Update GoReleaser config
+        run: |
+          cp .goreleaser.yaml ../.goreleaser.yaml.new
+
+          # If we have a RELEASE_SUFFIX, update the goreleaser config to not set
+          # the release as the latest
+          if [[ -n "$RELEASE_SUFFIX" ]]; then
+            echo "release:" >> ../.goreleaser.yaml.new
+            echo "  prerelease: true" >> ../.goreleaser.yaml.new
+            echo "  make_latest: false" >> ../.goreleaser.yaml.new
+          fi
+      - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist
+          args: release --clean --config ../.goreleaser.yaml.new
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SUFFIX: ${{ env.RELEASE_SUFFIX }}
