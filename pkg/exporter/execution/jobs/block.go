@@ -28,6 +28,7 @@ type BlockMetrics struct {
 	HeadBaseFeePerGas    prometheus.Gauge
 	HeadBlockSize        prometheus.Gauge
 	HeadTransactionCount prometheus.Gauge
+	HeadBlockRoot		 prometheus.Gauge
 
 	SafeGasUsed          prometheus.Counter
 	SafeGasLimit         prometheus.Counter
@@ -119,6 +120,15 @@ func NewBlockMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, 
 			},
 		),
 
+		HeadBlockHash: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "head_block_hash",
+				Help:        "The block hash of the most recent block.",
+				ConstLabels: constLabels,
+				},
+		),
+
 		SafeGasUsed: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace:   namespace,
@@ -208,7 +218,7 @@ func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
 	if block == nil {
 		return errors.New("block is nil")
 	}
-
+	b.HeadBlockHash.Set(float64(block.Hash))
 	b.HeadGasUsed.Set(float64(block.GasUsed))
 	b.HeadGasLimit.Set(float64(block.GasLimit))
 	b.HeadBlockSize.Set(float64(block.Size))
