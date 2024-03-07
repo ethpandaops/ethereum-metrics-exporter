@@ -45,7 +45,7 @@ Available as a docker image at `ethpandaops/ethereum-metrics-exporter`
 
 #### Images
 - `latest` - distroless, multiarch
-- `latest` - debian - debian, multiarch
+- `debian-latest` - debian, multiarch
 - `$version` - distroless, multiarch, pinned to a release (i.e. 0.4.0)
 - `$version-debian` - debian, multiarch, pinned to a release (i.e. 0.4.0-debian)
 
@@ -81,11 +81,11 @@ Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releas
    cd ./ethereum-metrics-exporter
    ```
 3. Build the binary
-   ```sh  
+   ```sh
     go build -o ethereum-metrics-exporter .
    ```
 4. Run the exporter
-   ```sh  
+   ```sh
     ./ethereum-metrics-exporter
    ```
 
@@ -93,7 +93,7 @@ Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releas
 ![Example](./example.png)
 ## Contributing
 
-Contributions are greatly appreciated! Pull requests will be reviewed and merged promptly if you're interested in improving the exporter! 
+Contributions are greatly appreciated! Pull requests will be reviewed and merged promptly if you're interested in improving the exporter!
 
 1. Fork the project
 2. Create your feature branch:
