@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM golang:1.20 AS builder
+FROM golang:1.22 AS builder
 WORKDIR /src
 COPY go.sum go.mod ./
 RUN go mod download
