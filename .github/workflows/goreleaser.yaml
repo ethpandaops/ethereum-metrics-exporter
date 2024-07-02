@@ -10,10 +10,8 @@ jobs:
     permissions:
       contents: write
     runs-on:
-      - environment=production
-      - size=xxlarge
-      - provider=ethpandaops
-      - realm=platform
+      - self-hosted-ghr
+      - size-l-x64
     steps:
       - name: Checkout
         uses: actions/checkout@v3
