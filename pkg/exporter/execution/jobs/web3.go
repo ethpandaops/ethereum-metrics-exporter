@@ -13,11 +13,12 @@ import (
 
 // Web3 exposes metrics defined by the Web3 module.
 type Web3 struct {
-	client        *ethclient.Client
-	api           api.ExecutionClient
-	ethRPCClient  *ethrpc.EthRPC
-	log           logrus.FieldLogger
-	ClientVersion prometheus.GaugeVec
+	client          *ethclient.Client
+	api             api.ExecutionClient
+	ethRPCClient    *ethrpc.EthRPC
+	log             logrus.FieldLogger
+	ClientVersion   prometheus.GaugeVec
+	previousVersion string
 }
 
 const (
@@ -76,6 +77,12 @@ func (w *Web3) tick(ctx context.Context) {
 	if err != nil {
 		w.log.WithError(err).Error("Failed to get node info")
 	} else {
-		w.ClientVersion.WithLabelValues(clientVersion).Set(1)
+		if w.previousVersion != clientVersion {
+			w.ClientVersion.Reset()
+
+			w.ClientVersion.WithLabelValues(clientVersion).Set(1)
+		}
+
+		w.previousVersion = clientVersion
 	}
 }
