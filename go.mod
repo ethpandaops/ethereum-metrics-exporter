@@ -7,7 +7,7 @@ require (
 	github.com/ethpandaops/beacon v0.34.0
 	github.com/onrik/ethrpc v1.1.1
 	github.com/prometheus/client_golang v1.16.0
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.6.1
 	gopkg.in/yaml.v2 v2.4.0
 )
