@@ -13,5 +13,6 @@ execution:
     - "txpool"
 diskUsage:
   enabled: false
+  interval: 60m
   directories:
   - /data/ethereum

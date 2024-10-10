@@ -53,7 +53,14 @@ func (e *exporter) Init(ctx context.Context) error {
 	if e.config.Execution.Enabled {
 		e.log.WithField("modules", strings.Join(e.config.Execution.Modules, ", ")).Info("Initializing execution...")
 
-		executionNode, err := execution.NewExecutionNode(ctx, e.log.WithField("exporter", "execution"), fmt.Sprintf("%s_exe", e.namespace), e.config.Execution.Name, e.config.Execution.URL, e.config.Execution.Modules)
+		executionNode, err := execution.NewExecutionNode(
+			ctx,
+			e.log.WithField("exporter", "execution"),
+			fmt.Sprintf("%s_exe", e.namespace),
+			e.config.Execution.Name,
+			e.config.Execution.URL,
+			e.config.Execution.Modules,
+		)
 		if err != nil {
 			return err
 		}
@@ -68,7 +75,18 @@ func (e *exporter) Init(ctx context.Context) error {
 	if e.config.DiskUsage.Enabled {
 		e.log.Info("Initializing disk usage...")
 
-		diskUsage, err := disk.NewUsage(ctx, e.log.WithField("exporter", "disk"), fmt.Sprintf("%s_disk", e.namespace), e.config.DiskUsage.Directories)
+		interval := e.config.DiskUsage.Interval.Duration
+		if interval == 0 {
+			interval = 60 * time.Minute
+		}
+
+		diskUsage, err := disk.NewUsage(
+			ctx,
+			e.log.WithField("exporter", "disk"),
+			fmt.Sprintf("%s_disk", e.namespace),
+			e.config.DiskUsage.Directories,
+			interval,
+		)
 		if err != nil {
 			return err
 		}
@@ -130,7 +148,7 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 	return nil
 }
 
-func (e *exporter) bootstrapConsensusClients(ctx context.Context) error {
+func (e *exporter) bootstrapConsensusClients(_ context.Context) error {
 	opts := *beacon.DefaultOptions().
 		EnableDefaultBeaconSubscription().
 		EnablePrometheusMetrics()

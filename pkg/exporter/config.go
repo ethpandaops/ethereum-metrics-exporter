@@ -1,5 +1,11 @@
 package exporter
 
+import (
+	"time"
+
+	"github.com/ethpandaops/beacon/pkg/human"
+)
+
 // Config holds the configuration for the ethereum sync status tool.
 type Config struct {
 	// Execution is the execution node to use.
@@ -29,8 +35,9 @@ type ExecutionNode struct {
 
 // DiskUsage configures the exporter to expose disk usage stats for these directories.
 type DiskUsage struct {
-	Enabled     bool     `yaml:"enabled"`
-	Directories []string `yaml:"directories"`
+	Enabled     bool           `yaml:"enabled"`
+	Directories []string       `yaml:"directories"`
+	Interval    human.Duration `yaml:"interval"`
 }
 
 // PairConfig holds the config for a Pair of Execution and Consensus Clients
@@ -55,6 +62,9 @@ func DefaultConfig() *Config {
 		DiskUsage: DiskUsage{
 			Enabled:     false,
 			Directories: []string{},
+			Interval: human.Duration{
+				Duration: 60 * time.Minute,
+			},
 		},
 		Pair: PairConfig{
 			Enabled: true,
