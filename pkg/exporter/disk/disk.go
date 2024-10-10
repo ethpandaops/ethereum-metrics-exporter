@@ -21,24 +21,33 @@ type diskUsage struct {
 	log         logrus.FieldLogger
 	metrics     Metrics
 	directories []string
+	interval    time.Duration
 }
 
 // NewUsage returns a new DiskUsage instance.
-func NewUsage(ctx context.Context, log logrus.FieldLogger, namespace string, directories []string) (UsageMetrics, error) {
+func NewUsage(ctx context.Context, log logrus.FieldLogger, namespace string, directories []string, interval time.Duration) (UsageMetrics, error) {
 	return &diskUsage{
 		log:         log,
 		metrics:     NewMetrics(log, namespace),
 		directories: directories,
+		interval:    interval,
 	}, nil
 }
 
 func (d *diskUsage) StartAsync(ctx context.Context) {
+	d.log.WithField("directories", d.directories).Info("Starting disk usage metrics...")
+
+	_, err := d.GetUsage(ctx, d.directories)
+	if err != nil {
+		d.log.WithError(err).Error("Failed to get disk usage")
+	}
+
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(time.Second * 60):
+			case <-time.After(d.interval):
 				if _, err := d.GetUsage(ctx, d.directories); err != nil {
 					d.log.WithError(err).Error("Failed to get disk usage")
 				}
