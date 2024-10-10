@@ -1,6 +1,10 @@
 package exporter
 
-import "github.com/ethpandaops/beacon/pkg/human"
+import (
+	"time"
+
+	"github.com/ethpandaops/beacon/pkg/human"
+)
 
 // Config holds the configuration for the ethereum sync status tool.
 type Config struct {
@@ -58,6 +62,9 @@ func DefaultConfig() *Config {
 		DiskUsage: DiskUsage{
 			Enabled:     false,
 			Directories: []string{},
+			Interval: human.Duration{
+				Duration: 60 * time.Minute,
+			},
 		},
 		Pair: PairConfig{
 			Enabled: true,

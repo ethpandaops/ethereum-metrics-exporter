@@ -77,7 +77,7 @@ func (e *exporter) Init(ctx context.Context) error {
 
 		interval := e.config.DiskUsage.Interval.Duration
 		if interval == 0 {
-			interval = 30 * time.Minute
+			interval = 60 * time.Minute
 		}
 
 		diskUsage, err := disk.NewUsage(
