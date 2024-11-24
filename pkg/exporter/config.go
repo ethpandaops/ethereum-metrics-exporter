@@ -20,9 +20,15 @@ type Config struct {
 
 // ConsensusNode represents a single ethereum consensus client.
 type ConsensusNode struct {
-	Enabled bool   `yaml:"enabled"`
-	Name    string `yaml:"name"`
-	URL     string `yaml:"url"`
+	Enabled     bool        `yaml:"enabled"`
+	Name        string      `yaml:"name"`
+	URL         string      `yaml:"url"`
+	EventStream EventStream `yaml:"eventStream"`
+}
+
+type EventStream struct {
+	Enabled *bool    `yaml:"enabled"`
+	Topics  []string `yaml:"topics"`
 }
 
 // ExecutionNode represents a single ethereum execution client.
@@ -47,6 +53,8 @@ type PairConfig struct {
 
 // DefaultConfig represents a sane-default configuration.
 func DefaultConfig() *Config {
+	f := false
+
 	return &Config{
 		Execution: ExecutionNode{
 			Enabled: true,
@@ -58,6 +66,10 @@ func DefaultConfig() *Config {
 			Enabled: true,
 			Name:    "consensus",
 			URL:     "http://localhost:5052",
+			EventStream: EventStream{
+				Enabled: &f,
+				Topics:  []string{},
+			},
 		},
 		DiskUsage: DiskUsage{
 			Enabled:     false,

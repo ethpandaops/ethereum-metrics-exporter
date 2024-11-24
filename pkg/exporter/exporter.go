@@ -150,8 +150,21 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 
 func (e *exporter) bootstrapConsensusClients(_ context.Context) error {
 	opts := *beacon.DefaultOptions().
-		EnableDefaultBeaconSubscription().
 		EnablePrometheusMetrics()
+
+	if e.config.Consensus.EventStream.Enabled != nil && *e.config.Consensus.EventStream.Enabled {
+		opts.BeaconSubscription.Topics = e.config.Consensus.EventStream.Topics
+
+		if len(opts.BeaconSubscription.Topics) == 0 {
+			opts.EnableDefaultBeaconSubscription()
+		}
+
+		e.log.WithField(
+			"topics", strings.Join(opts.BeaconSubscription.Topics, ", "),
+		).Info("Enabling beacon event stream with topics...")
+
+		opts.BeaconSubscription.Enabled = true
+	}
 
 	e.beacon = beacon.NewNode(e.log, &beacon.Config{
 		Addr: e.config.Consensus.URL,
