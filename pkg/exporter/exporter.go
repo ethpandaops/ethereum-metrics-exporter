@@ -152,15 +152,18 @@ func (e *exporter) bootstrapConsensusClients(_ context.Context) error {
 	opts := *beacon.DefaultOptions().
 		EnablePrometheusMetrics()
 
-	if e.config.Consensus.EventStream.Enabled != nil &&
-		*e.config.Consensus.EventStream.Enabled &&
-		len(e.config.Consensus.EventStream.Topics) > 0 {
+	if e.config.Consensus.EventStream.Enabled != nil && *e.config.Consensus.EventStream.Enabled {
+		opts.BeaconSubscription.Topics = e.config.Consensus.EventStream.Topics
+
+		if len(opts.BeaconSubscription.Topics) == 0 {
+			opts.EnableDefaultBeaconSubscription()
+		}
+
 		e.log.WithField(
-			"topics", strings.Join(e.config.Consensus.EventStream.Topics, ", "),
+			"topics", strings.Join(opts.BeaconSubscription.Topics, ", "),
 		).Info("Enabling beacon event stream with topics...")
 
 		opts.BeaconSubscription.Enabled = true
-		opts.BeaconSubscription.Topics = e.config.Consensus.EventStream.Topics
 	}
 
 	e.beacon = beacon.NewNode(e.log, &beacon.Config{
