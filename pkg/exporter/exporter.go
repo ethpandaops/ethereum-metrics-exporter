@@ -155,7 +155,9 @@ func (e *exporter) bootstrapConsensusClients(_ context.Context) error {
 	if e.config.Consensus.EventStream.Enabled != nil &&
 		*e.config.Consensus.EventStream.Enabled &&
 		len(e.config.Consensus.EventStream.Topics) > 0 {
-		e.log.WithField("topics", strings.Join(e.config.Consensus.EventStream.Topics, ", ")).Info("Enabling consensus event stream with topics...")
+		e.log.WithField(
+			"topics", strings.Join(e.config.Consensus.EventStream.Topics, ", "),
+		).Info("Enabling beacon event stream with topics...")
 
 		opts.BeaconSubscription.Enabled = true
 		opts.BeaconSubscription.Topics = e.config.Consensus.EventStream.Topics
