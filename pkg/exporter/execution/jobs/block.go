@@ -28,6 +28,7 @@ type BlockMetrics struct {
 	HeadBaseFeePerGas    prometheus.Gauge
 	HeadBlockSize        prometheus.Gauge
 	HeadTransactionCount prometheus.Gauge
+	HeadPunctuality      prometheus.Gauge
 
 	SafeGasUsed          prometheus.Counter
 	SafeGasLimit         prometheus.Counter
@@ -115,6 +116,14 @@ func NewBlockMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, 
 				Namespace:   namespace,
 				Name:        "head_transactions_in_block",
 				Help:        "The number of transactions in the most recent block.",
+				ConstLabels: constLabels,
+			},
+		),
+		HeadPunctuality: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "head_punctuality",
+				Help:        "The punctuality of the most recent block.",
 				ConstLabels: constLabels,
 			},
 		),
@@ -214,6 +223,7 @@ func (b *BlockMetrics) getHeadBlockStats(ctx context.Context) error {
 	b.HeadBlockSize.Set(float64(block.Size))
 	b.HeadTransactionCount.Set(float64(len(block.Transactions)))
 	// b.HeadBaseFeePerGas.Set(float64(block.BaseFee().Int64())) TODO(sam.calder-mason): Fix me
+	b.HeadPunctuality.Set(float64((int64(block.Timestamp) * 1000) - time.Now().UnixMilli()))
 
 	return nil
 }

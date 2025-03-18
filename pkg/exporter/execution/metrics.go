@@ -80,6 +80,7 @@ func NewMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, ethRP
 		prometheus.MustRegister(m.blockMetrics.HeadGasUsed)
 		prometheus.MustRegister(m.blockMetrics.HeadTransactionCount)
 		prometheus.MustRegister(m.blockMetrics.HeadBaseFeePerGas)
+		prometheus.MustRegister(m.blockMetrics.HeadPunctuality)
 
 		prometheus.MustRegister(m.blockMetrics.SafeBaseFeePerGas)
 		prometheus.MustRegister(m.blockMetrics.SafeBlockSize)
