@@ -31,6 +31,7 @@ func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 			},
 			[]string{
 				"directory",
+				"type",
 			},
 		),
 	}
@@ -41,5 +42,5 @@ func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 }
 
 func (m *metrics) ObserveDiskUsage(usage Usage) {
-	m.diskUsage.WithLabelValues(usage.Directory).Set(float64(usage.UsageBytes))
+	m.diskUsage.WithLabelValues(usage.Directory, usage.Type).Set(float64(usage.UsageBytes))
 }

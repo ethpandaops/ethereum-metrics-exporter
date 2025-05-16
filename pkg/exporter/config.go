@@ -24,6 +24,7 @@ type ConsensusNode struct {
 	Name        string      `yaml:"name"`
 	URL         string      `yaml:"url"`
 	EventStream EventStream `yaml:"eventStream"`
+	DBPath      string      `yaml:"dbPath"` // Path to the consensus layer database
 }
 
 type EventStream struct {
@@ -37,6 +38,7 @@ type ExecutionNode struct {
 	Name    string   `yaml:"name"`
 	URL     string   `yaml:"url"`
 	Modules []string `yaml:"modules"`
+	DBPath  string   `yaml:"dbPath"` // Path to the execution layer database
 }
 
 // DiskUsage configures the exporter to expose disk usage stats for these directories.

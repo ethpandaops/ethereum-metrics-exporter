@@ -2,10 +2,12 @@ consensus:
   enabled: true
   url: "http://localhost:5053"
   name: "consensus-client"
+  dbPath: "/data/consensus-db"
 execution:
   enabled: true
   url: "http://localhost:8545"
   name: "execution-client"
+  dbPath: "/data/execution-db"
   modules:
     - "eth"
     - "net"

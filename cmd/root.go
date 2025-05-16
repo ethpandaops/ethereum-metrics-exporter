@@ -35,6 +35,8 @@ var (
 	consensusURL         string
 	monitoredDirectories []string
 	executionModules     []string
+	executionDBPath      string
+	consensusDBPath      string
 )
 
 const (
@@ -57,6 +59,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&consensusURL, "consensus-url", "", "", "(optional) URL to the consensus node")
 	rootCmd.PersistentFlags().StringSliceVarP(&monitoredDirectories, "monitored-directories", "", []string{}, "(optional) directories to monitor for disk usage")
 	rootCmd.PersistentFlags().StringSliceVarP(&executionModules, "execution-modules", "", []string{}, "(optional) execution modules that are enabled on the node")
+	rootCmd.PersistentFlags().StringVar(&executionDBPath, "execution-db-path", "", "(optional) path to the execution layer database")
+	rootCmd.PersistentFlags().StringVar(&consensusDBPath, "consensus-db-path", "", "(optional) path to the consensus layer database")
 
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
@@ -110,6 +114,16 @@ func initCommon() {
 
 	if len(executionModules) > 0 {
 		config.Execution.Modules = executionModules
+	}
+
+	if executionDBPath != "" {
+		config.Execution.DBPath = executionDBPath
+		config.DiskUsage.Enabled = true
+	}
+
+	if consensusDBPath != "" {
+		config.Consensus.DBPath = consensusDBPath
+		config.DiskUsage.Enabled = true
 	}
 
 	export = exporter.NewExporter(log, config)

@@ -18,19 +18,31 @@ type UsageMetrics interface {
 }
 
 type diskUsage struct {
-	log         logrus.FieldLogger
-	metrics     Metrics
-	directories []string
-	interval    time.Duration
+	log             logrus.FieldLogger
+	metrics         Metrics
+	directories     []string
+	interval        time.Duration
+	executionDBPath string
+	consensusDBPath string
 }
 
 // NewUsage returns a new DiskUsage instance.
-func NewUsage(ctx context.Context, log logrus.FieldLogger, namespace string, directories []string, interval time.Duration) (UsageMetrics, error) {
+func NewUsage(
+	ctx context.Context,
+	log logrus.FieldLogger,
+	namespace string,
+	directories []string,
+	interval time.Duration,
+	executionDBPath string,
+	consensusDBPath string,
+) (UsageMetrics, error) {
 	return &diskUsage{
-		log:         log,
-		metrics:     NewMetrics(log, namespace),
-		directories: directories,
-		interval:    interval,
+		log:             log,
+		metrics:         NewMetrics(log, namespace),
+		directories:     directories,
+		interval:        interval,
+		executionDBPath: executionDBPath,
+		consensusDBPath: consensusDBPath,
 	}, nil
 }
 
@@ -75,9 +87,18 @@ func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]Usage
 			continue
 		}
 
+		// Determine the type of directory
+		directoryType := "general"
+		if directory == d.executionDBPath {
+			directoryType = "el_db"
+		} else if directory == d.consensusDBPath {
+			directoryType = "cl_db"
+		}
+
 		diskUsed = append(diskUsed, Usage{
 			Directory:  directory,
 			UsageBytes: used,
+			Type:       directoryType,
 		})
 	}
 

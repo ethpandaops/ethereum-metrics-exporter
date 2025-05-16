@@ -80,12 +80,29 @@ func (e *exporter) Init(ctx context.Context) error {
 			interval = 60 * time.Minute
 		}
 
+		// Copy the directories to monitor
+		directories := make([]string, len(e.config.DiskUsage.Directories))
+		copy(directories, e.config.DiskUsage.Directories)
+
+		// Add database paths if they are set
+		if e.config.Execution.DBPath != "" {
+			directories = append(directories, e.config.Execution.DBPath)
+			e.log.WithField("path", e.config.Execution.DBPath).Info("Added execution database path to disk usage monitoring")
+		}
+
+		if e.config.Consensus.DBPath != "" {
+			directories = append(directories, e.config.Consensus.DBPath)
+			e.log.WithField("path", e.config.Consensus.DBPath).Info("Added consensus database path to disk usage monitoring")
+		}
+
 		diskUsage, err := disk.NewUsage(
 			ctx,
 			e.log.WithField("exporter", "disk"),
 			fmt.Sprintf("%s_disk", e.namespace),
-			e.config.DiskUsage.Directories,
+			directories,
 			interval,
+			e.config.Execution.DBPath,
+			e.config.Consensus.DBPath,
 		)
 		if err != nil {
 			return err
