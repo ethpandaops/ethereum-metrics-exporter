@@ -1,0 +1,95 @@
+---
+description: Development workflow and processes for Ethereum Metrics Exporter
+globs: ["**/go.mod", "**/Dockerfile*", "**/.github/**", "**/renovate.json"]
+alwaysApply: false
+---
+
+# Development Workflow
+
+## Git Workflow
+- Use feature branches for all development: `feat/feature-name`
+- Main branch: `main` (protected)
+- Follow conventional commit format: `feat(scope): description`
+- Examples:
+  - `feat(execution): add new RPC method support`
+  - `fix(metrics): correct gauge initialization`
+  - `docs(readme): update installation instructions`
+
+## Branch Naming
+- Features: `feat/descriptive-name`
+- Bugfixes: `fix/issue-description`
+- Documentation: `docs/update-description`
+- Example: `feat/new-metric-profit`
+
+## Pull Request Process
+1. Create feature branch from `main`
+2. Implement changes with tests if applicable
+3. Ensure all checks pass (build, lint, tests)
+4. Create PR with descriptive title and summary
+5. Request code review
+6. Address feedback and re-request review
+7. Merge after approval
+
+## Code Quality Standards
+- All Go code must pass `go fmt` and `go vet`
+- Follow linting rules (if gofmt/golint available)
+- No compiler warnings or errors
+- Tests must pass if present
+
+## Build and Testing
+- **Build**: `go build -o ethereum-metrics-exporter .`
+- **Run**: `./ethereum-metrics-exporter --help`
+- **Dependencies**: `go mod tidy` before committing
+- **Cross-platform**: Ensure builds work on Linux, macOS, Windows
+
+## Container Builds
+- Multi-stage Dockerfiles for optimized images
+- Support both distroless and debian variants
+- Multi-architecture builds (amd64, arm64)
+- Tag releases with version numbers
+
+## Release Process
+- Use semantic versioning (e.g., v1.2.3)
+- Create releases through GitHub
+- Automated builds via goreleaser
+- Container images published to registry
+- Update Helm chart if applicable
+
+## Dependencies
+- Regular updates via Renovate bot
+- Security-focused dependency updates
+- Pin major versions, allow minor/patch updates
+- Review dependency changes in PRs
+
+## Configuration Management
+- Provide example configurations
+- Document all configuration options
+- Support multiple configuration methods:
+  - YAML files
+  - Environment variables
+  - CLI flags
+- Validate configuration on startup
+
+## Monitoring and Observability
+- Export Prometheus metrics on port 9090
+- Use structured logging with logrus
+- Include health checks for containerized deployments
+- Monitor resource usage (CPU, memory, network)
+
+## Documentation
+- Keep README.md current with examples
+- Update usage documentation for new features
+- Maintain example configurations
+- Document breaking changes in releases
+
+## CI/CD Pipeline
+- Automated testing on pull requests
+- Container image builds for releases
+- Security scanning of dependencies
+- Multi-platform compatibility checks
+
+## Security Practices
+- Regular dependency updates for security fixes
+- No hardcoded secrets in code
+- Use secure container base images
+- Follow principle of least privilege
