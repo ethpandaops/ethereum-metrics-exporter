@@ -28,6 +28,7 @@ Usage:
 Flags:
       --config string                   config file (default is $HOME/.ethereum-metrics-exporter.yaml)
       --consensus-url string            (optional) URL to the consensus node
+      --disk-usage-interval string      (optional) interval for disk usage metrics collection (e.g. 1h, 5m, 30s)
       --execution-modules strings       (optional) execution modules that are enabled on the node
       --execution-url string            (optional) URL to the execution node
   -h, --help                            help for ethereum-metrics-exporter

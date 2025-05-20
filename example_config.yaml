@@ -13,6 +13,6 @@ execution:
     - "txpool"
 diskUsage:
   enabled: false
-  interval: 60m
+  interval: 60m  # Polling interval (in minutes) - accepts time units: s, m, h
   directories:
   - /data/ethereum
