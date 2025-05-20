@@ -75,7 +75,7 @@ func DefaultConfig() *Config {
 			Enabled:     false,
 			Directories: []string{},
 			Interval: human.Duration{
-				Duration: 60 * time.Second,
+				Duration: 60 * time.Minute,
 			},
 		},
 		Pair: PairConfig{

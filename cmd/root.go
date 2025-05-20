@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter"
 	"github.com/sirupsen/logrus"
@@ -35,6 +36,7 @@ var (
 	consensusURL         string
 	monitoredDirectories []string
 	executionModules     []string
+	diskUsageInterval    string
 )
 
 const (
@@ -57,6 +59,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&consensusURL, "consensus-url", "", "", "(optional) URL to the consensus node")
 	rootCmd.PersistentFlags().StringSliceVarP(&monitoredDirectories, "monitored-directories", "", []string{}, "(optional) directories to monitor for disk usage")
 	rootCmd.PersistentFlags().StringSliceVarP(&executionModules, "execution-modules", "", []string{}, "(optional) execution modules that are enabled on the node")
+	rootCmd.PersistentFlags().StringVar(&diskUsageInterval, "disk-usage-interval", "", "(optional) interval for disk usage metrics collection (e.g. 1h, 5m, 30s)")
 
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
@@ -110,6 +113,15 @@ func initCommon() {
 
 	if len(executionModules) > 0 {
 		config.Execution.Modules = executionModules
+	}
+
+	if diskUsageInterval != "" {
+		duration, err := time.ParseDuration(diskUsageInterval)
+		if err != nil {
+			logr.WithError(err).Fatalf("Invalid disk usage interval format: %s", diskUsageInterval)
+		}
+		config.DiskUsage.Interval.Duration = duration
+		config.DiskUsage.Enabled = true
 	}
 
 	export = exporter.NewExporter(log, config)
