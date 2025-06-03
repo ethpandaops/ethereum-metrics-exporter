@@ -9,7 +9,7 @@ replace github.com/attestantio/go-eth2-client => github.com/pk910/go-eth2-client
 
 require (
 	github.com/ethereum/go-ethereum v1.14.10
-	github.com/ethpandaops/beacon v0.49.0
+	github.com/ethpandaops/beacon v0.52.0
 	github.com/onrik/ethrpc v1.1.1
 	github.com/prometheus/client_golang v1.16.0
 	github.com/sirupsen/logrus v1.9.3
@@ -20,7 +20,7 @@ require (
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/attestantio/go-eth2-client v0.24.1-0.20250219090147-b41ce952806c // indirect
+	github.com/attestantio/go-eth2-client v0.25.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4 // indirect
