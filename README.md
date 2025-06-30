@@ -122,14 +122,6 @@ Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releas
 - **`eth_exe_block_safe_block_size_bytes`** - Size of most recent safe block in bytes
 - **`eth_exe_block_safe_transaction_count`** - Transactions in most recent safe block
 
-#### Transaction Pool Metrics
-- **`eth_exe_txpool_transactions`** - Transaction count in txpool (labels: `status` - values: "pending", "queued")
-
-#### Admin Metrics
-- **`eth_exe_admin_node_info`** - Node information (labels: `ip`, `listenAddr`, `name`, `discovery_port`, `listener_port`, `network`)
-- **`eth_exe_admin_node_port`** - Node ports (labels: `name`, `port_name`)
-- **`eth_exe_admin_peers`** - Number of connected peers
-
 #### Web3 Metrics
 - **`eth_exe_web3_client_version`** - Client version (labels: `version`)
 
@@ -152,18 +144,10 @@ Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releas
 - **`eth_con_beacon_empty_slots_count`** - The number of slots that have expired without a block proposed
 - **`eth_con_beacon_withdrawals`** - The amount of withdrawals in the block
 - **`eth_con_beacon_withdrawals_amount_gwei`** - The sum amount of all withdrawals in the block (in gwei)
-- **`eth_con_beacon_withdrawals_index_max`** - The maximum index of the withdrawals in the block
-- **`eth_con_beacon_withdrawals_index_min`** - The minimum index of the withdrawals in the block
 - **`eth_con_beacon_blob_kzg_commitments`** - The amount of blob kzg commitments in the block
 
 #### Event Metrics
-- **`eth_con_event_count`** - The count of beacon events
 - **`eth_con_event_time_since_last_subscription_event_ms`** - The amount of time since the last subscription event (in milliseconds)
-
-#### Fork Metrics
-- **`eth_con_fork_epoch`** - The epoch for the fork
-- **`eth_con_fork_activated`** - The activation status of the fork (1 for activated)
-- **`eth_con_fork_current`** - The current fork
 
 #### General Node Metrics
 - **`eth_con_node_version`** - The version of the running beacon node
@@ -219,8 +203,6 @@ Each execution metric group requires specific Ethereum client API modules:
 - **General**: `["eth", "net"]`
 - **Sync**: `["eth"]`
 - **Block**: `["eth", "net"]`
-- **TxPool**: `["txpool"]`
-- **Admin**: `["admin"]`
 - **Web3**: `["web3"]`
 - **Net**: `["net"]`
 
