@@ -95,51 +95,74 @@ Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releas
 <details>
 <summary>Click to expand the complete list of available metrics</summary>
 
-### Disk Usage Metrics
-- **`{namespace}_usage_bytes`** - Directory size in bytes (labels: `directory`)
-
-### Execution Layer Metrics
-
-#### Sync Status Metrics
-- **`{namespace}_sync_percentage`** - Node sync percentage (0-100%)
-- **`{namespace}_sync_starting_block`** - Starting block of sync procedure
-- **`{namespace}_sync_current_block`** - Current block of sync procedure
-- **`{namespace}_sync_is_syncing`** - 1 if node is syncing
-- **`{namespace}_sync_highest_block`** - Highest block of sync procedure
+### Execution Layer Metrics (`eth_exe_*`)
 
 #### General Metrics
-- **`{namespace}_gas_price_gwei`** - Current gas price in gwei
-- **`{namespace}_network_id`** - Network ID of the node
-- **`{namespace}_chain_id`** - Chain ID of the node
+- **`eth_exe_gas_price_gwei`** - Current gas price in gwei
+- **`eth_exe_network_id`** - Network ID of the node
+- **`eth_exe_chain_id`** - Chain ID of the node
+
+#### Sync Status Metrics
+- **`eth_exe_sync_percentage`** - Node sync percentage (0-100%)
+- **`eth_exe_sync_starting_block`** - Starting block of sync procedure
+- **`eth_exe_sync_current_block`** - Current block of sync procedure
+- **`eth_exe_sync_is_syncing`** - 1 if node is syncing
+- **`eth_exe_sync_highest_block`** - Highest block of sync procedure
 
 #### Block Metrics
-- **`{namespace}_block_most_recent_number`** - Most recent block number (labels: `identifier`)
-- **`{namespace}_block_head_gas_used`** - Gas used in most recent block
-- **`{namespace}_block_head_gas_limit`** - Gas limit of most recent block
-- **`{namespace}_block_head_base_fee_per_gas`** - Base fee per gas in most recent block
-- **`{namespace}_block_head_block_size_bytes`** - Size of most recent block in bytes
-- **`{namespace}_block_head_transactions_in_block`** - Transactions in most recent block
-- **`{namespace}_block_safe_gas_used`** - Gas used in most recent safe block
-- **`{namespace}_block_safe_gas_limit`** - Gas limit in most recent safe block
-- **`{namespace}_block_safe_base_fee_per_gas`** - Base fee per gas in most recent safe block
-- **`{namespace}_block_safe_block_size_bytes`** - Size of most recent safe block in bytes
-- **`{namespace}_block_safe_transaction_count`** - Transactions in most recent safe block
+- **`eth_exe_block_most_recent_number`** - Most recent block number (labels: `identifier`)
+- **`eth_exe_block_head_gas_used`** - Gas used in most recent block
+- **`eth_exe_block_head_gas_limit`** - Gas limit of most recent block
+- **`eth_exe_block_head_base_fee_per_gas`** - Base fee per gas in most recent block
+- **`eth_exe_block_head_block_size_bytes`** - Size of most recent block in bytes
+- **`eth_exe_block_head_transactions_in_block`** - Transactions in most recent block
+- **`eth_exe_block_safe_gas_used`** - Gas used in most recent safe block
+- **`eth_exe_block_safe_gas_limit`** - Gas limit in most recent safe block
+- **`eth_exe_block_safe_base_fee_per_gas`** - Base fee per gas in most recent safe block
+- **`eth_exe_block_safe_block_size_bytes`** - Size of most recent safe block in bytes
+- **`eth_exe_block_safe_transaction_count`** - Transactions in most recent safe block
 
 #### Transaction Pool Metrics
-- **`{namespace}_txpool_transactions`** - Transaction count in txpool (labels: `status`)
+- **`eth_exe_txpool_transactions`** - Transaction count in txpool (labels: `status` - values: "pending", "queued")
 
 #### Admin Metrics
-- **`{namespace}_admin_node_info`** - Node information (labels: `ip`, `listenAddr`, `name`, `discovery_port`, `listener_port`, `network`)
-- **`{namespace}_admin_node_port`** - Node ports (labels: `name`, `port_name`)
-- **`{namespace}_admin_peers`** - Number of connected peers
+- **`eth_exe_admin_node_info`** - Node information (labels: `ip`, `listenAddr`, `name`, `discovery_port`, `listener_port`, `network`)
+- **`eth_exe_admin_node_port`** - Node ports (labels: `name`, `port_name`)
+- **`eth_exe_admin_peers`** - Number of connected peers
 
 #### Web3 Metrics
-- **`{namespace}_web3_client_version`** - Client version (labels: `version`)
+- **`eth_exe_web3_client_version`** - Client version (labels: `version`)
 
 #### Network Metrics
-- **`{namespace}_net_peer_count`** - Number of connected peers
+- **`eth_exe_net_peer_count`** - Number of connected peers
 
-> **Note**: The default namespace is `eth`. For execution metrics, it becomes `eth_exe`, and for disk metrics it becomes `eth_disk`. All execution metrics include constant labels for `ethereum_role`, `node_name`, and `module`.
+### Consensus Layer Metrics (`eth_con_*`)
+*Provided by the integrated beacon client package*
+- All standard beacon chain metrics including:
+  - Beacon chain sync status
+  - Validator performance metrics
+  - Attestation metrics
+  - Block proposal metrics
+  - Network participation metrics
+  - Peer count and networking metrics
+
+### Disk Usage Metrics (`eth_disk_*`)
+- **`eth_disk_usage_bytes`** - Directory disk usage in bytes (labels: `directory`)
+
+### Constant Labels
+**Execution metrics** include: `ethereum_role="execution"`, `node_name={configured}`, `module={module_name}`  
+**Consensus metrics** include beacon client standard labels  
+**Disk metrics** include: `directory={monitored_directory}`
+
+### Required Modules
+Each execution metric group requires specific Ethereum client API modules:
+- **General**: `["eth", "net"]`
+- **Sync**: `["eth"]`
+- **Block**: `["eth", "net"]`
+- **TxPool**: `["txpool"]`
+- **Admin**: `["admin"]`
+- **Web3**: `["web3"]`
+- **Net**: `["net"]`
 
 </details>
 
