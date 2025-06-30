@@ -137,14 +137,74 @@ Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releas
 - **`eth_exe_net_peer_count`** - Number of connected peers
 
 ### Consensus Layer Metrics (`eth_con_*`)
-*Provided by the integrated beacon client package*
-- All standard beacon chain metrics including:
-  - Beacon chain sync status
-  - Validator performance metrics
-  - Attestation metrics
-  - Block proposal metrics
-  - Network participation metrics
-  - Peer count and networking metrics
+
+#### Beacon Block Metrics
+- **`eth_con_beacon_slot`** - The slot number in the block
+- **`eth_con_beacon_transactions`** - The amount of transactions in the block
+- **`eth_con_beacon_slashings`** - The amount of slashings in the block
+- **`eth_con_beacon_attestations`** - The amount of attestations in the block
+- **`eth_con_beacon_deposits`** - The amount of deposits in the block
+- **`eth_con_beacon_voluntary_exits`** - The amount of voluntary exits in the block
+- **`eth_con_beacon_finality_checkpoint_epochs`** - The epochs of the finality checkpoints
+- **`eth_con_beacon_reorg_count`** - The count of reorgs
+- **`eth_con_beacon_reorg_depth`** - The depth of reorgs
+- **`eth_con_beacon_proposer_delay`** - The delay of the proposer (histogram)
+- **`eth_con_beacon_empty_slots_count`** - The number of slots that have expired without a block proposed
+- **`eth_con_beacon_withdrawals`** - The amount of withdrawals in the block
+- **`eth_con_beacon_withdrawals_amount_gwei`** - The sum amount of all withdrawals in the block (in gwei)
+- **`eth_con_beacon_withdrawals_index_max`** - The maximum index of the withdrawals in the block
+- **`eth_con_beacon_withdrawals_index_min`** - The minimum index of the withdrawals in the block
+- **`eth_con_beacon_blob_kzg_commitments`** - The amount of blob kzg commitments in the block
+
+#### Event Metrics
+- **`eth_con_event_count`** - The count of beacon events
+- **`eth_con_event_time_since_last_subscription_event_ms`** - The amount of time since the last subscription event (in milliseconds)
+
+#### Fork Metrics
+- **`eth_con_fork_epoch`** - The epoch for the fork
+- **`eth_con_fork_activated`** - The activation status of the fork (1 for activated)
+- **`eth_con_fork_current`** - The current fork
+
+#### General Node Metrics
+- **`eth_con_node_version`** - The version of the running beacon node
+- **`eth_con_peers`** - The count of peers connected to beacon node
+
+#### Consensus Spec Metrics
+- **`eth_con_spec_safe_slots_to_update_justified`** - The number of slots to wait before updating the justified checkpoint
+- **`eth_con_spec_deposit_chain_id`** - The chain ID of the deposit contract
+- **`eth_con_spec_config_name`** - The name of the config
+- **`eth_con_spec_max_validators_per_committee`** - The maximum number of validators per committee
+- **`eth_con_spec_seconds_per_eth1_block`** - The number of seconds per ETH1 block
+- **`eth_con_spec_base_reward_factor`** - The base reward factor
+- **`eth_con_spec_epochs_per_sync_committee_period`** - The number of epochs per sync committee period
+- **`eth_con_spec_effective_balance_increment`** - The effective balance increment
+- **`eth_con_spec_max_attestations`** - The maximum number of attestations
+- **`eth_con_spec_min_sync_committee_participants`** - The minimum number of sync committee participants
+- **`eth_con_spec_genesis_delay`** - The number of epochs to wait before processing the genesis block
+- **`eth_con_spec_seconds_per_slot`** - The number of seconds per slot
+- **`eth_con_spec_max_effective_balance`** - The maximum effective balance
+- **`eth_con_spec_terminal_total_difficulty`** - The terminal total difficulty
+- **`eth_con_spec_terminal_total_difficulty_trillions`** - The terminal total difficulty in trillions
+- **`eth_con_spec_max_deposits`** - The maximum number of deposits
+- **`eth_con_spec_min_genesis_active_validator_count`** - The minimum number of active validators at genesis
+- **`eth_con_spec_target_committee_size`** - The target committee size
+- **`eth_con_spec_sync_committee_size`** - The sync committee size
+- **`eth_con_spec_eth1_follow_distance`** - The number of blocks to follow behind the head of the eth1 chain
+- **`eth_con_spec_terminal_block_hash_activation_epoch`** - The epoch at which the terminal block hash is activated
+- **`eth_con_spec_min_deposit_amount`** - The minimum deposit amount
+- **`eth_con_spec_slots_per_epoch`** - The number of slots per epoch
+- **`eth_con_spec_preset_base`** - The base of the preset
+
+#### Sync Status Metrics
+- **`eth_con_sync_percentage`** - How synced the node is with the network (0-100%)
+- **`eth_con_sync_estimated_highest_slot`** - The estimated highest slot of the network
+- **`eth_con_sync_head_slot`** - The current slot of the node
+- **`eth_con_sync_distance`** - The sync distance of the node
+- **`eth_con_sync_is_syncing`** - 1 if the node is in syncing state
+
+#### Health Metrics
+- **`eth_con_health_check_results_total`** - Total of health checks results
+- **`eth_con_health_up`** - Whether the node is up or not
 
 ### Disk Usage Metrics (`eth_disk_*`)
 - **`eth_disk_usage_bytes`** - Directory disk usage in bytes (labels: `directory`)
