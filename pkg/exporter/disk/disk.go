@@ -90,6 +90,7 @@ func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]Usage
 
 func getDiskUsed(path string) (int64, error) {
 	var size int64
+
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
