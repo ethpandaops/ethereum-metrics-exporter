@@ -120,6 +120,7 @@ func initCommon() {
 		if err != nil {
 			logr.WithError(err).Fatalf("Invalid disk usage interval format: %s", diskUsageInterval)
 		}
+
 		config.DiskUsage.Interval.Duration = duration
 		config.DiskUsage.Enabled = true
 	}
