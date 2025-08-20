@@ -5,7 +5,7 @@ go 1.22
 toolchain go1.24.0
 
 // Use PK's fork supporting eip-7892 spec, until upstream is updated (https://github.com/pk910/go-eth2-client/pull/3)
-replace github.com/attestantio/go-eth2-client => github.com/pk910/go-eth2-client v0.0.0-20250515124841-1d7c6ee326e4
+replace github.com/attestantio/go-eth2-client => github.com/pk910/go-eth2-client v0.0.0-20250524110107-da4c3f367361
 
 require (
 	github.com/ethereum/go-ethereum v1.14.10

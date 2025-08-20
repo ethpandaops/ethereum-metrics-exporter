@@ -202,6 +202,8 @@ github.com/pk910/dynamic-ssz v0.0.4 h1:DT29+1055tCEPCaR4V/ez+MOKW7BzBsmjyFvBRqx0
 github.com/pk910/dynamic-ssz v0.0.4/go.mod h1:b6CrLaB2X7pYA+OSEEbkgXDEcRnjLOZIxZTsMuO/Y9c=
 github.com/pk910/go-eth2-client v0.0.0-20250515124841-1d7c6ee326e4 h1:riGVTN/A3PQsSD1+D0PM0s5QQuP8ksPTV5mKhiPmLlA=
 github.com/pk910/go-eth2-client v0.0.0-20250515124841-1d7c6ee326e4/go.mod h1:fvULSL9WtNskkOB4i+Yyr6BKpNHXvmpGZj9969fCrfY=
+github.com/pk910/go-eth2-client v0.0.0-20250524110107-da4c3f367361 h1:PFOPE+80aBzVk1tsqD81tl0KdfZD4glnngml3jVOV64=
+github.com/pk910/go-eth2-client v0.0.0-20250524110107-da4c3f367361/go.mod h1:fvULSL9WtNskkOB4i+Yyr6BKpNHXvmpGZj9969fCrfY=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
