@@ -1,0 +1,22 @@
+---
+description: Disk Usage Monitor - Periodic disk space monitoring with Prometheus metrics export
+globs: 
+  - "*.go"
+  - "**/*_test.go"
+alwaysApply: false
+---
+
+# Disk Usage Monitor
+
+Monitors filesystem directory usage and exports metrics via Prometheus with configurable polling intervals.
+
+## Key Patterns
+- **Interface-First Design**: `UsageMetrics` interface enables testable, injectable monitoring
+- **Async Polling**: Background goroutine with configurable interval-based collection using context cancellation
+- **Graceful Degradation**: Continues monitoring available directories when some paths are inaccessible
+
+## Implementation Constraints
+- Always validate directory existence before usage calculation using `os.Lstat`
+- Use `filepath.Walk` for recursive size calculation - do not implement custom traversal
+- Export metrics immediately after collection in `GetUsage` method
+- Handle context cancellation properly in async goroutine to prevent resource leaks
