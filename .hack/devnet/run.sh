@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -f "${__dir}/custom-kurtosis.devnet.config.yaml" ]; then
@@ -30,6 +31,49 @@ FIRST_EXECUTION_NODE=$(docker ps -aq -f "label=kurtosis_enclave_uuid=$ENCLAVE_UU
               -f "label=com.kurtosistech.app-id=kurtosis" \
               -f "label=com.kurtosistech.custom.ethereum-package.client-type=execution" | tac | head -n1)
 
+## Get data volumes and their host paths
+BEACON_DATA_VOLUME=$(docker inspect "$FIRST_BEACON_NODE" --format='{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{"\n"}}{{end}}{{end}}' | grep '^data-' | head -n1)
+EXECUTION_DATA_VOLUME=$(docker inspect "$FIRST_EXECUTION_NODE" --format='{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}{{"\n"}}{{end}}{{end}}' | grep '^data-' | head -n1)
+
+BEACON_DATA_HOST_PATH=""
+EXECUTION_DATA_HOST_PATH=""
+
+if [ -n "$BEACON_DATA_VOLUME" ]; then
+  BEACON_DATA_HOST_PATH=$(docker volume inspect "$BEACON_DATA_VOLUME" --format='{{.Mountpoint}}')
+  echo "Beacon node data volume: $BEACON_DATA_VOLUME -> $BEACON_DATA_HOST_PATH"
+
+  # Check if directory is accessible, try OrbStack path if not
+  if [ ! -d "$BEACON_DATA_HOST_PATH" ] && [[ "$BEACON_DATA_HOST_PATH" == /var/lib/docker/* ]]; then
+    ORBSTACK_BEACON_PATH="${HOME}/OrbStack/docker/volumes/${BEACON_DATA_VOLUME}"
+    if [ -d "$ORBSTACK_BEACON_PATH" ]; then
+      BEACON_DATA_HOST_PATH="$ORBSTACK_BEACON_PATH"
+      echo "  -> Using OrbStack path: $BEACON_DATA_HOST_PATH"
+    else
+      echo "  -> Warning: Directory not accessible at either location"
+    fi
+  elif [ ! -d "$BEACON_DATA_HOST_PATH" ]; then
+    echo "  -> Warning: Directory not accessible: $BEACON_DATA_HOST_PATH"
+  fi
+fi
+
+if [ -n "$EXECUTION_DATA_VOLUME" ]; then
+  EXECUTION_DATA_HOST_PATH=$(docker volume inspect "$EXECUTION_DATA_VOLUME" --format='{{.Mountpoint}}')
+  echo "Execution node data volume: $EXECUTION_DATA_VOLUME -> $EXECUTION_DATA_HOST_PATH"
+
+  # Check if directory is accessible, try OrbStack path if not
+  if [ ! -d "$EXECUTION_DATA_HOST_PATH" ] && [[ "$EXECUTION_DATA_HOST_PATH" == /var/lib/docker/* ]]; then
+    ORBSTACK_EXECUTION_PATH="${HOME}/OrbStack/docker/volumes/${EXECUTION_DATA_VOLUME}"
+    if [ -d "$ORBSTACK_EXECUTION_PATH" ]; then
+      EXECUTION_DATA_HOST_PATH="$ORBSTACK_EXECUTION_PATH"
+      echo "  -> Using OrbStack path: $EXECUTION_DATA_HOST_PATH"
+    else
+      echo "  -> Warning: Directory not accessible at either location"
+    fi
+  elif [ ! -d "$EXECUTION_DATA_HOST_PATH" ]; then
+    echo "  -> Warning: Directory not accessible: $EXECUTION_DATA_HOST_PATH"
+  fi
+fi
+
 cat <<EOF > "${__dir}/generated-ethereum-metrics-exporter-config.yaml"
 consensus:
   enabled: true
@@ -57,10 +101,16 @@ execution:
     - "web3"
     - "txpool"
 diskUsage:
-  enabled: false
-  interval: 60m  # Polling interval (in minutes) - accepts time units: s, m, h
-  directories:
-  - /data/ethereum
+  enabled: $([ -n "$BEACON_DATA_HOST_PATH" ] || [ -n "$EXECUTION_DATA_HOST_PATH" ] && echo "true" || echo "false")
+  interval: 1m  # Polling interval (in minutes) - accepts time units: s, m, h
+  directories:$(
+    [ -n "$BEACON_DATA_HOST_PATH" ] && echo "
+  - $BEACON_DATA_HOST_PATH"
+    [ -n "$EXECUTION_DATA_HOST_PATH" ] && echo "
+  - $EXECUTION_DATA_HOST_PATH"
+    [ -z "$BEACON_DATA_HOST_PATH" ] && [ -z "$EXECUTION_DATA_HOST_PATH" ] && echo "
+  - /data/ethereum"
+  )
 EOF
 
 cat <<EOF
