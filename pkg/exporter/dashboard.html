@@ -14,7 +14,14 @@
 <body>
     <div class="container">
         <h1>Ethereum Metrics Exporter</h1>
-        
+
+        <div class="info-banner">
+            <div class="info-content">
+                <span class="info-text">Raw Prometheus metrics available at:</span>
+                <a href="/metrics" target="_blank" class="metrics-link">/metrics</a>
+            </div>
+        </div>
+
         <div class="controls">
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="Search metrics... (e.g., block, sync, peer)">
@@ -45,7 +52,7 @@
         <div id="error" class="error" style="display: none;"></div>
         <div id="noData" class="no-data" style="display: none;">No metrics found matching your search.</div>
         <div id="metricsGrid" class="metrics-grid" style="display: none;"></div>
-        
+
         <footer class="footer">
             Powered by 🐼 <a href="https://github.com/ethpandaops/ethereum-metrics-exporter" target="_blank">ethpandaops/ethereum-metrics-exporter</a>
         </footer>
@@ -69,10 +76,10 @@
                 fetchMetrics();
                 startCountdown();
             }, REFRESH_INTERVAL);
-            
+
             // Search functionality
             document.getElementById('searchInput').addEventListener('input', filterMetrics);
-            
+
             // Tab functionality
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', () => {
@@ -95,17 +102,45 @@
             return 'others';
         }
 
+        function parseLabels(labelsString) {
+            const labels = [];
+            const regex = /(\w+)="([^"]*)"/g;
+            let match;
+
+            while ((match = regex.exec(labelsString)) !== null) {
+                labels.push({ key: match[1], value: match[2] });
+            }
+
+            return labels;
+        }
+
+        function createLabelsContainer(labelsString, metricKey) {
+            const container = document.createElement('div');
+            container.className = 'metric-labels';
+
+            const labels = parseLabels(labelsString);
+
+            labels.forEach(label => {
+                const labelEl = document.createElement('div');
+                labelEl.className = 'metric-label';
+                labelEl.innerHTML = `<span class="label-key">${label.key}:</span><span class="label-value">${label.value}</span>`;
+                container.appendChild(labelEl);
+            });
+
+            return container;
+        }
+
         function startCountdown() {
             secondsUntilUpdate = 15;
             updateCountdownDisplay();
-            
+
             // Clear existing countdown if any
             if (countdownTimer) clearInterval(countdownTimer);
-            
+
             countdownTimer = setInterval(() => {
                 secondsUntilUpdate--;
                 updateCountdownDisplay();
-                
+
                 if (secondsUntilUpdate <= 0) {
                     clearInterval(countdownTimer);
                 }
@@ -123,12 +158,12 @@
             try {
                 const response = await fetch('/metrics');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
+
                 const text = await response.text();
                 parseMetrics(text);
                 updateStatus('Connected', true);
                 renderMetrics();
-                
+
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'none';
                 document.getElementById('metricsGrid').style.display = 'grid';
@@ -144,16 +179,16 @@
             const lines = text.split('\n');
             const timestamp = Date.now();
             const currentMetrics = new Set();
-            
+
             for (const line of lines) {
                 if (line.startsWith('#') || line.trim() === '') continue;
-                
+
                 const match = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*(?:\{[^}]*\})?)\s+([\d\.\+\-eE]+|NaN|Inf|-Inf)$/);
                 if (!match) continue;
-                
+
                 const [, nameWithLabels, value] = match;
                 const labelMatch = nameWithLabels.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\{([^}]*)\}$/);
-                
+
                 let metricName, labels;
                 if (labelMatch) {
                     metricName = labelMatch[1];
@@ -162,11 +197,11 @@
                     metricName = nameWithLabels;
                     labels = '';
                 }
-                
+
                 const metricKey = nameWithLabels;
                 const numericValue = parseFloat(value);
                 currentMetrics.add(metricKey);
-                
+
                 if (!metrics.has(metricKey)) {
                     metrics.set(metricKey, {
                         name: metricName,
@@ -176,19 +211,19 @@
                         lastUpdate: timestamp
                     });
                 }
-                
+
                 const metric = metrics.get(metricKey);
                 metric.currentValue = numericValue;
-                
+
                 // Always add a new data point for each fetch
                 metric.data.push({ x: timestamp, y: numericValue });
-                
+
                 // Keep only last MAX_DATA_POINTS
                 if (metric.data.length > MAX_DATA_POINTS) {
                     metric.data.shift();
                 }
             }
-            
+
             // Remove metrics that are no longer being reported
             for (const [key] of metrics) {
                 if (!currentMetrics.has(key)) {
@@ -200,7 +235,7 @@
         function renderMetrics() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const grid = document.getElementById('metricsGrid');
-            
+
             // First, count all metrics by category
             const counts = { all: 0, execution: 0, consensus: 0, others: 0 };
             metrics.forEach((metric) => {
@@ -208,37 +243,37 @@
                 counts.all++;
                 counts[category]++;
             });
-            
+
             // Then filter for display
             const visibleMetrics = Array.from(metrics.entries())
                 .filter(([key, metric]) => {
                     const category = getMetricCategory(metric.name);
-                    
+
                     // Filter by search term
-                    const matchesSearch = searchTerm === '' || 
-                                        key.toLowerCase().includes(searchTerm) || 
+                    const matchesSearch = searchTerm === '' ||
+                                        key.toLowerCase().includes(searchTerm) ||
                                         metric.labels.toLowerCase().includes(searchTerm);
-                    
+
                     // Filter by active tab
                     const matchesTab = activeTab === 'all' || category === activeTab;
-                    
+
                     // Both search and tab filters must match
                     return matchesSearch && matchesTab;
                 })
                 .sort((a, b) => a[0].localeCompare(b[0]));
-            
+
             // Update tab counts
             updateTabCounts(counts);
-            
+
             // Show/hide tabs based on whether we have metrics
             document.getElementById('tabs').style.display = metrics.size > 0 ? 'flex' : 'none';
-            
+
             // Show/hide no data message
             document.getElementById('noData').style.display = visibleMetrics.length === 0 ? 'block' : 'none';
-            
+
             visibleMetrics.forEach(([key, metric]) => {
                 let card = document.getElementById(`metric-${key.replace(/[^a-zA-Z0-9]/g, '_')}`);
-                
+
                 if (!card) {
                     card = createMetricCard(key, metric);
                     grid.appendChild(card);
@@ -246,7 +281,7 @@
                     updateMetricCard(card, key, metric);
                 }
             });
-            
+
             // Remove cards for metrics that are no longer visible
             Array.from(grid.children).forEach(card => {
                 const cardKey = card.dataset.metricKey;
@@ -267,50 +302,48 @@
             card.className = 'metric-card';
             card.id = `metric-${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
             card.dataset.metricKey = key;
-            
+
             const header = document.createElement('div');
             header.className = 'metric-header';
-            
+
             const name = document.createElement('div');
             name.className = 'metric-name';
             name.textContent = metric.name;
-            
+
             const value = document.createElement('div');
             value.className = 'metric-value';
             value.textContent = formatValue(metric.currentValue);
-            
+
             header.appendChild(name);
             header.appendChild(value);
             card.appendChild(header);
-            
+
             if (metric.labels) {
-                const labels = document.createElement('div');
-                labels.className = 'metric-labels';
-                labels.textContent = metric.labels;
-                card.appendChild(labels);
+                const labelsContainer = createLabelsContainer(metric.labels, key);
+                card.appendChild(labelsContainer);
             }
-            
+
             const chartContainer = document.createElement('div');
             chartContainer.className = 'metric-chart';
             const canvas = document.createElement('canvas');
             canvas.id = `chart-${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
             chartContainer.appendChild(canvas);
             card.appendChild(chartContainer);
-            
+
             // Create chart after adding to DOM
             setTimeout(() => {
                 if (!charts.has(canvas.id)) {
                     createChart(canvas.id, metric);
                 }
             }, 10);
-            
+
             return card;
         }
 
         function updateMetricCard(card, key, metric) {
             const value = card.querySelector('.metric-value');
             value.textContent = formatValue(metric.currentValue);
-            
+
             const chartId = `chart-${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
             if (charts.has(chartId)) {
                 updateChart(chartId, metric);
@@ -330,10 +363,10 @@
                 updateChart(canvasId, metric);
                 return;
             }
-            
+
             const ctx = document.getElementById(canvasId);
             if (!ctx) return;
-            
+
             const chart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -358,8 +391,11 @@
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                title: () => '',
-                                label: (context) => formatValue(context.parsed.y)
+                                title: (context) => {
+                                    const timestamp = context[0].parsed.x;
+                                    return new Date(timestamp).toLocaleTimeString();
+                                },
+                                label: (context) => `Value: ${formatValue(context.parsed.y)}`
                             }
                         }
                     },
@@ -400,14 +436,14 @@
                     }
                 }
             });
-            
+
             charts.set(canvasId, chart);
         }
 
         function updateChart(chartId, metric) {
             const chart = charts.get(chartId);
             if (!chart) return;
-            
+
             // Update the chart data
             chart.data.datasets[0].data = [...metric.data];
             chart.update();
@@ -416,7 +452,7 @@
         function formatValue(value) {
             if (isNaN(value)) return 'NaN';
             if (!isFinite(value)) return value > 0 ? 'Inf' : '-Inf';
-            
+
             const absValue = Math.abs(value);
             if (absValue >= 1e9) return (value / 1e9).toFixed(2) + 'B';
             if (absValue >= 1e6) return (value / 1e6).toFixed(2) + 'M';
@@ -441,7 +477,7 @@
             const indicator = document.getElementById('statusIndicator');
             const statusText = document.getElementById('statusText');
             const lastUpdate = document.getElementById('lastUpdate');
-            
+
             statusText.textContent = status;
             indicator.style.background = isConnected ? '#4caf50' : '#ff5252';
             lastUpdate.textContent = `| Last update: ${new Date().toLocaleTimeString()}`;
