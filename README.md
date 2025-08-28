@@ -75,7 +75,7 @@ Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releas
 
 1. Clone the repo
    ```sh
-   go get github.com/ethpandaops/ethereum-metrics-exporter
+   git clone https://github.com/ethpandaops/ethereum-metrics-exporter.git
    ```
 2. Change directories
    ```sh
@@ -83,12 +83,115 @@ Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releas
    ```
 3. Build the binary
    ```sh
-    go build -o ethereum-metrics-exporter .
+   make build
    ```
 4. Run the exporter
    ```sh
-    ./ethereum-metrics-exporter
+   ./build/ethereum-metrics-exporter
    ```
+
+## Development
+
+This project includes a Makefile to simplify common development tasks. Here are the available commands:
+
+### Building
+
+```sh
+# Build for current platform
+make build
+
+# Build for Linux amd64
+make build-linux
+
+# Build for all platforms (using goreleaser)
+make build-all
+
+# Install to $GOPATH/bin
+make install
+```
+
+### Testing & Quality
+
+```sh
+# Run tests with race detection and coverage
+make test
+
+# Run short tests only
+make test-short
+
+# Generate coverage report
+make coverage
+
+# Run linting
+make lint
+
+# Run linting with auto-fix
+make lint-fix
+
+# Run go vet
+make vet
+
+# Format code
+make fmt
+```
+
+### Dependencies
+
+```sh
+# Download dependencies
+make deps
+
+# Tidy dependencies
+make tidy
+
+# Verify dependencies
+make verify
+```
+
+### Releases
+
+```sh
+# Create a release (requires proper git tags and GitHub token)
+make release
+
+# Create a snapshot release for testing
+make release-snapshot
+```
+
+### Docker
+
+```sh
+# Build Docker image
+make docker-build
+
+# Push Docker image
+make docker-push
+```
+
+### Other Commands
+
+```sh
+# Run the application directly
+make run
+
+# Clean build artifacts
+make clean
+
+# Check if required tools are installed
+make check-tools
+
+# Display help for all commands
+make help
+```
+
+### Prerequisites
+
+Before developing, ensure you have the following tools installed:
+
+- Go 1.22+ (check with `go version`)
+- golangci-lint (`go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`)
+- goreleaser (see [installation guide](https://goreleaser.com/install/))
+- Docker (for building container images)
 
 ### Screenshots
 ![Example](./example.png)
