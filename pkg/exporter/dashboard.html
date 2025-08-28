@@ -39,11 +39,15 @@
             <button class="tab-button active" data-tab="all">All</button>
             <button class="tab-button" data-tab="execution">Execution</button>
             <button class="tab-button" data-tab="consensus">Consensus</button>
+            <button class="tab-button" data-tab="docker">Docker</button>
+            <button class="tab-button" data-tab="disk">Disk</button>
             <button class="tab-button" data-tab="others">Others</button>
             <div class="tab-counts">
                 <span id="count-all" class="tab-count"></span>
                 <span id="count-execution" class="tab-count"></span>
                 <span id="count-consensus" class="tab-count"></span>
+                <span id="count-docker" class="tab-count"></span>
+                <span id="count-disk" class="tab-count"></span>
                 <span id="count-others" class="tab-count"></span>
             </div>
         </div>
@@ -99,7 +103,8 @@
         function getMetricCategory(metricName) {
             if (metricName.startsWith('eth_exe_')) return 'execution';
             if (metricName.startsWith('eth_con_')) return 'consensus';
-            if (metricName.startsWith('eth_docker_')) return 'others';
+            if (metricName.startsWith('eth_docker_')) return 'docker';
+            if (metricName.startsWith('eth_disk_')) return 'disk';
             return 'others';
         }
 
@@ -238,7 +243,7 @@
             const grid = document.getElementById('metricsGrid');
 
             // First, count all metrics by category
-            const counts = { all: 0, execution: 0, consensus: 0, others: 0 };
+            const counts = { all: 0, execution: 0, consensus: 0, docker: 0, disk: 0, others: 0 };
             metrics.forEach((metric) => {
                 const category = getMetricCategory(metric.name);
                 counts.all++;
