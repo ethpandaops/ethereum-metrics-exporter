@@ -94,6 +94,16 @@ Available [here](https://github.com/ethpandaops/ethereum-metrics-exporter/releas
 
 This project includes a Makefile to simplify common development tasks. Here are the available commands:
 
+### Running the full stack
+
+Note: To run the full stack, you need to have [kurtosis installed](https://docs.kurtosis.com/install).
+
+```sh
+# This starts up a kurtosis devnet with a beacon node and an execution nodes
+# It will then also start the exporter and expose the metrics of the first beacon and execution node on port 9090
+make devnet-run
+```
+
 ### Building
 
 ```sh

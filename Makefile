@@ -139,3 +139,16 @@ check-tools: ## Check if required tools are installed
 	@which $(GOLINT) > /dev/null || (echo "golangci-lint not found. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest" && exit 1)
 	@which $(GORELEASER) > /dev/null || (echo "goreleaser not found. Visit https://goreleaser.com/install/" && exit 1)
 	@echo "All required tools are installed."
+
+
+.PHONY: devnet
+devnet:
+	.hack/devnet/run.sh
+
+.PHONY: devnet-run
+devnet-run: devnet
+	go run main.go --config .hack/devnet/generated-ethereum-metrics-exporter-config.yaml
+
+.PHONY: devnet-clean
+devnet-clean:
+	.hack/devnet/cleanup.sh
