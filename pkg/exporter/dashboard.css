@@ -182,6 +182,71 @@ canvas {
     margin-top: 5px;
 }
 
+.tabs {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    display: flex;
+    position: relative;
+    overflow: hidden;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 15px 20px;
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.tab-button:hover {
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.tab-button.active {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #667eea;
+}
+
+.tab-counts {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    display: flex;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.tab-count {
+    font-size: 11px;
+    color: #999;
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 10px;
+    display: none;
+}
+
+.tab-count.show {
+    display: inline-block;
+}
+
 .footer {
     text-align: center;
     color: white;

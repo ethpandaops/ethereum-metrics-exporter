@@ -28,6 +28,19 @@
             </div>
         </div>
 
+        <div class="tabs" id="tabs" style="display: none;">
+            <button class="tab-button active" data-tab="all">All</button>
+            <button class="tab-button" data-tab="execution">Execution</button>
+            <button class="tab-button" data-tab="consensus">Consensus</button>
+            <button class="tab-button" data-tab="others">Others</button>
+            <div class="tab-counts">
+                <span id="count-all" class="tab-count"></span>
+                <span id="count-execution" class="tab-count"></span>
+                <span id="count-consensus" class="tab-count"></span>
+                <span id="count-others" class="tab-count"></span>
+            </div>
+        </div>
+
         <div id="loading" class="loading">Loading metrics...</div>
         <div id="error" class="error" style="display: none;"></div>
         <div id="noData" class="no-data" style="display: none;">No metrics found matching your search.</div>
@@ -46,6 +59,7 @@
         let updateTimer;
         let countdownTimer;
         let secondsUntilUpdate = 15;
+        let activeTab = 'all';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -58,7 +72,28 @@
             
             // Search functionality
             document.getElementById('searchInput').addEventListener('input', filterMetrics);
+            
+            // Tab functionality
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    setActiveTab(button.dataset.tab);
+                });
+            });
         });
+
+        function setActiveTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+            renderMetrics();
+        }
+
+        function getMetricCategory(metricName) {
+            if (metricName.startsWith('eth_exe_')) return 'execution';
+            if (metricName.startsWith('eth_con_')) return 'consensus';
+            return 'others';
+        }
 
         function startCountdown() {
             secondsUntilUpdate = 15;
@@ -165,13 +200,38 @@
         function renderMetrics() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const grid = document.getElementById('metricsGrid');
+            
+            // First, count all metrics by category
+            const counts = { all: 0, execution: 0, consensus: 0, others: 0 };
+            metrics.forEach((metric) => {
+                const category = getMetricCategory(metric.name);
+                counts.all++;
+                counts[category]++;
+            });
+            
+            // Then filter for display
             const visibleMetrics = Array.from(metrics.entries())
                 .filter(([key, metric]) => {
-                    if (searchTerm === '') return true;
-                    return key.toLowerCase().includes(searchTerm) || 
-                           metric.labels.toLowerCase().includes(searchTerm);
+                    const category = getMetricCategory(metric.name);
+                    
+                    // Filter by search term
+                    const matchesSearch = searchTerm === '' || 
+                                        key.toLowerCase().includes(searchTerm) || 
+                                        metric.labels.toLowerCase().includes(searchTerm);
+                    
+                    // Filter by active tab
+                    const matchesTab = activeTab === 'all' || category === activeTab;
+                    
+                    // Both search and tab filters must match
+                    return matchesSearch && matchesTab;
                 })
                 .sort((a, b) => a[0].localeCompare(b[0]));
+            
+            // Update tab counts
+            updateTabCounts(counts);
+            
+            // Show/hide tabs based on whether we have metrics
+            document.getElementById('tabs').style.display = metrics.size > 0 ? 'flex' : 'none';
             
             // Show/hide no data message
             document.getElementById('noData').style.display = visibleMetrics.length === 0 ? 'block' : 'none';
@@ -350,6 +410,14 @@
 
         function filterMetrics() {
             renderMetrics();
+        }
+
+        function updateTabCounts(counts) {
+            document.querySelectorAll('.tab-button').forEach(button => {
+                const tab = button.dataset.tab;
+                const count = counts[tab] || 0;
+                button.textContent = button.textContent.split(' (')[0] + (count > 0 ? ` (${count})` : '');
+            });
         }
 
         function updateStatus(status, isConnected) {
