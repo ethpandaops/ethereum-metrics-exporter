@@ -99,6 +99,7 @@
         function getMetricCategory(metricName) {
             if (metricName.startsWith('eth_exe_')) return 'execution';
             if (metricName.startsWith('eth_con_')) return 'consensus';
+            if (metricName.startsWith('eth_docker_')) return 'others';
             return 'others';
         }
 
