@@ -113,6 +113,7 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 	}
 
 	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/", serveDashboard)
 
 	go func() {
 		err := s.ListenAndServe()
