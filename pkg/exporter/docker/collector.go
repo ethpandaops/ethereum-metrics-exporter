@@ -34,6 +34,7 @@ func (c *containerCollector) getContainerStats(ctx context.Context, containerID 
 	if err := json.NewDecoder(stats.Body).Decode(&v); err != nil {
 		return nil, err
 	}
+
 	return &v, nil
 }
 
