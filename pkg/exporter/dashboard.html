@@ -136,11 +136,31 @@
             container.className = 'metric-labels';
 
             const labels = parseLabels(labelsString);
+            const { labelFilters, textSearch } = getActiveSearchTerms();
 
             labels.forEach(label => {
                 const labelEl = document.createElement('div');
-                labelEl.className = 'metric-label clickable-label';
-                labelEl.innerHTML = `<span class="label-key">${label.key}:</span><span class="label-value">${label.value}</span>`;
+                
+                // Check if this label matches any active filter
+                const isHighlighted = labelFilters.some(filter => 
+                    filter.key === label.key && filter.value === label.value
+                );
+                
+                // Check if text search matches label
+                const textMatches = textSearch && (
+                    label.key.toLowerCase().includes(textSearch) ||
+                    label.value.toLowerCase().includes(textSearch)
+                );
+                
+                labelEl.className = 'metric-label clickable-label' + 
+                    (isHighlighted ? ' label-highlighted' : '') +
+                    (textMatches ? ' label-text-match' : '');
+                
+                // Highlight matching text
+                const keyHtml = textSearch ? highlightText(label.key, textSearch) : label.key;
+                const valueHtml = textSearch ? highlightText(label.value, textSearch) : label.value;
+                
+                labelEl.innerHTML = `<span class="label-key">${keyHtml}:</span><span class="label-value">${valueHtml}</span>`;
                 labelEl.title = `Click to filter by ${label.key}="${label.value}"`;
                 
                 // Add click handler to filter by this label
@@ -153,6 +173,32 @@
             });
 
             return container;
+        }
+
+        function highlightText(text, searchTerm) {
+            if (!searchTerm || searchTerm.trim() === '') return text;
+            
+            const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapedTerm})`, 'gi');
+            return text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+
+        function getActiveSearchTerms() {
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput.value.toLowerCase();
+            
+            // Extract label filters and plain text
+            const labelFilterRegex = /(\w+)="([^"]*)"/g;
+            const labelFilters = [];
+            let searchWithoutLabels = searchTerm;
+            
+            let match;
+            while ((match = labelFilterRegex.exec(searchTerm)) !== null) {
+                labelFilters.push({ key: match[1], value: match[2] });
+                searchWithoutLabels = searchWithoutLabels.replace(match[0], '').trim();
+            }
+            
+            return { labelFilters, textSearch: searchWithoutLabels };
         }
 
         function addLabelToSearch(key, value) {
@@ -415,7 +461,14 @@
 
             const name = document.createElement('div');
             name.className = 'metric-name';
-            name.textContent = metric.name;
+            
+            // Highlight metric name if it matches search
+            const { textSearch } = getActiveSearchTerms();
+            if (textSearch && metric.name.toLowerCase().includes(textSearch)) {
+                name.innerHTML = highlightText(metric.name, textSearch);
+            } else {
+                name.textContent = metric.name;
+            }
 
             const value = document.createElement('div');
             value.className = 'metric-value';
@@ -470,8 +523,25 @@
         }
 
         function updateMetricCard(card, key, metric) {
+            // Update metric value
             const value = card.querySelector('.metric-value');
             value.textContent = formatValue(metric.currentValue);
+            
+            // Update metric name highlighting
+            const name = card.querySelector('.metric-name');
+            const { textSearch } = getActiveSearchTerms();
+            if (textSearch && metric.name.toLowerCase().includes(textSearch)) {
+                name.innerHTML = highlightText(metric.name, textSearch);
+            } else {
+                name.textContent = metric.name;
+            }
+            
+            // Update labels highlighting
+            const labelsContainer = card.querySelector('.metric-labels');
+            if (labelsContainer && metric.labels) {
+                const newLabelsContainer = createLabelsContainer(metric.labels, key);
+                labelsContainer.replaceWith(newLabelsContainer);
+            }
 
             const chartId = `chart-${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
             if (charts.has(chartId)) {
