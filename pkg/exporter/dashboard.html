@@ -121,8 +121,8 @@
             const descriptions = {
                 'counter': 'COUNTER: A cumulative metric that only increases over time (e.g., total requests, errors). Resets only on restart.',
                 'gauge': 'GAUGE: A metric that can go up or down (e.g., temperature, memory usage, active connections).',
-                'histogram': 'HISTOGRAM: Samples observations and counts them in configurable buckets (e.g., request durations, response sizes).',
-                'summary': 'SUMMARY: Similar to histogram but calculates quantiles over a sliding time window (e.g., 95th percentile latency).',
+                'histogram': 'HISTOGRAM: Samples observations and counts them in configurable buckets (e.g., request durations, response sizes). Includes _bucket, _count, and _sum metrics.',
+                'summary': 'SUMMARY: Calculates quantiles over a sliding time window (e.g., 95th percentile latency). Includes _count and _sum metrics for total observations and sum of all observed values.',
                 'untyped': 'UNTYPED: A metric without a specific type. Behavior depends on the metric implementation.'
             };
             return descriptions[type.toLowerCase()] || `${type.toUpperCase()}: Metric type`;
@@ -308,6 +308,35 @@
                 }
             }
 
+            // Helper function to find parent metric metadata
+            function getParentMetadata(metricName) {
+                // Check if this is a _count or _sum metric
+                if (metricName.endsWith('_count') || metricName.endsWith('_sum')) {
+                    const parentName = metricName.replace(/_(?:count|sum)$/, '');
+                    const parentMetadata = metadataMap.get(parentName);
+                    if (parentMetadata) {
+                        return {
+                            help: metricName.endsWith('_count') 
+                                ? `Total number of observations for ${parentName}` 
+                                : `Sum of all observed values for ${parentName}`,
+                            type: parentMetadata.type // Inherit parent type
+                        };
+                    }
+                }
+                // Check if this is a _bucket metric (histogram)
+                else if (metricName.endsWith('_bucket')) {
+                    const parentName = metricName.replace(/_bucket$/, '');
+                    const parentMetadata = metadataMap.get(parentName);
+                    if (parentMetadata) {
+                        return {
+                            help: `Histogram bucket for ${parentName}`,
+                            type: parentMetadata.type // Inherit parent type
+                        };
+                    }
+                }
+                return null;
+            }
+
             // Second pass: parse metrics
             for (const line of lines) {
                 if (line.startsWith('#') || line.trim() === '') continue;
@@ -332,7 +361,16 @@
                 currentMetrics.add(metricKey);
 
                 if (!metrics.has(metricKey)) {
-                    const metadata = metadataMap.get(metricName) || {};
+                    let metadata = metadataMap.get(metricName) || {};
+                    
+                    // If no direct metadata found, try to inherit from parent metric
+                    if (!metadata.help && !metadata.type) {
+                        const parentMetadata = getParentMetadata(metricName);
+                        if (parentMetadata) {
+                            metadata = parentMetadata;
+                        }
+                    }
+                    
                     metrics.set(metricKey, {
                         name: metricName,
                         labels: labels,
