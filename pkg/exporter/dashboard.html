@@ -108,6 +108,17 @@
             return 'others';
         }
 
+        function getMetricTypeDescription(type) {
+            const descriptions = {
+                'counter': 'COUNTER: A cumulative metric that only increases over time (e.g., total requests, errors). Resets only on restart.',
+                'gauge': 'GAUGE: A metric that can go up or down (e.g., temperature, memory usage, active connections).',
+                'histogram': 'HISTOGRAM: Samples observations and counts them in configurable buckets (e.g., request durations, response sizes).',
+                'summary': 'SUMMARY: Similar to histogram but calculates quantiles over a sliding time window (e.g., 95th percentile latency).',
+                'untyped': 'UNTYPED: A metric without a specific type. Behavior depends on the metric implementation.'
+            };
+            return descriptions[type.toLowerCase()] || `${type.toUpperCase()}: Metric type`;
+        }
+
         function parseLabels(labelsString) {
             const labels = [];
             const regex = /(\w+)="([^"]*)"/g;
@@ -128,12 +139,44 @@
 
             labels.forEach(label => {
                 const labelEl = document.createElement('div');
-                labelEl.className = 'metric-label';
+                labelEl.className = 'metric-label clickable-label';
                 labelEl.innerHTML = `<span class="label-key">${label.key}:</span><span class="label-value">${label.value}</span>`;
+                labelEl.title = `Click to filter by ${label.key}="${label.value}"`;
+                
+                // Add click handler to filter by this label
+                labelEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    addLabelToSearch(label.key, label.value);
+                });
+                
                 container.appendChild(labelEl);
             });
 
             return container;
+        }
+
+        function addLabelToSearch(key, value) {
+            const searchInput = document.getElementById('searchInput');
+            const labelFilter = `${key}="${value}"`;
+            
+            // Check if this label filter already exists
+            if (!searchInput.value.includes(labelFilter)) {
+                // Add to existing search with a space if there's already content
+                if (searchInput.value.trim()) {
+                    searchInput.value += ' ' + labelFilter;
+                } else {
+                    searchInput.value = labelFilter;
+                }
+            }
+            
+            // Trigger the filter
+            filterMetrics();
+            
+            // Flash the search box to indicate the filter was added
+            searchInput.classList.add('search-flash');
+            setTimeout(() => {
+                searchInput.classList.remove('search-flash');
+            }, 300);
         }
 
         function startCountdown() {
@@ -283,10 +326,40 @@
                 .filter(([key, metric]) => {
                     const category = getMetricCategory(metric.name);
 
-                    // Filter by search term
-                    const matchesSearch = searchTerm === '' ||
-                                        key.toLowerCase().includes(searchTerm) ||
-                                        metric.labels.toLowerCase().includes(searchTerm);
+                    // Parse search terms - support both simple text and label filters
+                    let matchesSearch = true;
+                    if (searchTerm !== '') {
+                        // Extract label filters (key="value") from search
+                        const labelFilterRegex = /(\w+)="([^"]*)"/g;
+                        const labelFilters = [];
+                        let searchWithoutLabels = searchTerm;
+                        
+                        let match;
+                        while ((match = labelFilterRegex.exec(searchTerm)) !== null) {
+                            labelFilters.push({ key: match[1], value: match[2] });
+                            searchWithoutLabels = searchWithoutLabels.replace(match[0], '').trim();
+                        }
+                        
+                        // Check text search (metric name)
+                        if (searchWithoutLabels) {
+                            matchesSearch = key.toLowerCase().includes(searchWithoutLabels) ||
+                                          metric.labels.toLowerCase().includes(searchWithoutLabels);
+                        }
+                        
+                        // Check label filters
+                        if (labelFilters.length > 0) {
+                            const metricLabels = parseLabels(metric.labels);
+                            for (const filter of labelFilters) {
+                                const hasMatchingLabel = metricLabels.some(label => 
+                                    label.key === filter.key && label.value === filter.value
+                                );
+                                if (!hasMatchingLabel) {
+                                    matchesSearch = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
 
                     // Filter by active tab
                     const matchesTab = activeTab === 'all' || category === activeTab;
@@ -360,7 +433,7 @@
                 if (metric.type) {
                     const typeElement = document.createElement('div');
                     typeElement.className = 'metric-type';
-                    typeElement.textContent = `TYPE: ${metric.type}`;
+                    typeElement.innerHTML = `TYPE: <span class="metric-type-value" data-tooltip="${getMetricTypeDescription(metric.type)}">${metric.type}</span>`;
                     metadataContainer.appendChild(typeElement);
                 }
                 
