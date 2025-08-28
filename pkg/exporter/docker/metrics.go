@@ -473,7 +473,18 @@ func calculateCPUPercent(stats *types.StatsJSON) float64 {
 	systemDelta := float64(stats.CPUStats.SystemUsage - stats.PreCPUStats.SystemUsage)
 
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
-		return (cpuDelta / systemDelta) * float64(len(stats.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+		// Use OnlineCPUs if PercpuUsage is not available (which is common)
+		cpuCount := float64(stats.CPUStats.OnlineCPUs)
+		if cpuCount == 0 {
+			// Fallback to PercpuUsage length if OnlineCPUs is not set
+			cpuCount = float64(len(stats.CPUStats.CPUUsage.PercpuUsage))
+			if cpuCount == 0 {
+				// If neither is available, assume 1 CPU
+				cpuCount = 1
+			}
+		}
+
+		return (cpuDelta / systemDelta) * cpuCount * 100.0
 	}
 
 	return 0.0
