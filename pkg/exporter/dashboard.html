@@ -344,8 +344,11 @@
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4,
-                        pointRadius: 0,
-                        pointHoverRadius: 4
+                        pointRadius: 3,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointHoverRadius: 5
                     }]
                 },
                 options: {
@@ -362,8 +365,22 @@
                     },
                     scales: {
                         x: {
-                            type: 'linear',
-                            display: false
+                            type: 'time',
+                            display: true,
+                            time: {
+                                displayFormats: {
+                                    second: 'HH:mm:ss',
+                                    minute: 'HH:mm'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxTicksLimit: 4,
+                                font: { size: 10 },
+                                color: '#999'
+                            }
                         },
                         y: {
                             display: true,
