@@ -292,27 +292,6 @@ canvas {
     background: #667eea;
 }
 
-.tab-counts {
-    position: absolute;
-    top: 5px;
-    right: 10px;
-    display: flex;
-    gap: 10px;
-    pointer-events: none;
-}
-
-.tab-count {
-    font-size: 11px;
-    color: #999;
-    background: #f5f5f5;
-    padding: 2px 6px;
-    border-radius: 10px;
-    display: none;
-}
-
-.tab-count.show {
-    display: inline-block;
-}
 
 .footer {
     text-align: center;
