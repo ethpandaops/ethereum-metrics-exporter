@@ -185,7 +185,32 @@
             const lines = text.split('\n');
             const timestamp = Date.now();
             const currentMetrics = new Set();
+            const metadataMap = new Map(); // Store HELP and TYPE metadata
 
+            // First pass: collect metadata
+            for (const line of lines) {
+                if (line.startsWith('# HELP ')) {
+                    const helpMatch = line.match(/^# HELP ([a-zA-Z_][a-zA-Z0-9_]*) (.*)$/);
+                    if (helpMatch) {
+                        const [, metricName, helpText] = helpMatch;
+                        if (!metadataMap.has(metricName)) {
+                            metadataMap.set(metricName, {});
+                        }
+                        metadataMap.get(metricName).help = helpText;
+                    }
+                } else if (line.startsWith('# TYPE ')) {
+                    const typeMatch = line.match(/^# TYPE ([a-zA-Z_][a-zA-Z0-9_]*) (.*)$/);
+                    if (typeMatch) {
+                        const [, metricName, metricType] = typeMatch;
+                        if (!metadataMap.has(metricName)) {
+                            metadataMap.set(metricName, {});
+                        }
+                        metadataMap.get(metricName).type = metricType;
+                    }
+                }
+            }
+
+            // Second pass: parse metrics
             for (const line of lines) {
                 if (line.startsWith('#') || line.trim() === '') continue;
 
@@ -209,12 +234,15 @@
                 currentMetrics.add(metricKey);
 
                 if (!metrics.has(metricKey)) {
+                    const metadata = metadataMap.get(metricName) || {};
                     metrics.set(metricKey, {
                         name: metricName,
                         labels: labels,
                         data: [],
                         currentValue: numericValue,
-                        lastUpdate: timestamp
+                        lastUpdate: timestamp,
+                        help: metadata.help || '',
+                        type: metadata.type || ''
                     });
                 }
 
@@ -323,6 +351,28 @@
             header.appendChild(name);
             header.appendChild(value);
             card.appendChild(header);
+
+            // Add metadata (HELP and TYPE) if available
+            if (metric.help || metric.type) {
+                const metadataContainer = document.createElement('div');
+                metadataContainer.className = 'metric-metadata';
+                
+                if (metric.type) {
+                    const typeElement = document.createElement('div');
+                    typeElement.className = 'metric-type';
+                    typeElement.textContent = `TYPE: ${metric.type}`;
+                    metadataContainer.appendChild(typeElement);
+                }
+                
+                if (metric.help) {
+                    const helpElement = document.createElement('div');
+                    helpElement.className = 'metric-help';
+                    helpElement.textContent = metric.help;
+                    metadataContainer.appendChild(helpElement);
+                }
+                
+                card.appendChild(metadataContainer);
+            }
 
             if (metric.labels) {
                 const labelsContainer = createLabelsContainer(metric.labels, key);

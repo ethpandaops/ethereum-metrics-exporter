@@ -151,7 +151,32 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: start;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
+}
+
+.metric-metadata {
+    background: #f8f9fa;
+    border-left: 3px solid #6c757d;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.metric-type {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-help {
+    color: #6c757d;
+    line-height: 1.4;
+    font-size: 12px;
 }
 
 .metric-name {
