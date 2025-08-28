@@ -3,3 +3,6 @@ test_config.yaml
 config.yaml
 __debug_bin*
 dist/
+coverage.txt
+
+.hack/devnet/generated-*

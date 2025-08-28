@@ -1,0 +1,9 @@
+participants:
+  - el_type: geth
+    el_image: ethereum/client-go:stable
+    cl_type: lighthouse
+    cl_image: sigp/lighthouse:latest
+    count: 3
+network_params:
+  seconds_per_slot: 12
+persistent: true
