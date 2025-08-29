@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/filesystem"
 )
 
 const (
@@ -123,7 +124,7 @@ func (c *containerCollector) getContainerFilesystemUsage(ctx context.Context, co
 }
 
 // getContainerVolumeUsage collects usage stats for all configured volumes
-func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, containerID string, volumeConfigs []VolumeConfig, filesystemInterval time.Duration) ([]VolumeUsage, []VolumeInfo, error) {
+func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, containerID string, volumeConfigs []VolumeConfig, fsMonitor filesystem.Monitor) ([]VolumeUsage, []VolumeInfo, error) {
 	// Use ContainerInspectWithRaw but don't need size calculation for volumes (saves overhead)
 	containerJSON, _, err := c.client.ContainerInspectWithRaw(ctx, containerID, false)
 	if err != nil {
@@ -134,19 +135,10 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 	volumeUsages := make([]VolumeUsage, 0, len(volumes))
 	monitoredVolumes := make([]VolumeInfo, 0, len(volumes))
 
-	// Configure cache timeout based on filesystem interval (cache for 80% of interval)
-	cacheTimeout := time.Duration(float64(filesystemInterval) * 0.8)
-	if cacheTimeout < time.Minute {
-		cacheTimeout = time.Minute // Minimum 1-minute cache
-	}
-
-	globalVolumeCache.setCacheTimeout(cacheTimeout)
-
 	c.log.WithFields(logrus.Fields{
 		"container_id":    containerID[:12],
 		"total_volumes":   len(volumes),
 		"config_provided": len(volumeConfigs) > 0,
-		"cache_timeout":   cacheTimeout,
 	}).Info("Starting volume usage collection")
 
 	for _, volume := range volumes {
@@ -189,7 +181,7 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 			"usage_path":  usagePath,
 		}).Debug("Attempting to collect filesystem usage stats")
 
-		usage, err := getVolumeUsage(usagePath)
+		stats, err := fsMonitor.GetStats(usagePath)
 		if err != nil {
 			c.log.WithError(err).WithFields(logrus.Fields{
 				"volume_name": volume.Name,
@@ -199,11 +191,21 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 			continue
 		}
 
+		// Convert filesystem stats to volume usage
+		usage := &VolumeUsage{
+			TotalBytes:     stats.FilesystemTotal,     // Filesystem total capacity
+			UsedBytes:      stats.TotalBytes,          // Directory-specific usage
+			AvailableBytes: stats.FilesystemAvailable, // Available space on filesystem
+			FreeBytes:      stats.FilesystemFree,      // Free space on filesystem
+		}
+
 		c.log.WithFields(logrus.Fields{
 			"volume_name":     volume.Name,
 			"total_bytes":     usage.TotalBytes,
 			"used_bytes":      usage.UsedBytes,
 			"available_bytes": usage.AvailableBytes,
+			"free_bytes":      usage.FreeBytes,
+			"file_count":      stats.FileCount,
 		}).Info("Successfully collected volume usage metrics")
 
 		volumeUsages = append(volumeUsages, *usage)

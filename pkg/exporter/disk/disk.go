@@ -3,10 +3,11 @@ package disk
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/filesystem"
 )
 
 // UsageMetrics reports disk usage metrics
@@ -22,15 +23,27 @@ type diskUsage struct {
 	metrics     Metrics
 	directories []string
 	interval    time.Duration
+	fsMonitor   filesystem.Monitor
 }
 
 // NewUsage returns a new DiskUsage instance.
 func NewUsage(ctx context.Context, log logrus.FieldLogger, namespace string, directories []string, interval time.Duration) (UsageMetrics, error) {
+	// Create filesystem monitor with configuration optimized for disk monitoring
+	cacheConfig := filesystem.DefaultCacheConfig()
+	cacheConfig.DefaultTimeout = interval // Use the configured interval as cache timeout
+
+	fsConfig := &filesystem.MonitorConfig{
+		Paths:       directories,
+		CacheConfig: cacheConfig,
+	}
+	fsMonitor := filesystem.NewMonitor(fsConfig, log)
+
 	return &diskUsage{
 		log:         log,
 		metrics:     NewMetrics(log, namespace),
 		directories: directories,
 		interval:    interval,
+		fsMonitor:   fsMonitor,
 	}, nil
 }
 
@@ -68,7 +81,7 @@ func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]Usage
 			continue
 		}
 
-		used, err := getDiskUsed(directory)
+		stats, err := d.fsMonitor.GetStats(directory)
 		if err != nil {
 			d.log.WithField("directory", directory).WithError(err).Error("Failed to get usage")
 
@@ -77,7 +90,12 @@ func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]Usage
 
 		diskUsed = append(diskUsed, Usage{
 			Directory:  directory,
-			UsageBytes: used,
+			UsageBytes: int64(stats.TotalBytes),
+
+			// Filesystem-level statistics
+			FilesystemTotal:     int64(stats.FilesystemTotal),
+			FilesystemAvailable: int64(stats.FilesystemAvailable),
+			FilesystemFree:      int64(stats.FilesystemFree),
 		})
 	}
 
@@ -86,22 +104,4 @@ func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]Usage
 	}
 
 	return diskUsed, nil
-}
-
-func getDiskUsed(path string) (int64, error) {
-	var size int64
-
-	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			size += info.Size()
-		}
-
-		return err
-	})
-
-	return size, err
 }

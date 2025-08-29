@@ -7,6 +7,8 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/filesystem"
 )
 
 // ContainerInfo holds container configuration with metadata.
@@ -30,6 +32,7 @@ type containerMetrics struct {
 	metrics    *metrics
 	collector  *containerCollector
 	backoff    *backoffState
+	fsMonitor  filesystem.Monitor
 }
 
 func NewContainerMetrics(ctx context.Context, log logrus.FieldLogger, namespace string, containers []ContainerInfo, endpoint string, interval time.Duration, labels LabelConfig) (ContainerMetrics, error) {
@@ -45,10 +48,16 @@ func NewContainerMetrics(ctx context.Context, log logrus.FieldLogger, namespace 
 		return nil, err
 	}
 
-	// Initialize metrics
+	// Initialize metrics and filesystem monitor
 	metrics := newMetrics(namespace, labels)
 	collector := newCollector(dockerClient, log)
 	backoff := newBackoffState()
+
+	// Create filesystem monitor with intelligent caching
+	fsConfig := &filesystem.MonitorConfig{
+		CacheConfig: filesystem.DefaultCacheConfig(),
+	}
+	fsMonitor := filesystem.NewMonitor(fsConfig, log)
 
 	return &containerMetrics{
 		log:        log,
@@ -59,6 +68,7 @@ func NewContainerMetrics(ctx context.Context, log logrus.FieldLogger, namespace 
 		metrics:    metrics,
 		collector:  collector,
 		backoff:    backoff,
+		fsMonitor:  fsMonitor,
 	}, nil
 }
 
@@ -170,7 +180,7 @@ func (c *containerMetrics) collectFilesystemMetrics(ctx context.Context, contain
 
 // collectVolumeMetrics collects volume usage metrics for configured volumes
 func (c *containerMetrics) collectVolumeMetrics(ctx context.Context, containerID string, volumeConfigs []VolumeConfig, filesystemInterval time.Duration, labels prometheus.Labels) error {
-	volumeUsages, volumes, err := c.collector.getContainerVolumeUsage(ctx, containerID, volumeConfigs, filesystemInterval)
+	volumeUsages, volumes, err := c.collector.getContainerVolumeUsage(ctx, containerID, volumeConfigs, c.fsMonitor)
 	if err != nil {
 		return err
 	}
