@@ -102,9 +102,28 @@ func (e *exporter) Init(ctx context.Context) error {
 		// Convert ContainerConfig to docker.ContainerInfo
 		containers := make([]docker.ContainerInfo, len(e.config.Docker.Containers))
 		for i, c := range e.config.Docker.Containers {
+			// Convert VolumeConfig from config to docker package types
+			volumes := make([]docker.VolumeConfig, len(c.Volumes))
+			for j, v := range c.Volumes {
+				volumes[j] = docker.VolumeConfig{
+					Name:    v.Name,
+					Path:    v.Path,
+					Type:    v.Type,
+					Monitor: v.Monitor,
+				}
+			}
+
+			// Convert FilesystemConfig
+			filesystem := docker.FilesystemConfig{
+				Enabled:  c.Filesystem.Enabled,
+				Interval: int(c.Filesystem.Interval.Seconds()),
+			}
+
 			containers[i] = docker.ContainerInfo{
-				Name: c.Name,
-				Type: c.Type,
+				Name:       c.Name,
+				Type:       c.Type,
+				Volumes:    volumes,
+				Filesystem: filesystem,
 			}
 		}
 

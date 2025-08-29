@@ -49,6 +49,17 @@ type metrics struct {
 
 	// Process metrics
 	pidsLimit *prometheus.GaugeVec
+
+	// Filesystem metrics
+	filesystemTotalBytes    *prometheus.GaugeVec
+	filesystemWritableBytes *prometheus.GaugeVec
+	filesystemReadOnlyBytes *prometheus.GaugeVec
+
+	// Volume metrics
+	volumeTotalBytes     *prometheus.GaugeVec
+	volumeUsedBytes      *prometheus.GaugeVec
+	volumeAvailableBytes *prometheus.GaugeVec
+	volumeFreeBytes      *prometheus.GaugeVec
 }
 
 func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
@@ -330,6 +341,69 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 		labelNames,
 	)
 
+	// Filesystem metrics
+	m.filesystemTotalBytes = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "filesystem_size_bytes",
+			Help:      "Total container filesystem size in bytes",
+		},
+		labelNames,
+	)
+	m.filesystemWritableBytes = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "filesystem_usage_bytes",
+			Help:      "Container writable layer usage in bytes",
+		},
+		labelNames,
+	)
+	m.filesystemReadOnlyBytes = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "filesystem_readonly_bytes",
+			Help:      "Container read-only layers size in bytes",
+		},
+		labelNames,
+	)
+
+	// Volume metrics (with volume name label)
+	volumeLabelNames := make([]string, len(labelNames))
+	copy(volumeLabelNames, labelNames)
+	volumeLabelNames = append(volumeLabelNames, "volume_name", "volume_type", "mount_path")
+	m.volumeTotalBytes = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "volume_size_bytes",
+			Help:      "Total volume capacity in bytes",
+		},
+		volumeLabelNames,
+	)
+	m.volumeUsedBytes = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "volume_usage_bytes",
+			Help:      "Used space on volume in bytes",
+		},
+		volumeLabelNames,
+	)
+	m.volumeAvailableBytes = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "volume_available_bytes",
+			Help:      "Available space on volume in bytes",
+		},
+		volumeLabelNames,
+	)
+	m.volumeFreeBytes = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "volume_free_bytes",
+			Help:      "Free space on volume in bytes",
+		},
+		volumeLabelNames,
+	)
+
 	// Register all metrics
 	prometheus.MustRegister(m.cpuUsagePercent)
 	prometheus.MustRegister(m.memoryUsageBytes)
@@ -363,6 +437,17 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 	prometheus.MustRegister(m.blockIOReadBytesPerDevice)
 	prometheus.MustRegister(m.blockIOWriteBytesPerDevice)
 	prometheus.MustRegister(m.pidsLimit)
+
+	// Register filesystem metrics
+	prometheus.MustRegister(m.filesystemTotalBytes)
+	prometheus.MustRegister(m.filesystemWritableBytes)
+	prometheus.MustRegister(m.filesystemReadOnlyBytes)
+
+	// Register volume metrics
+	prometheus.MustRegister(m.volumeTotalBytes)
+	prometheus.MustRegister(m.volumeUsedBytes)
+	prometheus.MustRegister(m.volumeAvailableBytes)
+	prometheus.MustRegister(m.volumeFreeBytes)
 
 	return m
 }
@@ -488,4 +573,37 @@ func calculateCPUPercent(stats *types.StatsJSON) float64 {
 	}
 
 	return 0.0
+}
+
+// updateFilesystemMetrics updates filesystem usage metrics for a container
+func (m *metrics) updateFilesystemMetrics(usage *FilesystemUsage, labels prometheus.Labels) {
+	m.filesystemTotalBytes.With(labels).Set(float64(usage.TotalBytes))
+	m.filesystemWritableBytes.With(labels).Set(float64(usage.WritableBytes))
+	m.filesystemReadOnlyBytes.With(labels).Set(float64(usage.ReadOnlyBytes))
+}
+
+// updateVolumeMetrics updates volume usage metrics for monitored volumes
+func (m *metrics) updateVolumeMetrics(volumeUsages []VolumeUsage, volumes []VolumeInfo, baseLabels prometheus.Labels) {
+	for i, usage := range volumeUsages {
+		if i >= len(volumes) {
+			break // Safety check
+		}
+
+		volume := volumes[i]
+
+		// Create volume-specific labels
+		volumeLabels := make(prometheus.Labels, len(baseLabels)+3)
+		for k, v := range baseLabels {
+			volumeLabels[k] = v
+		}
+
+		volumeLabels["volume_name"] = volume.Name
+		volumeLabels["volume_type"] = volume.Type
+		volumeLabels["mount_path"] = volume.Target
+
+		m.volumeTotalBytes.With(volumeLabels).Set(float64(usage.TotalBytes))
+		m.volumeUsedBytes.With(volumeLabels).Set(float64(usage.UsedBytes))
+		m.volumeAvailableBytes.With(volumeLabels).Set(float64(usage.AvailableBytes))
+		m.volumeFreeBytes.With(volumeLabels).Set(float64(usage.FreeBytes))
+	}
 }

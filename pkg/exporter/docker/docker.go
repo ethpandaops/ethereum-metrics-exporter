@@ -5,13 +5,16 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
 // ContainerInfo holds container configuration with metadata.
 type ContainerInfo struct {
-	Name string
-	Type string
+	Name       string
+	Type       string
+	Volumes    []VolumeConfig
+	Filesystem FilesystemConfig
 }
 
 type ContainerMetrics interface {
@@ -124,6 +127,55 @@ func (c *containerMetrics) collectContainerMetrics(ctx context.Context, containe
 
 	c.metrics.updateContainerMetrics(containerName, stats, labels)
 
+	// Collect filesystem metrics if enabled
+	if containerInfo.Filesystem.Enabled {
+		c.log.WithField("container", containerInfo.Name).Debug("Collecting container filesystem metrics")
+
+		if err := c.collectFilesystemMetrics(ctx, container.ID, labels); err != nil {
+			c.log.WithError(err).WithField("container", containerInfo.Name).Warn("Failed to collect filesystem metrics")
+		}
+	}
+
+	// Collect volume metrics (auto-discover if no volumes configured)
+	c.log.WithFields(logrus.Fields{
+		"container":      containerInfo.Name,
+		"volume_configs": len(containerInfo.Volumes),
+		"auto_discovery": len(containerInfo.Volumes) == 0,
+	}).Debug("Initiating volume metrics collection")
+
+	// Calculate filesystem interval from container config (default to 5 minutes if not set)
+	filesystemInterval := 5 * time.Minute
+	if containerInfo.Filesystem.Interval > 0 {
+		filesystemInterval = time.Duration(containerInfo.Filesystem.Interval) * time.Second
+	}
+
+	if err := c.collectVolumeMetrics(ctx, container.ID, containerInfo.Volumes, filesystemInterval, labels); err != nil {
+		c.log.WithError(err).WithField("container", containerInfo.Name).Warn("Failed to collect volume metrics")
+	}
+
+	return nil
+}
+
+// collectFilesystemMetrics collects filesystem usage metrics for a container
+func (c *containerMetrics) collectFilesystemMetrics(ctx context.Context, containerID string, labels prometheus.Labels) error {
+	usage, err := c.collector.getContainerFilesystemUsage(ctx, containerID)
+	if err != nil {
+		return err
+	}
+
+	c.metrics.updateFilesystemMetrics(usage, labels)
+
+	return nil
+}
+
+// collectVolumeMetrics collects volume usage metrics for configured volumes
+func (c *containerMetrics) collectVolumeMetrics(ctx context.Context, containerID string, volumeConfigs []VolumeConfig, filesystemInterval time.Duration, labels prometheus.Labels) error {
+	volumeUsages, volumes, err := c.collector.getContainerVolumeUsage(ctx, containerID, volumeConfigs, filesystemInterval)
+	if err != nil {
+		return err
+	}
+
+	c.metrics.updateVolumeMetrics(volumeUsages, volumes, labels)
 	return nil
 }
 

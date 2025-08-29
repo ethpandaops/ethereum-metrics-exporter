@@ -49,10 +49,28 @@ type DiskUsage struct {
 	Interval    human.Duration `yaml:"interval"`
 }
 
+// VolumeConfig defines volume monitoring configuration
+// If no volumes are specified, all container volumes will be auto-discovered and monitored.
+// Use "*" as name to apply settings to all discovered volumes.
+type VolumeConfig struct {
+	Name    string `yaml:"name"`    // Volume name or identifier ("*" for all volumes)
+	Path    string `yaml:"path"`    // Mount path in container (alternative matcher)
+	Type    string `yaml:"type"`    // Volume type filter: "named", "bind", "tmpfs" (optional)
+	Monitor bool   `yaml:"monitor"` // Whether to collect usage metrics for this volume
+}
+
+// FilesystemConfig defines filesystem monitoring settings
+type FilesystemConfig struct {
+	Enabled  bool           `yaml:"enabled"`  // Enable container filesystem monitoring
+	Interval human.Duration `yaml:"interval"` // Collection interval (default: same as container stats)
+}
+
 // ContainerConfig defines a container to monitor with its metadata.
 type ContainerConfig struct {
-	Name string `yaml:"name"`
-	Type string `yaml:"type"`
+	Name       string           `yaml:"name"`
+	Type       string           `yaml:"type"`
+	Volumes    []VolumeConfig   `yaml:"volumes,omitempty"`    // Volume monitoring configuration (empty = auto-discover all)
+	Filesystem FilesystemConfig `yaml:"filesystem,omitempty"` // Filesystem monitoring settings
 }
 
 // DockerConfig configures the exporter to expose Docker container metrics.
