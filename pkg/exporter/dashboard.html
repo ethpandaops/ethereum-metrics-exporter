@@ -519,7 +519,7 @@
 
             const value = document.createElement('div');
             value.className = 'metric-value';
-            value.textContent = formatValue(metric.currentValue);
+            value.textContent = formatValue(metric.currentValue, metric.name);
 
             header.appendChild(name);
             header.appendChild(value);
@@ -572,7 +572,7 @@
         function updateMetricCard(card, key, metric) {
             // Update metric value
             const value = card.querySelector('.metric-value');
-            value.textContent = formatValue(metric.currentValue);
+            value.textContent = formatValue(metric.currentValue, metric.name);
             
             // Update metric name highlighting
             const name = card.querySelector('.metric-name');
@@ -641,7 +641,7 @@
                                     const timestamp = context[0].parsed.x;
                                     return new Date(timestamp).toLocaleTimeString();
                                 },
-                                label: (context) => `Value: ${formatValue(context.parsed.y)}`
+                                label: (context) => `Value: ${formatValue(context.parsed.y, metric.name)}`
                             }
                         }
                     },
@@ -670,7 +670,7 @@
                                 color: 'rgba(0, 0, 0, 0.05)'
                             },
                             ticks: {
-                                callback: (value) => formatValue(value),
+                                callback: (value) => formatValue(value, metric.name),
                                 maxTicksLimit: 4,
                                 font: { size: 10 }
                             }
@@ -695,16 +695,56 @@
             chart.update();
         }
 
-        function formatValue(value) {
+        function formatValue(value, metricName = '') {
             if (isNaN(value)) return 'NaN';
             if (!isFinite(value)) return value > 0 ? 'Inf' : '-Inf';
 
+            // Special formatting for byte metrics
+            if (metricName.includes('bytes')) {
+                return formatBytes(value);
+            }
+
+            // Default numeric formatting
             const absValue = Math.abs(value);
             if (absValue >= 1e9) return (value / 1e9).toFixed(2) + 'B';
             if (absValue >= 1e6) return (value / 1e6).toFixed(2) + 'M';
             if (absValue >= 1e3) return (value / 1e3).toFixed(2) + 'K';
             if (absValue < 0.01 && absValue > 0) return value.toExponential(2);
             return value.toFixed(2);
+        }
+
+        function formatBytes(bytes) {
+            if (isNaN(bytes) || bytes === 0) return '0 B';
+            
+            const absBytes = Math.abs(bytes);
+            const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+            const k = 1024;
+            
+            let unitIndex = 0;
+            let size = absBytes;
+            
+            // Find appropriate unit
+            while (size >= k && unitIndex < units.length - 1) {
+                size /= k;
+                unitIndex++;
+            }
+            
+            // Format the number - use more precision for smaller values
+            let formattedSize;
+            if (size >= 100) {
+                formattedSize = size.toFixed(0);
+            } else if (size >= 10) {
+                formattedSize = size.toFixed(1);
+            } else {
+                formattedSize = size.toFixed(2);
+            }
+            
+            // Add back the sign if negative
+            if (bytes < 0) {
+                formattedSize = '-' + formattedSize;
+            }
+            
+            return formattedSize + ' ' + units[unitIndex];
         }
 
         function filterMetrics() {
