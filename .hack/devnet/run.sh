@@ -107,8 +107,26 @@ docker:
   containers:
     - name: "$(docker inspect --format='{{.Name}}' $FIRST_EXECUTION_NODE | sed 's/^[/]//')"
       type: "execution"
+      filesystem:
+        enabled: true
+      volumes:
+        - name: "*"
+          monitor: true
+        - path: "/jwt"
+          monitor: false
+        - path: "/network-configs"
+          monitor: false
     - name: "$(docker inspect --format='{{.Name}}' $FIRST_BEACON_NODE | sed 's/^[/]//')"
       type: "consensus"
+      filesystem:
+        enabled: true
+      volumes:
+        - name: "*"
+          monitor: true
+        - path: "/jwt"
+          monitor: false
+        - path: "/network-configs"
+          monitor: false
   labels:
     containerName: true
     containerID: true
