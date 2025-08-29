@@ -20,44 +20,39 @@ docker:
   enabled: false
   endpoint: "unix:///var/run/docker.sock"
   interval: "10s"
+  labels: # labels to include in the docker metrics
+    containerName: true
+    containerID: false
+    imageName: true
+    imageTag: true
   containers:
-    # Example 1: Auto-discover all volumes (no volumes section needed)
     - name: "geth"
       type: "execution"
       filesystem:
         enabled: true
-        interval: 30s
-      # volumes: [] # Empty or omitted = auto-discover all container volumes
-    
-    # Example 2: Monitor all volumes but disable specific ones
     - name: "lighthouse"
-      type: "beacon"
+      type: "consensus"
       filesystem:
         enabled: true
-        interval: 30s
-      volumes:
-        - name: "*"           # Apply to all discovered volumes
-          monitor: true       # Monitor all by default
-        - path: "/tmp"        # But disable monitoring for /tmp mount
-          monitor: false
 
-    # Example 3: Explicit volume configuration (original behavior)
-    - name: "prysm"
-      type: "beacon"
-      filesystem:
-        enabled: true
-        interval: 30s
-      volumes:
-        - name: "prysm-data"
-          path: "/data"
-          type: "named"
-          monitor: true
-        - name: "prysm-keys"
-          path: "/keys"
-          type: "bind"
-          monitor: false
-  labels:
-    containerName: true
-    containerID: false
-    imageName: true
-    imageTag: false
+  #  # Auto-discover all volumes (simplest)
+  #  - name: "geth"
+  #    type: "execution"
+  #    filesystem:
+  #      enabled: true
+
+  #  # Monitor all but disable specific mounts
+  #  - name: "lighthouse"
+  #    type: "beacon"
+  #    volumes:
+  #      - name: "*"
+  #        monitor: true
+  #      - path: "/tmp"
+  #        monitor: false
+
+  #  # Explicit configuration
+  #  - name: "prysm"
+  #    volumes:
+  #      - name: "prysm-data"
+  #        path: "/data"
+  #        monitor: true
