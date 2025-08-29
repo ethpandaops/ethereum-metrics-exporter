@@ -186,6 +186,7 @@ func (c *containerMetrics) collectVolumeMetrics(ctx context.Context, containerID
 	}
 
 	c.metrics.updateVolumeMetrics(volumeUsages, volumes, labels)
+
 	return nil
 }
 
