@@ -12,8 +12,11 @@ type Metrics interface {
 }
 
 type metrics struct {
-	log       logrus.FieldLogger
-	diskUsage *prometheus.GaugeVec
+	log           logrus.FieldLogger
+	diskUsage     *prometheus.GaugeVec
+	diskSize      *prometheus.GaugeVec
+	diskAvailable *prometheus.GaugeVec
+	diskFree      *prometheus.GaugeVec
 }
 
 // NewMetrics returns a new Metrics instance.
@@ -33,13 +36,54 @@ func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 				"directory",
 			},
 		),
+		diskSize: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "size_bytes",
+				Help:        "Total filesystem capacity (in bytes).",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"directory",
+			},
+		),
+		diskAvailable: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "available_bytes",
+				Help:        "Available space on filesystem (in bytes).",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"directory",
+			},
+		),
+		diskFree: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "free_bytes",
+				Help:        "Free space on filesystem (in bytes).",
+				ConstLabels: constLabels,
+			},
+			[]string{
+				"directory",
+			},
+		),
 	}
 
-	prometheus.MustRegister(m.diskUsage)
+	prometheus.MustRegister(
+		m.diskUsage,
+		m.diskSize,
+		m.diskAvailable,
+		m.diskFree,
+	)
 
 	return m
 }
 
 func (m *metrics) ObserveDiskUsage(usage Usage) {
 	m.diskUsage.WithLabelValues(usage.Directory).Set(float64(usage.UsageBytes))
+	m.diskSize.WithLabelValues(usage.Directory).Set(float64(usage.FilesystemTotal))
+	m.diskAvailable.WithLabelValues(usage.Directory).Set(float64(usage.FilesystemAvailable))
+	m.diskFree.WithLabelValues(usage.Directory).Set(float64(usage.FilesystemFree))
 }

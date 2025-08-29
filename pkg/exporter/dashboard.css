@@ -101,6 +101,26 @@ h1 {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.search-box input.search-flash {
+    animation: searchFlash 0.3s ease;
+}
+
+@keyframes searchFlash {
+    0% {
+        background-color: white;
+        border-color: #ced4da;
+    }
+    50% {
+        background-color: #e7f3ff;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+    }
+    100% {
+        background-color: white;
+        border-color: #ced4da;
+    }
+}
+
 .status {
     display: flex;
     align-items: center;
@@ -151,7 +171,98 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: start;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
+}
+
+.metric-metadata {
+    background: #f8f9fa;
+    border-left: 3px solid #6c757d;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.metric-type {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-help {
+    color: #6c757d;
+    line-height: 1.4;
+    font-size: 12px;
+}
+
+.metric-type-value {
+    cursor: help;
+    border-bottom: 1px dotted #6c757d;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.metric-type-value:hover {
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+
+/* Custom tooltip styling using data-tooltip instead of title to prevent native tooltip */
+.metric-type-value[data-tooltip] {
+    position: relative;
+}
+
+.metric-type-value[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    width: 450px;
+    max-width: 450px;
+    text-align: left;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    animation: tooltipFadeIn 0.2s ease forwards;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.metric-type-value[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #333;
+    opacity: 0;
+    animation: tooltipFadeIn 0.2s ease forwards;
+    pointer-events: none;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 .metric-name {
@@ -189,10 +300,58 @@ h1 {
     transition: all 0.2s;
 }
 
-.metric-label:hover {
+.metric-label.clickable-label {
+    cursor: pointer;
+}
+
+.metric-label.clickable-label:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border-color: #0056b3;
+}
+
+.metric-label.clickable-label:hover .label-key,
+.metric-label.clickable-label:hover .label-value {
+    color: white;
+}
+
+.metric-label.clickable-label:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Highlight styles for search matches */
+.search-highlight {
+    background-color: #ffeb3b;
+    color: #333;
+    padding: 1px 2px;
+    border-radius: 2px;
+    font-weight: 600;
+}
+
+/* Highlight label that matches a filter */
+.metric-label.label-highlighted {
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    border-color: #1e7e34;
+}
+
+.metric-label.label-highlighted .label-key,
+.metric-label.label-highlighted .label-value {
+    color: white;
+}
+
+/* Highlight label that matches text search */
+.metric-label.label-text-match {
+    box-shadow: 0 0 0 2px rgba(255, 235, 59, 0.5);
+}
+
+.metric-label.label-text-match .search-highlight {
+    background-color: transparent;
+    text-decoration: underline;
+    text-decoration-color: #333;
+    text-decoration-thickness: 2px;
+    padding: 0;
 }
 
 .label-key {

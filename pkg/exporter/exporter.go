@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethpandaops/beacon/pkg/beacon"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/disk"
+	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/docker"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/execution"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -40,8 +41,9 @@ type exporter struct {
 	config    *Config
 
 	// Exporters
-	execution execution.Node
-	diskUsage disk.UsageMetrics
+	execution     execution.Node
+	diskUsage     disk.UsageMetrics
+	dockerMetrics docker.ContainerMetrics
 
 	// Clients
 	beacon beacon.Node
@@ -94,6 +96,54 @@ func (e *exporter) Init(ctx context.Context) error {
 		e.diskUsage = diskUsage
 	}
 
+	if e.config.Docker.Enabled {
+		e.log.WithField("containers", e.config.Docker.Containers).Info("Initializing Docker metrics...")
+
+		// Convert ContainerConfig to docker.ContainerInfo
+		containers := make([]docker.ContainerInfo, len(e.config.Docker.Containers))
+		for i, c := range e.config.Docker.Containers {
+			// Convert VolumeConfig from config to docker package types
+			volumes := make([]docker.VolumeConfig, len(c.Volumes))
+			for j, v := range c.Volumes {
+				volumes[j] = docker.VolumeConfig{
+					Name:    v.Name,
+					Path:    v.Path,
+					Type:    v.Type,
+					Monitor: v.Monitor,
+				}
+			}
+
+			// Convert FilesystemConfig
+			filesystem := docker.FilesystemConfig{
+				Enabled:  c.Filesystem.Enabled,
+				Interval: int(c.Filesystem.Interval.Seconds()),
+			}
+
+			containers[i] = docker.ContainerInfo{
+				Name:       c.Name,
+				Type:       c.Type,
+				Volumes:    volumes,
+				Filesystem: filesystem,
+			}
+		}
+
+		dockerMetrics, err := docker.NewContainerMetrics(
+			ctx,
+			e.log.WithField("exporter", "docker"),
+			fmt.Sprintf("%s_docker", e.namespace),
+			containers,
+			e.config.Docker.Endpoint,
+			e.config.Docker.Interval.Duration,
+			e.config.Docker.Labels,
+		)
+		if err != nil {
+			e.log.WithError(err).Error("failed to initialize Docker metrics")
+			return err
+		}
+
+		e.dockerMetrics = dockerMetrics
+	}
+
 	return nil
 }
 
@@ -132,6 +182,12 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 		e.log.Info("Starting disk usage metrics...")
 
 		go e.diskUsage.StartAsync(ctx)
+	}
+
+	if e.config.Docker.Enabled {
+		e.log.WithField("containers", e.config.Docker.Containers).Info("Starting Docker metrics...")
+
+		go e.dockerMetrics.StartAsync(ctx)
 	}
 
 	if e.config.Consensus.Enabled {

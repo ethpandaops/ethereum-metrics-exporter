@@ -100,6 +100,38 @@ execution:
     - "net"
     - "web3"
     - "txpool"
+docker:
+  enabled: true
+  endpoint: "unix:///var/run/docker.sock"
+  interval: "10s"
+  containers:
+    - name: "$(docker inspect --format='{{.Name}}' $FIRST_EXECUTION_NODE | sed 's/^[/]//')"
+      type: "execution"
+      filesystem:
+        enabled: true
+      volumes:
+        - name: "*"
+          monitor: true
+        - path: "/jwt"
+          monitor: false
+        - path: "/network-configs"
+          monitor: false
+    - name: "$(docker inspect --format='{{.Name}}' $FIRST_BEACON_NODE | sed 's/^[/]//')"
+      type: "consensus"
+      filesystem:
+        enabled: true
+      volumes:
+        - name: "*"
+          monitor: true
+        - path: "/jwt"
+          monitor: false
+        - path: "/network-configs"
+          monitor: false
+  labels:
+    containerName: true
+    containerID: true
+    imageName: true
+    imageTag: true
 diskUsage:
   enabled: $([ -n "$BEACON_DATA_HOST_PATH" ] || [ -n "$EXECUTION_DATA_HOST_PATH" ] && echo "true" || echo "false")
   interval: 1m  # Polling interval (in minutes) - accepts time units: s, m, h
