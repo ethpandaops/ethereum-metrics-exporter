@@ -1,0 +1,23 @@
+---
+description: CMD - Cobra CLI command definitions and configuration management
+globs: 
+  - "*.go"
+  - "**/cmd/**/*.go"
+alwaysApply: false
+---
+
+# CMD Component
+
+Command-line interface entry point using Cobra CLI framework with YAML/flag-based configuration.
+
+## Key Patterns
+- Use Cobra's persistent flags for global configuration options
+- Configuration precedence: CLI flags override YAML config file
+- Initialize exporter instance in initCommon() with structured logging
+- Support both file-based and flag-based configuration methods
+
+## Important Constraints
+- Single exporter instance per process lifecycle
+- JSON formatted logging for structured output
+- Default metrics port 9090 unless overridden
+- Graceful error handling with Fatal logging for startup failures
