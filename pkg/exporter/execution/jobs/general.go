@@ -63,7 +63,7 @@ func NewGeneralMetrics(client *ethclient.Client, internalAPI api.ExecutionClient
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
 				Name:        "chain_id",
-				Help:        "The chain id the node.",
+				Help:        "The chain id of the node.",
 				ConstLabels: constLabels,
 			},
 		),

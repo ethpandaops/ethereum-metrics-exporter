@@ -16,3 +16,43 @@ diskUsage:
   interval: 60m  # Polling interval (in minutes) - accepts time units: s, m, h
   directories:
   - /data/ethereum
+docker:
+  enabled: false
+  endpoint: "unix:///var/run/docker.sock"
+  interval: "10s"
+  labels: # labels to include in the docker metrics
+    containerName: true
+    containerID: false
+    imageName: true
+    imageTag: true
+  containers:
+    - name: "geth"
+      type: "execution"
+      filesystem:
+        enabled: true
+    - name: "lighthouse"
+      type: "consensus"
+      filesystem:
+        enabled: true
+
+  #  # Auto-discover all volumes (simplest)
+  #  - name: "geth"
+  #    type: "execution"
+  #    filesystem:
+  #      enabled: true
+
+  #  # Monitor all but disable specific mounts
+  #  - name: "lighthouse"
+  #    type: "beacon"
+  #    volumes:
+  #      - name: "*"
+  #        monitor: true
+  #      - path: "/tmp"
+  #        monitor: false
+
+  #  # Explicit configuration
+  #  - name: "prysm"
+  #    volumes:
+  #      - name: "prysm-data"
+  #        path: "/data"
+  #        monitor: true
