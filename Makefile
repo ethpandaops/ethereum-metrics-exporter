@@ -147,7 +147,23 @@ devnet:
 
 .PHONY: devnet-run
 devnet-run: devnet
-	go run main.go --config .hack/devnet/generated-ethereum-metrics-exporter-config.yaml
+	go run main.go --metrics-port 9091 --config .hack/devnet/generated-ethereum-metrics-exporter-config.yaml
+
+.PHONY: devnet-run-docker
+devnet-run-docker: devnet docker-build ## Run Docker container with config volume mount and docker socket
+	@echo "Running Docker container with config mount..."
+	docker run --rm -it \
+		--network host \
+		--pid=host \
+		--privileged \
+		--cap-add SYS_ADMIN \
+		--cap-add NET_ADMIN \
+		--cap-add SYS_PTRACE \
+		-v $(PWD)/.hack/devnet/generated-ethereum-metrics-exporter-config.yaml:/app/config.yaml:ro \
+		-v /var/run/docker.sock:/var/run/docker.sock:ro \
+		-v /var/lib/docker/volumes:/var/lib/docker/volumes:ro \
+		$(PROJECT_NAME):$(VERSION) \
+		--config /app/config.yaml
 
 .PHONY: devnet-clean
 devnet-clean:
