@@ -67,10 +67,11 @@ type FilesystemConfig struct {
 
 // ContainerConfig defines a container to monitor with its metadata.
 type ContainerConfig struct {
-	Name       string           `yaml:"name"`
-	Type       string           `yaml:"type"`
-	Volumes    []VolumeConfig   `yaml:"volumes,omitempty"`    // Volume monitoring configuration (empty = auto-discover all)
-	Filesystem FilesystemConfig `yaml:"filesystem,omitempty"` // Filesystem monitoring settings
+	Name          string                     `yaml:"name"`
+	Type          string                     `yaml:"type"`
+	Volumes       []VolumeConfig             `yaml:"volumes,omitempty"`        // Volume monitoring configuration (empty = auto-discover all)
+	Filesystem    FilesystemConfig           `yaml:"filesystem,omitempty"`     // Filesystem monitoring settings
+	PortBandwidth docker.PortBandwidthConfig `yaml:"port_bandwidth,omitempty"` // Port bandwidth monitoring settings
 }
 
 // DockerConfig configures the exporter to expose Docker container metrics.

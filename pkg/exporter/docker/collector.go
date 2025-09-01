@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -36,16 +37,39 @@ type FilesystemConfig struct {
 	Interval int  `yaml:"interval"` // Collection interval in seconds (0 = same as container stats)
 }
 
-type containerCollector struct {
-	client *client.Client
-	log    logrus.FieldLogger
+// PortBandwidthConfig defines port bandwidth monitoring settings
+type PortBandwidthConfig struct {
+	Enabled         bool          `yaml:"enabled"`           // Enable port bandwidth monitoring
+	Interval        time.Duration `yaml:"interval"`          // Collection interval
+	MonitorAllPorts bool          `yaml:"monitor_all_ports"` // Monitor all discovered ports
+	SpecificPorts   []int         `yaml:"specific_ports"`    // Specific ports to monitor
+	Protocols       []string      `yaml:"protocols"`         // Protocols to monitor (tcp, udp)
+	CleanupTimeout  time.Duration `yaml:"cleanup_timeout"`   // Cleanup timeout
+	StartupCleanup  bool          `yaml:"startup_cleanup"`   // Cleanup stale rules on startup
 }
 
-func newCollector(dockerClient *client.Client, log logrus.FieldLogger) *containerCollector {
-	return &containerCollector{
+type containerCollector struct {
+	client      *client.Client
+	log         logrus.FieldLogger
+	portMonitor PortMonitor
+}
+
+func newCollector(dockerClient *client.Client, log logrus.FieldLogger, portBandwidthConfig *PortBandwidthConfig) *containerCollector {
+	collector := &containerCollector{
 		client: dockerClient,
 		log:    log,
 	}
+
+	if portBandwidthConfig != nil && portBandwidthConfig.Enabled {
+		portMonitor, err := NewPortMonitor(dockerClient, portBandwidthConfig, log)
+		if err != nil {
+			log.WithError(err).Error("Failed to create port monitor, port bandwidth monitoring disabled")
+		} else {
+			collector.portMonitor = portMonitor
+		}
+	}
+
+	return collector
 }
 
 func (c *containerCollector) getContainerStats(ctx context.Context, containerID string) (*types.StatsJSON, error) {
@@ -225,4 +249,44 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 // isContainerInspectRequired checks if we need inspect API call for this container
 func (c *containerCollector) isContainerInspectRequired(volumeConfigs []VolumeConfig) bool {
 	return len(volumeConfigs) > 0 // Need inspect if monitoring volumes
+}
+
+func (c *containerCollector) startPortMonitoring(ctx context.Context) error {
+	if c.portMonitor == nil {
+		return nil // Port monitoring not enabled
+	}
+
+	return c.portMonitor.Start(ctx)
+}
+
+func (c *containerCollector) stopPortMonitoring() error {
+	if c.portMonitor == nil {
+		return nil // Port monitoring not enabled
+	}
+
+	return c.portMonitor.Stop()
+}
+
+func (c *containerCollector) addContainerToPortMonitoring(ctx context.Context, containerID string) error {
+	if c.portMonitor == nil {
+		return nil // Port monitoring not enabled
+	}
+
+	return c.portMonitor.AddContainer(ctx, containerID)
+}
+
+func (c *containerCollector) removeContainerFromPortMonitoring(containerID string) error {
+	if c.portMonitor == nil {
+		return nil // Port monitoring not enabled
+	}
+
+	return c.portMonitor.RemoveContainer(containerID)
+}
+
+func (c *containerCollector) collectPortBandwidthMetrics() (map[string]map[string]CounterStats, error) {
+	if c.portMonitor == nil {
+		return nil, nil // Port monitoring not enabled
+	}
+
+	return c.portMonitor.CollectMetrics()
 }

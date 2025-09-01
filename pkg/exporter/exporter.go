@@ -120,10 +120,11 @@ func (e *exporter) Init(ctx context.Context) error {
 			}
 
 			containers[i] = docker.ContainerInfo{
-				Name:       c.Name,
-				Type:       c.Type,
-				Volumes:    volumes,
-				Filesystem: filesystem,
+				Name:          c.Name,
+				Type:          c.Type,
+				Volumes:       volumes,
+				Filesystem:    filesystem,
+				PortBandwidth: c.PortBandwidth,
 			}
 		}
 
