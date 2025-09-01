@@ -120,10 +120,11 @@ func (e *exporter) Init(ctx context.Context) error {
 			}
 
 			containers[i] = docker.ContainerInfo{
-				Name:       c.Name,
-				Type:       c.Type,
-				Volumes:    volumes,
-				Filesystem: filesystem,
+				Name:          c.Name,
+				Type:          c.Type,
+				Volumes:       volumes,
+				Filesystem:    filesystem,
+				PortBandwidth: c.PortBandwidth,
 			}
 		}
 
@@ -201,6 +202,11 @@ func (e *exporter) Serve(ctx context.Context, port int) error {
 
 		go e.beacon.StartAsync(ctx)
 	}
+
+	// Block until context is cancelled
+	e.log.Info("All metrics exporters started, waiting for shutdown signal...")
+	<-ctx.Done()
+	e.log.Info("Shutdown signal received, stopping metrics server...")
 
 	return nil
 }

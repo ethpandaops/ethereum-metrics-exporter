@@ -52,6 +52,11 @@ func Execute() {
 	}
 }
 
+// ExecuteWithContext executes the root command with the provided context for graceful shutdown support.
+func ExecuteWithContext(ctx context.Context) error {
+	return rootCmd.ExecuteContext(ctx)
+}
+
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ethereum-metrics-exporter.yaml)")
 	rootCmd.PersistentFlags().IntVarP(&metricsPort, "metrics-port", "", DefaultMetricsPort, "Port to serve Prometheus metrics on")
@@ -86,7 +91,10 @@ func loadConfigFromFile(file string) (*exporter.Config, error) {
 func initCommon() {
 	ctx = context.Background()
 	log := logrus.New()
-	log.SetFormatter(&logrus.JSONFormatter{})
+	log.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+		ForceColors:   true,
+	})
 	logr = log
 
 	log.WithField("cfgFile", cfgFile).Info("Loading config")

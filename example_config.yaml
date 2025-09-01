@@ -25,16 +25,68 @@ docker:
     containerID: false
     imageName: true
     imageTag: true
+  
+  # Port bandwidth monitoring configuration:
+  # - enabled: Enable/disable port monitoring for this container
+  # - interval: How often to collect bandwidth metrics (e.g. "30s", "1m")  
+  # - monitor_all_ports: Monitor all discovered ports (published, exposed, listening)
+  # - specific_ports: List of specific ports to monitor (only used if monitor_all_ports: false)
+  # - protocols: List of protocols to monitor ["tcp", "udp"] or just ["tcp"]
+  # - cleanup_timeout: Timeout for nftables rule cleanup operations
+  # - startup_cleanup: Clean up stale rules from previous runs on startup
   containers:
+    # Basic port monitoring - monitor all discovered ports
     - name: "geth"
       type: "execution"
       filesystem:
         enabled: true
+      port_bandwidth:
+        enabled: true
+        interval: "30s"
+        monitor_all_ports: true
+        protocols: ["tcp", "udp"]
+        cleanup_timeout: "10s"
+        startup_cleanup: true
+    
+    # Specific port monitoring - monitor only certain ports  
     - name: "lighthouse"
       type: "consensus"
       filesystem:
         enabled: true
+      port_bandwidth:
+        enabled: true
+        interval: "30s"
+        monitor_all_ports: false
+        specific_ports: [9000, 5052, 5054]
+        protocols: ["tcp", "udp"]
+        cleanup_timeout: "10s"
+        startup_cleanup: true
 
+  #  # Additional port monitoring examples:
+  #  
+  #  # Ethereum validator with specific ports
+  #  - name: "prysm-validator"
+  #    type: "validator"
+  #    portBandwidth:
+  #      enabled: true
+  #      interval: "60s"
+  #      monitor_all_ports: false
+  #      specific_ports: [7000, 7500, 8080]
+  #      protocols: ["tcp"]
+  #      cleanup_timeout: "15s"
+  #      startup_cleanup: true
+  #  
+  #  # TCP-only monitoring for API services
+  #  - name: "node-api"
+  #    type: "api"
+  #    portBandwidth:
+  #      enabled: true
+  #      interval: "15s"
+  #      monitor_all_ports: true
+  #      protocols: ["tcp"]
+  #      cleanup_timeout: "5s"
+  #      startup_cleanup: false
+  #
   #  # Auto-discover all volumes (simplest)
   #  - name: "geth"
   #    type: "execution"

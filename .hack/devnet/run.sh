@@ -107,6 +107,11 @@ docker:
   containers:
     - name: "$(docker inspect --format='{{.Name}}' $FIRST_EXECUTION_NODE | sed 's/^[/]//')"
       type: "execution"
+      port_bandwidth:
+        enabled: true
+        interval: "30s"
+        monitor_all_ports: true
+        protocols: ["tcp", "udp"]
       filesystem:
         enabled: true
       volumes:
@@ -118,6 +123,11 @@ docker:
           monitor: false
     - name: "$(docker inspect --format='{{.Name}}' $FIRST_BEACON_NODE | sed 's/^[/]//')"
       type: "consensus"
+      port_bandwidth:
+        enabled: true
+        interval: "30s"
+        monitor_all_ports: true
+        protocols: ["tcp", "udp"]
       filesystem:
         enabled: true
       volumes:

@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/prometheus/client_golang/prometheus"
@@ -60,6 +61,11 @@ type metrics struct {
 	volumeUsedBytes      *prometheus.GaugeVec
 	volumeAvailableBytes *prometheus.GaugeVec
 	volumeFreeBytes      *prometheus.GaugeVec
+
+	// Port bandwidth metrics
+	portBandwidthBytes   *prometheus.CounterVec
+	portBandwidthPackets *prometheus.CounterVec
+	portBandwidthRate    *prometheus.GaugeVec
 }
 
 func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
@@ -404,6 +410,36 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 		volumeLabelNames,
 	)
 
+	// Port bandwidth metrics
+	portBandwidthLabelNames := []string{"container_name", "container_id", "port", "protocol", "direction"}
+
+	m.portBandwidthBytes = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "port_bandwidth_bytes_total",
+			Help:      "Total bytes transferred through container ports",
+		},
+		portBandwidthLabelNames,
+	)
+
+	m.portBandwidthPackets = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "port_bandwidth_packets_total",
+			Help:      "Total packets transferred through container ports",
+		},
+		portBandwidthLabelNames,
+	)
+
+	m.portBandwidthRate = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "port_bandwidth_bytes_per_second",
+			Help:      "Current bandwidth usage in bytes per second for container ports",
+		},
+		portBandwidthLabelNames,
+	)
+
 	// Register all metrics
 	prometheus.MustRegister(m.cpuUsagePercent)
 	prometheus.MustRegister(m.memoryUsageBytes)
@@ -448,6 +484,11 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 	prometheus.MustRegister(m.volumeUsedBytes)
 	prometheus.MustRegister(m.volumeAvailableBytes)
 	prometheus.MustRegister(m.volumeFreeBytes)
+
+	// Register port bandwidth metrics
+	prometheus.MustRegister(m.portBandwidthBytes)
+	prometheus.MustRegister(m.portBandwidthPackets)
+	prometheus.MustRegister(m.portBandwidthRate)
 
 	return m
 }
@@ -605,5 +646,29 @@ func (m *metrics) updateVolumeMetrics(volumeUsages []VolumeUsage, volumes []Volu
 		m.volumeUsedBytes.With(volumeLabels).Set(float64(usage.UsedBytes))
 		m.volumeAvailableBytes.With(volumeLabels).Set(float64(usage.AvailableBytes))
 		m.volumeFreeBytes.With(volumeLabels).Set(float64(usage.FreeBytes))
+	}
+}
+
+func (m *metrics) updatePortBandwidthMetrics(containerName, containerID string, portStats map[string]CounterStats) {
+	for ruleKey, stats := range portStats {
+		parts := strings.Split(ruleKey, ":")
+		if len(parts) != 3 {
+			continue
+		}
+
+		port := parts[0]
+		protocol := parts[1]
+		direction := parts[2]
+
+		labels := prometheus.Labels{
+			"container_name": containerName,
+			"container_id":   containerID,
+			"port":           port,
+			"protocol":       protocol,
+			"direction":      direction,
+		}
+
+		m.portBandwidthBytes.With(labels).Add(float64(stats.Bytes))
+		m.portBandwidthPackets.With(labels).Add(float64(stats.Packets))
 	}
 }
