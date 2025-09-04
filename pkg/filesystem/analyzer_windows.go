@@ -1,4 +1,4 @@
-//go:build unix
+//go:build windows
 
 package filesystem
 
@@ -6,10 +6,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
+)
+
+var (
+	kernel32         = syscall.NewLazyDLL("kernel32.dll")
+	getDiskFreeSpace = kernel32.NewProc("GetDiskFreeSpaceExW")
 )
 
 // directoryAnalyzer performs filesystem analysis with error resilience
@@ -54,7 +60,7 @@ func (a *directoryAnalyzer) analyze(path string) (*DirectoryStats, error) {
 		// Filesystem-level statistics
 		FilesystemTotal:     fsTotal,
 		FilesystemAvailable: fsAvailable,
-		FilesystemFree:      fsAvailable, // On most filesystems, available ≈ free for unprivileged access
+		FilesystemFree:      fsAvailable, // On Windows, available ≈ free for unprivileged access
 	}
 
 	a.log.WithFields(logrus.Fields{
@@ -67,18 +73,29 @@ func (a *directoryAnalyzer) analyze(path string) (*DirectoryStats, error) {
 	return stats, nil
 }
 
-// getFilesystemStats retrieves filesystem-level statistics (total and available space)
+// getFilesystemStats retrieves filesystem-level statistics (total and available space) on Windows
 func (a *directoryAnalyzer) getFilesystemStats(path string) (total, available uint64, err error) {
-	var stat unix.Statfs_t
-	if err := unix.Statfs(path, &stat); err != nil {
-		return 0, 0, fmt.Errorf("failed to get filesystem stats for %s: %w", path, err)
+	// Convert path to UTF-16
+	pathPtr, err := syscall.UTF16PtrFromString(path)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to convert path to UTF-16: %w", err)
 	}
 
-	blockSize := uint64(stat.Bsize)
-	totalBytes := stat.Blocks * blockSize
-	availableBytes := stat.Bavail * blockSize
+	var freeBytesAvailable, totalNumberOfBytes, totalNumberOfFreeBytes uint64
 
-	return totalBytes, availableBytes, nil
+	// Call GetDiskFreeSpaceExW
+	r1, _, e1 := getDiskFreeSpace.Call(
+		uintptr(unsafe.Pointer(pathPtr)),
+		uintptr(unsafe.Pointer(&freeBytesAvailable)),
+		uintptr(unsafe.Pointer(&totalNumberOfBytes)),
+		uintptr(unsafe.Pointer(&totalNumberOfFreeBytes)),
+	)
+
+	if r1 == 0 {
+		return 0, 0, fmt.Errorf("GetDiskFreeSpaceExW failed: %v", e1)
+	}
+
+	return totalNumberOfBytes, freeBytesAvailable, nil
 }
 
 // calculateDirectorySize calculates total size and file count for a directory tree

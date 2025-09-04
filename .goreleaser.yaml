@@ -1,3 +1,4 @@
+version: 2
 project_name: ethereum-metrics-exporter
 
 before:
@@ -12,7 +13,6 @@ builds:
       - linux
       - windows
       - darwin
-
     goarch:
       - amd64
       - arm64
@@ -29,7 +29,7 @@ builds:
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 changelog:
   sort: asc
   filters:
