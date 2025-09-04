@@ -13,7 +13,6 @@ builds:
       - linux
       - windows
       - darwin
-
     goarch:
       - amd64
       - arm64
