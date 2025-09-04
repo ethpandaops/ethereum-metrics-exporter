@@ -7,7 +7,7 @@ on:
 
 jobs:
   tag-release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -54,6 +54,6 @@ jobs:
           echo "RELEASE_SUFFIX=$RELEASE_SUFFIX" >> $GITHUB_ENV
 
           # Push the tag
-          git push origin "$VERSION" 
+          git push origin "$VERSION"
         env:
           GITHUB_TOKEN: ${{ secrets.EPOBOT_TOKEN }}
