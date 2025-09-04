@@ -6,3 +6,4 @@ dist/
 coverage.txt
 
 .hack/devnet/generated-*
+ai_plans/
