@@ -8,7 +8,7 @@ toolchain go1.24.0
 replace github.com/attestantio/go-eth2-client => github.com/pk910/go-eth2-client v0.0.0-20250515124841-1d7c6ee326e4
 
 require (
-	github.com/docker/docker v26.1.5+incompatible
+	github.com/docker/docker v28.3.3+incompatible
 	github.com/ethereum/go-ethereum v1.14.10
 	github.com/ethpandaops/beacon v0.52.0
 	github.com/onrik/ethrpc v1.1.1
@@ -30,6 +30,8 @@ require (
 	github.com/chuckpreslar/emission v0.0.0-20170206194824-a7ddd980baf9 // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/consensys/gnark-crypto v0.12.1 // indirect
+	github.com/containerd/errdefs v1.0.0 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20240223125850-b1e8a79f509c // indirect
 	github.com/crate-crypto/go-kzg-4844 v1.0.0 // indirect
