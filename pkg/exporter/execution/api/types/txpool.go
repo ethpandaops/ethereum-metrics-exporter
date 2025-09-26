@@ -38,6 +38,7 @@ func (t *TXPoolStatus) UnmarshalJSON(data []byte) error {
 				if err != nil {
 					return 0, fmt.Errorf("failed to decode hex value for %s: %w", key, err)
 				}
+
 				return hexutil.Uint64(decoded), nil
 			}
 			// Try parsing as decimal string
@@ -45,12 +46,14 @@ func (t *TXPoolStatus) UnmarshalJSON(data []byte) error {
 			if err != nil {
 				return 0, fmt.Errorf("failed to parse string value for %s: %w", key, err)
 			}
+
 			return hexutil.Uint64(n), nil
 		case float64:
 			// Handle numeric value (Nethermind format)
 			if v < 0 || v > float64(^uint64(0)) {
 				return 0, fmt.Errorf("value for %s out of uint64 range: %v", key, v)
 			}
+
 			return hexutil.Uint64(uint64(v)), nil
 		default:
 			return 0, fmt.Errorf("unexpected type for %s: %T", key, v)
@@ -62,12 +65,14 @@ func (t *TXPoolStatus) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+
 	t.Pending = pending
 
 	queued, err := parseValue("queued")
 	if err != nil {
 		return err
 	}
+
 	t.Queued = queued
 
 	return nil

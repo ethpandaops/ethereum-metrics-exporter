@@ -100,15 +100,18 @@ func TestTXPoolStatus_UnmarshalJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got TXPoolStatus
+
 			err := json.Unmarshal([]byte(tt.input), &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TXPoolStatus.UnmarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !tt.wantErr {
 				if got.Pending != tt.want.Pending {
 					t.Errorf("TXPoolStatus.UnmarshalJSON() Pending = %v, want %v", got.Pending, tt.want.Pending)
 				}
+
 				if got.Queued != tt.want.Queued {
 					t.Errorf("TXPoolStatus.UnmarshalJSON() Queued = %v, want %v", got.Queued, tt.want.Queued)
 				}
@@ -170,15 +173,18 @@ func TestTXPoolStatus_UnmarshalJSON_FullResponse(t *testing.T) {
 
 			// Then unmarshal the result into TXPoolStatus
 			var got TXPoolStatus
+
 			err := json.Unmarshal(rpcResponse.Result, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TXPoolStatus.UnmarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !tt.wantErr {
 				if got.Pending != tt.want.Pending {
 					t.Errorf("TXPoolStatus.UnmarshalJSON() Pending = %v, want %v", got.Pending, tt.want.Pending)
 				}
+
 				if got.Queued != tt.want.Queued {
 					t.Errorf("TXPoolStatus.UnmarshalJSON() Queued = %v, want %v", got.Queued, tt.want.Queued)
 				}
