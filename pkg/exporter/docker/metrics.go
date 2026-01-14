@@ -248,13 +248,18 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 	)
 
 	// Network metrics
+	// Create dedicated label slice to avoid backing array sharing issues with append
+	networkLabelNames := make([]string, 0, len(labelNames)+1)
+	networkLabelNames = append(networkLabelNames, labelNames...)
+	networkLabelNames = append(networkLabelNames, "interface")
+
 	m.networkRxBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "network_rx_bytes_total",
 			Help:      "Total network bytes received by Docker container",
 		},
-		append(labelNames, "interface"),
+		networkLabelNames,
 	)
 	m.networkTxBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -262,7 +267,7 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 			Name:      "network_tx_bytes_total",
 			Help:      "Total network bytes transmitted by Docker container",
 		},
-		append(labelNames, "interface"),
+		networkLabelNames,
 	)
 	m.networkRxPackets = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -270,7 +275,7 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 			Name:      "network_rx_packets_total",
 			Help:      "Total network packets received by Docker container",
 		},
-		append(labelNames, "interface"),
+		networkLabelNames,
 	)
 	m.networkTxPackets = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -278,7 +283,7 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 			Name:      "network_tx_packets_total",
 			Help:      "Total network packets transmitted by Docker container",
 		},
-		append(labelNames, "interface"),
+		networkLabelNames,
 	)
 	m.networkRxErrors = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -286,7 +291,7 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 			Name:      "network_rx_errors_total",
 			Help:      "Total network receive errors for Docker container",
 		},
-		append(labelNames, "interface"),
+		networkLabelNames,
 	)
 	m.networkTxErrors = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -294,7 +299,7 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 			Name:      "network_tx_errors_total",
 			Help:      "Total network transmit errors for Docker container",
 		},
-		append(labelNames, "interface"),
+		networkLabelNames,
 	)
 	m.networkRxDropped = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -302,7 +307,7 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 			Name:      "network_rx_dropped_total",
 			Help:      "Total network packets dropped on receive for Docker container",
 		},
-		append(labelNames, "interface"),
+		networkLabelNames,
 	)
 	m.networkTxDropped = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -310,17 +315,22 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 			Name:      "network_tx_dropped_total",
 			Help:      "Total network packets dropped on transmit for Docker container",
 		},
-		append(labelNames, "interface"),
+		networkLabelNames,
 	)
 
 	// Detailed Block I/O metrics
+	// Create dedicated label slice to avoid backing array sharing issues with append
+	deviceLabelNames := make([]string, 0, len(labelNames)+2)
+	deviceLabelNames = append(deviceLabelNames, labelNames...)
+	deviceLabelNames = append(deviceLabelNames, "device_major", "device_minor")
+
 	m.blockIOReadBytesPerDevice = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "block_io_read_bytes_per_device",
 			Help:      "Bytes read from specific block devices by Docker container",
 		},
-		append(labelNames, "device_major", "device_minor"),
+		deviceLabelNames,
 	)
 	m.blockIOWriteBytesPerDevice = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -328,7 +338,7 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 			Name:      "block_io_write_bytes_per_device",
 			Help:      "Bytes written to specific block devices by Docker container",
 		},
-		append(labelNames, "device_major", "device_minor"),
+		deviceLabelNames,
 	)
 
 	// Process metrics
