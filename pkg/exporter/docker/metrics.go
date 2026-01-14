@@ -368,9 +368,10 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 	)
 
 	// Volume metrics (with volume name label)
-	volumeLabelNames := make([]string, len(labelNames))
-	copy(volumeLabelNames, labelNames)
-	volumeLabelNames = append(volumeLabelNames, "volume_name", "volume_type", "mount_path")
+	staticLabelNames := []string{"volume_name", "volume_type", "mount_path"}
+	volumeLabelNames := make([]string, 0, len(labelNames)+len(staticLabelNames))
+	volumeLabelNames = append(volumeLabelNames, labelNames...)
+	volumeLabelNames = append(volumeLabelNames, staticLabelNames...)
 	m.volumeTotalBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
