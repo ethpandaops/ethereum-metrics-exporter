@@ -70,7 +70,6 @@ func (d *diskUsage) StartAsync(ctx context.Context) {
 }
 
 func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]Usage, error) {
-	//nolint:prealloc // we dont know how much success we'll have
 	var diskUsed []Usage
 
 	for _, directory := range directories {
