@@ -65,7 +65,7 @@ func (e *EthProtocol) UnmarshalJSON(data []byte) error {
 		}
 	} else {
 		// difficulty key missing (e.g. post-merge clients), unmarshal rest of struct
-		if err = json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 	}
