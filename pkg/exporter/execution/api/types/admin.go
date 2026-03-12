@@ -50,15 +50,22 @@ func (e *EthProtocol) UnmarshalJSON(data []byte) error {
 	}
 
 	var difficultyString string
-	if err := json.Unmarshal(*objMap["difficulty"], &difficultyString); err != nil {
-		// Its probably just an int, return the entire thing like normal
-		err = json.Unmarshal(data, &v)
-		if err != nil {
-			return err
+	if difficultyRaw := objMap["difficulty"]; difficultyRaw != nil {
+		if err := json.Unmarshal(*difficultyRaw, &difficultyString); err != nil {
+			// Its probably just an int, return the entire thing like normal
+			err = json.Unmarshal(data, &v)
+			if err != nil {
+				return err
+			}
+		} else {
+			// Try and parse the string back in to a big.Int
+			if v.Difficulty, err = hexutil.DecodeBig(difficultyString); err != nil {
+				return err
+			}
 		}
 	} else {
-		// Try and parse the string back in to a big.Int
-		if v.Difficulty, err = hexutil.DecodeBig(difficultyString); err != nil {
+		// difficulty key missing (e.g. post-merge clients), unmarshal rest of struct
+		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 	}
