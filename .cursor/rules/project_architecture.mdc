@@ -1,0 +1,68 @@
+---
+description: Ethereum Metrics Exporter Project Architecture
+globs: ["**/*.go", "**/go.mod", "**/go.sum", "**/Dockerfile*", "**/*.yaml", "**/*.yml"]
+alwaysApply: false
+---
+
+# Ethereum Metrics Exporter Project Architecture
+
+## Overview
+This is a Go-based Prometheus metrics exporter for Ethereum execution and consensus nodes. The project creates client-agnostic metrics by interfacing with standard Ethereum APIs.
+
+## Core Technologies
+- **Language**: Go 1.22+ (toolchain go1.24.0)
+- **CLI Framework**: Cobra CLI (spf13/cobra)
+- **Metrics**: Prometheus (prometheus/client_golang)
+- **Ethereum APIs**: 
+  - Execution: JSON-RPC via go-ethereum and onrik/ethrpc
+  - Consensus: Beacon Node API via ethpandaops/beacon
+- **Logging**: Logrus (sirupsen/logrus)
+- **Configuration**: YAML (gopkg.in/yaml.v2)
+
+## Project Structure
+
+### Root Level
+- `main.go` - Application entry point with signal handling
+- `cmd/` - Cobra CLI command definitions
+- `pkg/` - Core application packages
+
+### Core Packages
+- `pkg/exporter/` - Main exporter logic and configuration
+- `pkg/exporter/execution/` - Execution client metrics collection
+- `pkg/exporter/disk/` - Disk usage monitoring
+- `pkg/exporter/execution/api/` - Execution API client implementations
+- `pkg/exporter/execution/jobs/` - Scheduled metric collection jobs
+
+### Build & Deployment
+- `Dockerfile` - Main container image (distroless)
+- `goreleaser-*.Dockerfile` - Release-specific container variants
+- `example_config.yaml` - Configuration template
+- Supports multi-arch builds (amd64, arm64)
+
+## API Integration Points
+
+### Execution Clients
+- **RPC Methods**: Uses standard JSON-RPC methods (eth_*, net_*, admin_*, txpool_*, web3_*)
+- **Modules**: Configurable execution modules (admin, net, txpool, web3)
+- **Jobs**: Scheduled collection of block data, sync status, network info
+
+### Consensus Clients  
+- **Beacon API**: Standard Beacon Node API endpoints
+- **Metrics**: Consensus layer state and performance metrics
+
+## Configuration
+- YAML-based configuration with CLI flag overrides
+- Supports both file-based and flag-based configuration
+- Key settings: consensus URL, execution URL, metrics port, monitored directories
+
+## Metrics Export
+- **Port**: Default 9090 (configurable)
+- **Format**: Prometheus metrics format
+- **Scope**: Client-agnostic metrics for both execution and consensus layers
+- **Monitoring**: Optional disk usage monitoring for specified directories
+
+## Deployment Options
+- **Standalone Binary**: Direct execution with Go build
+- **Docker**: Multi-variant container images
+- **Kubernetes**: Helm chart available
+- **Configuration**: File-based or environment/flag overrides

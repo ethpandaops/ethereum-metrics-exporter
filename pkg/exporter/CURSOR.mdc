@@ -1,0 +1,23 @@
+---
+description: Exporter - Main orchestrator for Ethereum metrics collection and export
+globs: 
+  - "*.go"
+  - "**/*.go"
+alwaysApply: false
+---
+
+# Exporter Component
+
+Main orchestrator that coordinates collection and export of Ethereum metrics from execution, consensus, and disk monitoring components.
+
+## Key Patterns
+- **Plugin Architecture**: Uses modular exporters (execution, disk, consensus) with independent lifecycle management
+- **Configurable Modules**: Execution client supports selective RPC module activation (eth, net, web3, admin, txpool)
+- **Async Collection**: Each exporter runs metrics collection in separate goroutines with context-based cancellation
+- **Interface-Based**: Core `Exporter` interface enables clean separation between orchestration and implementation
+
+## Architecture Constraints
+- All exporters must support graceful shutdown via context cancellation
+- Prometheus metrics server runs independently from collection goroutines
+- Configuration validation occurs at initialization, not runtime
+- Each sub-component (execution, disk, consensus) manages its own connection lifecycle

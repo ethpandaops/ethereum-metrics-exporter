@@ -1,0 +1,21 @@
+---
+description: API - JSON-RPC client for Ethereum execution layer metrics collection
+globs: 
+  - "*.go"
+  - "types/*.go"
+alwaysApply: false
+---
+
+# API Component
+
+JSON-RPC API client for Ethereum execution layer metrics collection via standard RPC methods.
+
+## Key Patterns
+- **ExecutionClient Interface**: All RPC operations go through the ExecutionClient interface for consistent API access
+- **Fixed Timeout Architecture**: Uses 10-second HTTP client timeout for all RPC calls to prevent hanging operations
+- **Standard RPC Methods**: Implements admin_nodeInfo, admin_peers, net_peerCount, txpool_status methods only
+
+## Architecture Constraints
+- RPC responses must handle both string and numeric difficulty values via custom UnmarshalJSON
+- All methods use the same post() helper with consistent JSON-RPC 2.0 format
+- Error handling returns raw HTTP status codes and JSON parsing errors without retry logic

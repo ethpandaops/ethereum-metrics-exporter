@@ -1,0 +1,20 @@
+---
+description: Types - Go type definitions for Ethereum execution layer API responses
+globs: 
+  - "*.go"
+alwaysApply: false
+---
+
+# Types Component
+
+Go type definitions for Ethereum execution layer API responses that handle client-specific response format variations.
+
+## Key Patterns
+- **Flexible JSON Unmarshaling**: Custom UnmarshalJSON methods handle different client response formats (string vs numeric difficulty values)
+- **Common Types**: Provides shared type definitions for admin_nodeInfo and txpool_status RPC method responses
+- **Client Compatibility**: Ensures consistent type handling across different Ethereum execution clients (Geth, Besu, Nethermind, etc.)
+
+## Architecture Constraints
+- All types must support both string (0x-prefixed) and numeric difficulty value formats
+- Type definitions should match exactly with corresponding RPC method response schemas
+- Custom JSON unmarshaling logic must gracefully fallback between format attempts

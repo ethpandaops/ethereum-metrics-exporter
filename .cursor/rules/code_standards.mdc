@@ -1,0 +1,83 @@
+---
+description: Go coding standards and conventions for Ethereum Metrics Exporter
+globs: ["**/*.go"]
+alwaysApply: false
+---
+
+# Code Standards
+
+## Go Coding Conventions
+
+### File Organization
+- Use package-per-directory structure
+- Keep related functionality in the same package
+- Separate concerns: API clients, jobs, metrics, configuration
+- Place interfaces near their implementations
+
+### Naming Conventions
+- **Packages**: Short, lowercase, no underscores (e.g., `execution`, `disk`)
+- **Files**: Lowercase with underscores for separation (e.g., `sync_status.go`)
+- **Types**: PascalCase for exported, camelCase for internal
+- **Functions**: PascalCase for exported, camelCase for internal
+- **Constants**: PascalCase or SCREAMING_SNAKE_CASE for package-level constants
+
+### Code Structure
+- Keep functions focused and small (typically < 50 lines)
+- Use early returns to reduce nesting
+- Group related functionality into structs with methods
+- Prefer composition over inheritance
+
+### Error Handling
+- Always handle errors explicitly
+- Use `fmt.Errorf` with `%w` verb for error wrapping
+- Return errors as the last return value
+- Use meaningful error messages with context
+
+### Logging
+- Use `logrus` for structured logging
+- Log at appropriate levels: Debug, Info, Warn, Error
+- Include relevant context in log messages
+- Use fields for structured data
+
+### Prometheus Metrics
+- Use descriptive metric names with consistent prefixes
+- Follow Prometheus naming conventions (snake_case)
+- Include help text for all metrics
+- Use appropriate metric types (Counter, Gauge, Histogram, Summary)
+- Group related metrics in the same file
+
+### JSON-RPC and API Clients
+- Define clear interface contracts
+- Handle network timeouts and retries gracefully
+- Validate API responses before processing
+- Use context for cancellation and timeouts
+
+### Configuration
+- Use struct tags for YAML binding
+- Provide sensible defaults
+- Validate configuration on startup
+- Support both file-based and flag-based configuration
+
+### Testing (when present)
+- Write table-driven tests where appropriate
+- Use `testify` for assertions if available
+- Mock external dependencies
+- Test error conditions and edge cases
+
+### Documentation
+- Use godoc conventions for public APIs
+- Include examples in godoc where helpful
+- Keep README.md up to date with usage examples
+- Document configuration options clearly
+
+### Dependencies
+- Minimize external dependencies
+- Use well-maintained, established libraries
+- Pin dependency versions in go.mod
+- Regularly update dependencies for security
+
+### Performance Considerations
+- Use buffered channels for high-throughput operations
+- Implement proper connection pooling for HTTP clients
+- Avoid memory leaks in long-running goroutines
+- Use context for cancellation in blocking operations
