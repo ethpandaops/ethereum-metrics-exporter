@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethpandaops/ethereum-metrics-exporter/pkg/exporter/execution/api"
@@ -22,6 +24,9 @@ import (
 //           This value is always non-negative in Amsterdam because refunds are
 //           credited to the originating address directly (not deducted from
 //           gasUsed in receipts).
+// EIP-2780: TX_BASE reduced from 21000 to 12000. Detected via eth_estimateGas
+//           on a zero-value self-transfer (no calldata, no code). Returns 12000
+//           if EIP-2780 is implemented, 21000 otherwise.
 type AmsterdamMetrics struct {
 	client       *ethclient.Client
 	api          api.ExecutionClient
@@ -31,16 +36,19 @@ type AmsterdamMetrics struct {
 	// HeadSlotNumber is the CL slot number embedded in the latest EL block header (EIP-7843).
 	HeadSlotNumber prometheus.Gauge
 
-	// HeadBALHashPresent is 1 when blockAccessListHash is non-zero (EIP-7928).
-	// A zero hash indicates no BAL data (pre-Amsterdam or empty access list).
+	// HeadBALHashPresent is 1 when the latest block carries a non-zero blockAccessListHash (EIP-7928).
 	HeadBALHashPresent prometheus.Gauge
 
 	// HeadGasRefundDelta is block.gasUsed minus the sum of all receipt.gasUsed values (EIP-7778).
-	// In Amsterdam, source-based refunds are added back to the originating address and NOT
-	// subtracted from receipt gasUsed, so the delta is always ≥ 0.
 	HeadGasRefundDelta prometheus.Gauge
 
+	// TxBaseGas is the observed TX_BASE intrinsic gas (EIP-2780).
+	// 12000 = EIP-2780 implemented; 21000 = pre-EIP-2780 (not yet implemented).
+	// Detected via eth_estimateGas on a zero-value self-transfer from a zero-balance address.
+	TxBaseGas prometheus.Gauge
+
 	currentHeadBlockNumber uint64
+	txBaseDetected         bool
 }
 
 const (
@@ -90,6 +98,14 @@ func NewAmsterdamMetrics(client *ethclient.Client, internalAPI api.ExecutionClie
 				Namespace:   namespace,
 				Name:        "head_gas_refund_delta",
 				Help:        "Gas units refunded to originating addresses: block.gasUsed minus sum(receipt.gasUsed) (EIP-7778).",
+				ConstLabels: constLabels,
+			},
+		),
+		TxBaseGas: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "tx_base_gas",
+				Help:        "Observed TX_BASE intrinsic gas (EIP-2780): 12000 if EIP-2780 is implemented, 21000 otherwise. Detected via eth_estimateGas on a zero-value self-transfer.",
 				ConstLabels: constLabels,
 			},
 		),
@@ -184,6 +200,31 @@ func (a *AmsterdamMetrics) tick(ctx context.Context) {
 		delta := new(big.Int).Sub(blockGasUsed, receiptSum)
 		if delta.Sign() >= 0 {
 			a.HeadGasRefundDelta.Set(float64(delta.Int64()))
+		}
+	}
+
+	// EIP-2780 TX_BASE detection (once per restart; value is stable once set).
+	// Call eth_estimateGas on a zero-value self-transfer from address zero.
+	// A zero-balance address sending value=0 requires no funds, so the estimate
+	// succeeds and returns exactly TX_BASE (12000 with EIP-2780, 21000 without).
+	if !a.txBaseDetected {
+		zeroAddr := common.Address{}
+		toAddr := zeroAddr
+		gas, err := a.client.EstimateGas(ctx, ethereum.CallMsg{
+			From:  zeroAddr,
+			To:    &toAddr,
+			Value: big.NewInt(0),
+		})
+		if err != nil {
+			a.log.WithError(err).Debug("Amsterdam: EIP-2780 TX_BASE probe failed")
+		} else {
+			a.TxBaseGas.Set(float64(gas))
+			a.txBaseDetected = true
+			if gas == 12000 {
+				a.log.Info("Amsterdam: EIP-2780 TX_BASE=12000 detected (EIP-2780 implemented)")
+			} else {
+				a.log.WithField("tx_base", gas).Info("Amsterdam: pre-EIP-2780 TX_BASE detected (EIP-2780 not yet implemented)")
+			}
 		}
 	}
 }
