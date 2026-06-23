@@ -191,7 +191,9 @@ func (e *executionClient) TXPoolStatus(ctx context.Context) (*types.TXPoolStatus
 }
 
 func (e *executionClient) GetAmsterdamBlock(ctx context.Context, blockTag string) (*types.AmsterdamBlock, error) {
-	rsp, err := e.postAny(ctx, "eth_getBlockByNumber", []interface{}{blockTag, false}, 0)
+	// Request full transaction objects (true) so we can inspect gas limits for EIP-7825.
+	// Only the "gas" field of each tx is decoded; all other fields are discarded by json.Unmarshal.
+	rsp, err := e.postAny(ctx, "eth_getBlockByNumber", []interface{}{blockTag, true}, 0)
 	if err != nil {
 		return nil, err
 	}

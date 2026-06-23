@@ -54,6 +54,12 @@ type AmsterdamMetrics struct {
 	// A value of 0 indicates either no ETH transfers in the block or EIP-7708 not implemented.
 	HeadTransferLogCount prometheus.Gauge
 
+	// HeadMaxTxGas is the highest gas limit set by any transaction in the latest block (EIP-7825).
+	// EIP-7825 caps per-tx gas at MaxTxGas=16,000,000. When enforced this value is always <= 16M.
+	// A value above 16M indicates the EL is not enforcing the per-transaction gas limit.
+	// Set to 0 when the block contains no transactions.
+	HeadMaxTxGas prometheus.Gauge
+
 	currentHeadBlockNumber uint64
 	txBaseDetected         bool
 }
@@ -130,6 +136,14 @@ func NewAmsterdamMetrics(client *ethclient.Client, internalAPI api.ExecutionClie
 				ConstLabels: constLabels,
 			},
 		),
+		HeadMaxTxGas: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "head_max_tx_gas",
+				Help:        "Highest gas limit set by any transaction in the latest block (EIP-7825). When EIP-7825 is enforced this is always <= 16,000,000 (MaxTxGas). Exceeding 16M means the EL is not enforcing the per-tx gas limit. 0 when the block has no transactions.",
+				ConstLabels: constLabels,
+			},
+		),
 	}
 }
 
@@ -188,6 +202,24 @@ func (a *AmsterdamMetrics) tick(ctx context.Context) {
 	}
 
 	a.HeadBALHashPresent.Set(balPresent)
+
+	// EIP-7825 max tx gas limit in this block.
+	// When EIP-7825 is enforced, no tx may have gas > 16,000,000.
+	// This gauge lets operators detect non-compliance (value > 16M) in real-time.
+	maxTxGas := uint64(0)
+	for _, tx := range block.Transactions {
+		if tx == nil || tx.Gas == "" {
+			continue
+		}
+		g, err := hexutil.DecodeUint64(tx.Gas)
+		if err != nil {
+			continue
+		}
+		if g > maxTxGas {
+			maxTxGas = g
+		}
+	}
+	a.HeadMaxTxGas.Set(float64(maxTxGas))
 
 	// EIP-7778 gas refund delta.
 	if block.GasUsed != "" {
