@@ -54,9 +54,10 @@ type AmsterdamMetrics struct {
 	// A value of 0 indicates either no ETH transfers in the block or EIP-7708 not implemented.
 	HeadTransferLogCount prometheus.Gauge
 
-	// HeadMaxTxGas is the highest gas limit set by any transaction in the latest block (EIP-7825).
-	// EIP-7825 caps per-tx gas at MaxTxGas=16,000,000. When enforced this value is always <= 16M.
-	// A value above 16M indicates the EL is not enforcing the per-transaction gas limit.
+	// HeadMaxTxGas is the highest gas_limit field of any transaction in the latest block (EIP-7825).
+	// Amsterdam note: tx.gas is NOT capped at TX_MAX_GAS_LIMIT (2^24=16,777,216) in the mempool.
+	// Execution budget is capped at TX_MAX_GAS_LIMIT internally. A value > 16,777,216 means the block
+	// contains txs whose effective execution gas is capped (not an error — normal Amsterdam behaviour).
 	// Set to 0 when the block contains no transactions.
 	HeadMaxTxGas prometheus.Gauge
 
@@ -140,7 +141,7 @@ func NewAmsterdamMetrics(client *ethclient.Client, internalAPI api.ExecutionClie
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
 				Name:        "head_max_tx_gas",
-				Help:        "Highest gas limit set by any transaction in the latest block (EIP-7825). When EIP-7825 is enforced this is always <= 16,000,000 (MaxTxGas). Exceeding 16M means the EL is not enforcing the per-tx gas limit. 0 when the block has no transactions.",
+				Help:        "Highest gas_limit field of any transaction in the latest block (EIP-7825). In Amsterdam, tx.gas is NOT capped; the execution budget is capped at TX_MAX_GAS_LIMIT=16,777,216 (2^24). Values > 16,777,216 indicate txs whose execution is capped. 0 when the block has no transactions.",
 				ConstLabels: constLabels,
 			},
 		),
