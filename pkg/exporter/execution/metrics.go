@@ -121,13 +121,14 @@ func NewMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, ethRP
 	}
 
 	if able := jobs.ExporterCanRun(enabledModules, m.amsterdamMetrics.RequiredModules()); able {
-		m.log.Info("Enabling Amsterdam EIP metrics (EIP-7843 slotNumber, EIP-7928 BAL hash, EIP-7778 gas refund delta, EIP-2780 TX_BASE)")
+		m.log.Info("Enabling Amsterdam EIP metrics (EIP-7843 slotNumber, EIP-7928 BAL hash, EIP-7778 gas refund delta, EIP-2780 TX_BASE, EIP-7708 Transfer log count)")
 		m.enabledJobs[m.amsterdamMetrics.Name()] = true
 
 		prometheus.MustRegister(m.amsterdamMetrics.HeadSlotNumber)
 		prometheus.MustRegister(m.amsterdamMetrics.HeadBALHashPresent)
 		prometheus.MustRegister(m.amsterdamMetrics.HeadGasRefundDelta)
 		prometheus.MustRegister(m.amsterdamMetrics.TxBaseGas)
+		prometheus.MustRegister(m.amsterdamMetrics.HeadTransferLogCount)
 	}
 
 	return m

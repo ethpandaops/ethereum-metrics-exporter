@@ -27,6 +27,8 @@ import (
 // EIP-2780: TX_BASE reduced from 21000 to 12000. Detected via eth_estimateGas
 //           on a zero-value self-transfer (no calldata, no code). Returns 12000
 //           if EIP-2780 is implemented, 21000 otherwise.
+// EIP-7708: ETH transfers emit a Transfer(address,address,uint256) log from the
+//           system address 0xffffff...fe. HeadTransferLogCount counts these per block.
 type AmsterdamMetrics struct {
 	client       *ethclient.Client
 	api          api.ExecutionClient
@@ -47,6 +49,11 @@ type AmsterdamMetrics struct {
 	// Detected via eth_estimateGas on a zero-value self-transfer from a zero-balance address.
 	TxBaseGas prometheus.Gauge
 
+	// HeadTransferLogCount is the number of EIP-7708 Transfer logs emitted in the latest block.
+	// EIP-7708 emits Transfer(address,address,uint256) from 0xffffff...fe on every ETH transfer.
+	// A value of 0 indicates either no ETH transfers in the block or EIP-7708 not implemented.
+	HeadTransferLogCount prometheus.Gauge
+
 	currentHeadBlockNumber uint64
 	txBaseDetected         bool
 }
@@ -56,6 +63,12 @@ const (
 
 	// zeroBALHash is the all-zeros hash sentinel for "no BAL data".
 	zeroBALHash = "0x0000000000000000000000000000000000000000000000000000000000000000"
+
+	// eip7708SystemAddress is the source address for EIP-7708 ETH Transfer logs.
+	eip7708SystemAddress = "0xfffffffffffffffffffffffffffffffffffffffe"
+
+	// eip7708TransferTopic is keccak256("Transfer(address,address,uint256)").
+	eip7708TransferTopic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 )
 
 func (a *AmsterdamMetrics) Name() string {
@@ -106,6 +119,14 @@ func NewAmsterdamMetrics(client *ethclient.Client, internalAPI api.ExecutionClie
 				Namespace:   namespace,
 				Name:        "tx_base_gas",
 				Help:        "Observed TX_BASE intrinsic gas (EIP-2780): 12000 if EIP-2780 is implemented, 21000 otherwise. Detected via eth_estimateGas on a zero-value self-transfer.",
+				ConstLabels: constLabels,
+			},
+		),
+		HeadTransferLogCount: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace:   namespace,
+				Name:        "head_transfer_log_count",
+				Help:        "Number of EIP-7708 Transfer logs emitted in the latest block (from system address 0xffffff...fe). 0 means no ETH transfers or EIP-7708 not implemented.",
 				ConstLabels: constLabels,
 			},
 		),
@@ -183,19 +204,35 @@ func (a *AmsterdamMetrics) tick(ctx context.Context) {
 		}
 
 		receiptSum := new(big.Int)
+		transferLogCount := 0
 
 		for _, r := range receipts {
-			if r == nil || r.GasUsed == "" {
+			if r == nil {
 				continue
 			}
 
-			rGas, ok := new(big.Int).SetString(strings.TrimPrefix(r.GasUsed, "0x"), 16)
-			if !ok {
-				continue
+			if r.GasUsed != "" {
+				rGas, ok := new(big.Int).SetString(strings.TrimPrefix(r.GasUsed, "0x"), 16)
+				if ok {
+					receiptSum.Add(receiptSum, rGas)
+				}
 			}
 
-			receiptSum.Add(receiptSum, rGas)
+			// Count EIP-7708 Transfer logs from the system address.
+			for _, l := range r.Logs {
+				if l == nil {
+					continue
+				}
+				if !strings.EqualFold(l.Address, eip7708SystemAddress) {
+					continue
+				}
+				if len(l.Topics) > 0 && strings.EqualFold(l.Topics[0], eip7708TransferTopic) {
+					transferLogCount++
+				}
+			}
 		}
+
+		a.HeadTransferLogCount.Set(float64(transferLogCount))
 
 		delta := new(big.Int).Sub(blockGasUsed, receiptSum)
 		if delta.Sign() >= 0 {

@@ -9,7 +9,15 @@ type AmsterdamBlock struct {
 	SlotNumber          string `json:"slotNumber"`          // EIP-7843: CL slot that produced this EL block
 }
 
-// AmsterdamReceipt is a partial transaction receipt used for EIP-7778 gas refund delta calculation.
+// AmsterdamLog is a single EVM log entry used to detect EIP-7708 Transfer logs.
+type AmsterdamLog struct {
+	Address string   `json:"address"`
+	Topics  []string `json:"topics"`
+}
+
+// AmsterdamReceipt is a partial transaction receipt used for EIP-7778 gas refund delta
+// and EIP-7708 Transfer log count calculations.
 type AmsterdamReceipt struct {
-	GasUsed string `json:"gasUsed"`
+	GasUsed string          `json:"gasUsed"`
+	Logs    []*AmsterdamLog `json:"logs"`
 }
