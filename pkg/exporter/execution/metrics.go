@@ -18,14 +18,15 @@ type Metrics interface {
 }
 
 type metrics struct {
-	log            logrus.FieldLogger
-	syncMetrics    jobs.SyncStatus
-	generalMetrics jobs.GeneralMetrics
-	txpoolMetrics  jobs.TXPool
-	adminMetrics   jobs.Admin
-	blockMetrics   jobs.BlockMetrics
-	web3Metrics    jobs.Web3
-	netMetrics     jobs.Net
+	log              logrus.FieldLogger
+	syncMetrics      jobs.SyncStatus
+	generalMetrics   jobs.GeneralMetrics
+	txpoolMetrics    jobs.TXPool
+	adminMetrics     jobs.Admin
+	blockMetrics     jobs.BlockMetrics
+	web3Metrics      jobs.Web3
+	netMetrics       jobs.Net
+	amsterdamMetrics jobs.AmsterdamMetrics
 
 	enabledJobs map[string]bool
 }
@@ -37,14 +38,15 @@ func NewMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, ethRP
 	constLabels["node_name"] = nodeName
 
 	m := &metrics{
-		log:            log,
-		generalMetrics: jobs.NewGeneralMetrics(client, internalAPI, ethRPCClient, log, namespace, constLabels),
-		syncMetrics:    jobs.NewSyncStatus(client, internalAPI, ethRPCClient, log, namespace, constLabels),
-		txpoolMetrics:  jobs.NewTXPool(client, internalAPI, ethRPCClient, log, namespace, constLabels),
-		adminMetrics:   jobs.NewAdmin(client, internalAPI, ethRPCClient, log, namespace, constLabels),
-		blockMetrics:   jobs.NewBlockMetrics(client, internalAPI, ethRPCClient, log, namespace, constLabels),
-		web3Metrics:    jobs.NewWeb3(client, internalAPI, ethRPCClient, log, namespace, constLabels),
-		netMetrics:     jobs.NewNet(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		log:              log,
+		generalMetrics:   jobs.NewGeneralMetrics(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		syncMetrics:      jobs.NewSyncStatus(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		txpoolMetrics:    jobs.NewTXPool(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		adminMetrics:     jobs.NewAdmin(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		blockMetrics:     jobs.NewBlockMetrics(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		web3Metrics:      jobs.NewWeb3(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		netMetrics:       jobs.NewNet(client, internalAPI, ethRPCClient, log, namespace, constLabels),
+		amsterdamMetrics: jobs.NewAmsterdamMetrics(client, internalAPI, ethRPCClient, log, namespace, constLabels),
 
 		enabledJobs: make(map[string]bool),
 	}
@@ -118,6 +120,15 @@ func NewMetrics(client *ethclient.Client, internalAPI api.ExecutionClient, ethRP
 		prometheus.MustRegister(m.netMetrics.PeerCount)
 	}
 
+	if able := jobs.ExporterCanRun(enabledModules, m.amsterdamMetrics.RequiredModules()); able {
+		m.log.Info("Enabling Amsterdam EIP metrics (EIP-7843 slotNumber, EIP-7928 BAL hash, EIP-7778 gas refund delta)")
+		m.enabledJobs[m.amsterdamMetrics.Name()] = true
+
+		prometheus.MustRegister(m.amsterdamMetrics.HeadSlotNumber)
+		prometheus.MustRegister(m.amsterdamMetrics.HeadBALHashPresent)
+		prometheus.MustRegister(m.amsterdamMetrics.HeadGasRefundDelta)
+	}
+
 	return m
 }
 
@@ -148,6 +159,10 @@ func (m *metrics) StartAsync(ctx context.Context) {
 
 	if m.enabledJobs[m.netMetrics.Name()] {
 		go m.netMetrics.Start(ctx)
+	}
+
+	if m.enabledJobs[m.amsterdamMetrics.Name()] {
+		go m.amsterdamMetrics.Start(ctx)
 	}
 
 	m.log.Info("Started metrics exporter jobs")

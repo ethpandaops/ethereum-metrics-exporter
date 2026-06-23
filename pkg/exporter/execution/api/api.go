@@ -25,6 +25,12 @@ type ExecutionClient interface {
 	TXPoolStatus(ctx context.Context) (*types.TXPoolStatus, error)
 	// NetPeerCount returns the number of peers.
 	NetPeerCount(ctx context.Context) (int, error)
+	// GetAmsterdamBlock returns Amsterdam EIP-specific header fields for the given block tag.
+	// Returns nil without error when the fields are absent (pre-Amsterdam blocks).
+	GetAmsterdamBlock(ctx context.Context, blockTag string) (*types.AmsterdamBlock, error)
+	// GetBlockReceipts returns all transaction receipts for the given block tag.
+	// Used to compute EIP-7778 gas refund delta (block.gasUsed − sum(receipts.gasUsed)).
+	GetBlockReceipts(ctx context.Context, blockTag string) ([]*types.AmsterdamReceipt, error)
 }
 
 type executionClient struct {
@@ -50,6 +56,44 @@ type apiResponse struct {
 	JSONRpc string          `json:"jsonrpc"`
 	ID      int64           `json:"id"`
 	Result  json.RawMessage `json:"result"`
+}
+
+// postAny is like post but accepts any JSON-serialisable params value.
+func (e *executionClient) postAny(ctx context.Context, method string, params interface{}, id int) (json.RawMessage, error) {
+	body := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  method,
+		"id":      id,
+		"params":  params,
+	}
+
+	jsonData, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp, err := e.client.Post(e.url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, err
+	}
+
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("status code: %d", rsp.StatusCode)
+	}
+
+	data, err := io.ReadAll(rsp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := new(apiResponse)
+	if err := json.Unmarshal(data, resp); err != nil {
+		return nil, err
+	}
+
+	return resp.Result, nil
 }
 
 //nolint:unparam // ctx will probably be used in the future
@@ -144,4 +188,37 @@ func (e *executionClient) TXPoolStatus(ctx context.Context) (*types.TXPoolStatus
 	}
 
 	return txPoolStatus, nil
+}
+
+func (e *executionClient) GetAmsterdamBlock(ctx context.Context, blockTag string) (*types.AmsterdamBlock, error) {
+	rsp, err := e.postAny(ctx, "eth_getBlockByNumber", []interface{}{blockTag, false}, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	block := &types.AmsterdamBlock{}
+	if err := json.Unmarshal(rsp, block); err != nil {
+		return nil, err
+	}
+
+	// Return nil when Amsterdam fields are absent (pre-fork blocks return empty strings).
+	if block.SlotNumber == "" && block.BlockAccessListHash == "" {
+		return nil, nil
+	}
+
+	return block, nil
+}
+
+func (e *executionClient) GetBlockReceipts(ctx context.Context, blockTag string) ([]*types.AmsterdamReceipt, error) {
+	rsp, err := e.postAny(ctx, "eth_getBlockReceipts", []interface{}{blockTag}, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	var receipts []*types.AmsterdamReceipt
+	if err := json.Unmarshal(rsp, &receipts); err != nil {
+		return nil, err
+	}
+
+	return receipts, nil
 }
