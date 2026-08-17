@@ -5,6 +5,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Shared prometheus label / log field names.
+const (
+	labelPath            = "path"
+	labelTotalBytes      = "total_bytes"
+	labelFileCount       = "file_count"
+	labelCalcTime        = "calc_time"
+	labelDynamicInterval = "dynamic_interval"
+)
+
 // metricsCollector collects and exposes Prometheus metrics for filesystem operations
 type metricsCollector struct {
 	namespace     string
@@ -26,7 +35,7 @@ func newMetricsCollector(namespace string, log logrus.FieldLogger) *metricsColle
 				Name:      "directory_size_bytes",
 				Help:      "Size of directory in bytes",
 			},
-			[]string{"path"},
+			[]string{labelPath},
 		),
 		fileCount: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -34,7 +43,7 @@ func newMetricsCollector(namespace string, log logrus.FieldLogger) *metricsColle
 				Name:      "directory_file_count",
 				Help:      "Number of files in directory",
 			},
-			[]string{"path"},
+			[]string{labelPath},
 		),
 		scanDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -43,7 +52,7 @@ func newMetricsCollector(namespace string, log logrus.FieldLogger) *metricsColle
 				Help:      "Time spent scanning directory",
 				Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15), // 1ms to ~32s
 			},
-			[]string{"path"},
+			[]string{labelPath},
 		),
 		cacheHits: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -51,7 +60,7 @@ func newMetricsCollector(namespace string, log logrus.FieldLogger) *metricsColle
 				Name:      "cache_hits_total",
 				Help:      "Number of cache hits",
 			},
-			[]string{"path"},
+			[]string{labelPath},
 		),
 		cacheMisses: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -59,7 +68,7 @@ func newMetricsCollector(namespace string, log logrus.FieldLogger) *metricsColle
 				Name:      "cache_misses_total",
 				Help:      "Number of cache misses",
 			},
-			[]string{"path"},
+			[]string{labelPath},
 		),
 		log: log.WithField("component", "metrics"),
 	}
@@ -72,23 +81,23 @@ func (m *metricsCollector) recordDirectoryStats(stats *DirectoryStats) {
 	m.scanDuration.WithLabelValues(stats.Path).Observe(stats.CalculationTime.Seconds())
 
 	m.log.WithFields(logrus.Fields{
-		"path":        stats.Path,
-		"total_bytes": stats.TotalBytes,
-		"file_count":  stats.FileCount,
-		"calc_time":   stats.CalculationTime,
+		labelPath:       stats.Path,
+		labelTotalBytes: stats.TotalBytes,
+		labelFileCount:  stats.FileCount,
+		labelCalcTime:   stats.CalculationTime,
 	}).Debug("Recorded directory stats metrics")
 }
 
 // recordCacheHit records a cache hit for the given path
 func (m *metricsCollector) recordCacheHit(path string) {
 	m.cacheHits.WithLabelValues(path).Inc()
-	m.log.WithField("path", path).Debug("Recorded cache hit")
+	m.log.WithField(labelPath, path).Debug("Recorded cache hit")
 }
 
 // recordCacheMiss records a cache miss for the given path
 func (m *metricsCollector) recordCacheMiss(path string) {
 	m.cacheMisses.WithLabelValues(path).Inc()
-	m.log.WithField("path", path).Debug("Recorded cache miss")
+	m.log.WithField(labelPath, path).Debug("Recorded cache miss")
 }
 
 // register registers all metrics with Prometheus

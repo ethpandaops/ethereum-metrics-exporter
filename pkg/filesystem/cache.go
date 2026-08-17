@@ -37,7 +37,7 @@ func (c *adaptiveCache) get(path string) (*DirectoryStats, bool) {
 
 	entry, exists := c.cache[path]
 	if !exists {
-		c.log.WithField("path", path).Debug("Cache miss - no entry found")
+		c.log.WithField(labelPath, path).Debug("Cache miss - no entry found")
 		return nil, false
 	}
 
@@ -50,22 +50,22 @@ func (c *adaptiveCache) get(path string) (*DirectoryStats, bool) {
 	age := time.Since(entry.stats.Timestamp)
 	if age >= cacheLimit {
 		c.log.WithFields(logrus.Fields{
-			"path":             path,
-			"age":              age,
-			"cache_limit":      cacheLimit,
-			"dynamic_interval": entry.dynamicInterval > 0,
+			labelPath:            path,
+			"age":                age,
+			"cache_limit":        cacheLimit,
+			labelDynamicInterval: entry.dynamicInterval > 0,
 		}).Debug("Cache miss - entry expired")
 
 		return nil, false
 	}
 
 	c.log.WithFields(logrus.Fields{
-		"path":             path,
-		"age":              age,
-		"cache_limit":      cacheLimit,
-		"dynamic_interval": entry.dynamicInterval > 0,
-		"file_count":       entry.stats.FileCount,
-		"calc_time":        entry.stats.CalculationTime,
+		labelPath:            path,
+		"age":                age,
+		"cache_limit":        cacheLimit,
+		labelDynamicInterval: entry.dynamicInterval > 0,
+		labelFileCount:       entry.stats.FileCount,
+		labelCalcTime:        entry.stats.CalculationTime,
 	}).Debug("Cache hit - using cached stats")
 
 	return entry.stats, true
@@ -83,11 +83,11 @@ func (c *adaptiveCache) set(path string, stats *DirectoryStats) {
 	c.mu.Unlock()
 
 	c.log.WithFields(logrus.Fields{
-		"path":             path,
-		"total_bytes":      stats.TotalBytes,
-		"file_count":       stats.FileCount,
-		"calc_time":        stats.CalculationTime,
-		"dynamic_interval": dynamicInterval,
+		labelPath:            path,
+		labelTotalBytes:      stats.TotalBytes,
+		labelFileCount:       stats.FileCount,
+		labelCalcTime:        stats.CalculationTime,
+		labelDynamicInterval: dynamicInterval,
 	}).Info("Cached directory stats with dynamic interval")
 }
 

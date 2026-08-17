@@ -75,14 +75,14 @@ func (d *diskUsage) GetUsage(ctx context.Context, directories []string) ([]Usage
 	for _, directory := range directories {
 		_, err := os.Lstat(directory)
 		if err != nil {
-			d.log.WithField("directory", directory).Warn("Directory does not exist")
+			d.log.WithField(labelDirectory, directory).Warn("Directory does not exist")
 
 			continue
 		}
 
 		stats, err := d.fsMonitor.GetStats(directory)
 		if err != nil {
-			d.log.WithField("directory", directory).WithError(err).Error("Failed to get usage")
+			d.log.WithField(labelDirectory, directory).WithError(err).Error("Failed to get usage")
 
 			continue
 		}

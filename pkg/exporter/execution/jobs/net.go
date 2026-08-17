@@ -13,11 +13,10 @@ import (
 
 // Net exposes metrics defined by the net module.
 type Net struct {
-	client       *ethclient.Client
-	api          api.ExecutionClient
-	ethRPCClient *ethrpc.EthRPC
-	log          logrus.FieldLogger
-	PeerCount    prometheus.Gauge
+	client    *ethclient.Client
+	api       api.ExecutionClient
+	log       logrus.FieldLogger
+	PeerCount prometheus.Gauge
 }
 
 const (
@@ -29,20 +28,19 @@ func (n *Net) Name() string {
 }
 
 func (n *Net) RequiredModules() []string {
-	return []string{"net"}
+	return []string{NameNet}
 }
 
 // NewNet returns a new Net instance.
 func NewNet(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) Net {
 	namespace += "_net"
 
-	constLabels["module"] = NameWeb3
+	constLabels["module"] = NameNet
 
 	return Net{
-		client:       client,
-		api:          internalAPI,
-		ethRPCClient: ethRPCClient,
-		log:          log.WithField("module", NameNet),
+		client: client,
+		api:    internalAPI,
+		log:    log.WithField("module", NameNet),
 		PeerCount: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -67,9 +65,10 @@ func (n *Net) Start(ctx context.Context) {
 	}
 }
 
-//nolint:unparam // context will be used in the future
 func (n *Net) tick(ctx context.Context) {
-	count, err := n.ethRPCClient.NetPeerCount()
+	// Use the go-ethereum client, which omits the params member for
+	// zero-argument calls; some clients (nimbus-eth1) reject "params": null.
+	count, err := n.client.PeerCount(ctx)
 	if err != nil {
 		n.log.WithError(err).Error("Failed to get peer count")
 	} else {

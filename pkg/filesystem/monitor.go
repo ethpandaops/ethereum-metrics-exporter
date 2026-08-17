@@ -145,7 +145,7 @@ func (m *monitor) collectLoop() {
 func (m *monitor) collectAllPaths() {
 	for _, path := range m.config.Paths {
 		if err := m.collectPath(path); err != nil {
-			m.log.WithError(err).WithField("path", path).Warn("Failed to collect path stats")
+			m.log.WithError(err).WithField(labelPath, path).Warn("Failed to collect path stats")
 		}
 	}
 }

@@ -25,13 +25,15 @@ type Node interface {
 }
 
 type node struct {
-	name         string
-	url          string
-	client       *ethclient.Client
-	internalAPI  api.ExecutionClient
-	ethrpcClient *ethrpc.EthRPC
-	log          logrus.FieldLogger
-	metrics      Metrics
+	name           string
+	url            string
+	namespace      string
+	enabledModules []string
+	client         *ethclient.Client
+	internalAPI    api.ExecutionClient
+	ethrpcClient   *ethrpc.EthRPC
+	log            logrus.FieldLogger
+	metrics        Metrics
 }
 
 // NewExecutionNode returns a new execution node.
@@ -39,16 +41,16 @@ func NewExecutionNode(ctx context.Context, log logrus.FieldLogger, namespace, no
 	internalAPI := api.NewExecutionClient(ctx, log, url)
 	client, _ := ethclient.Dial(url)
 	ethrpcClient := ethrpc.New(url)
-	metrics := NewMetrics(client, internalAPI, ethrpcClient, log, nodeName, namespace, enabledModules)
 
 	node := &node{
-		name:         nodeName,
-		url:          url,
-		log:          log,
-		ethrpcClient: ethrpcClient,
-		internalAPI:  internalAPI,
-		client:       client,
-		metrics:      metrics,
+		name:           nodeName,
+		url:            url,
+		namespace:      namespace,
+		enabledModules: enabledModules,
+		log:            log,
+		ethrpcClient:   ethrpcClient,
+		internalAPI:    internalAPI,
+		client:         client,
 	}
 
 	return node, nil
@@ -85,6 +87,10 @@ func (e *node) StartMetrics(ctx context.Context) {
 
 		time.Sleep(5 * time.Second)
 	}
+
+	// Construct the metrics jobs only once a client exists, so they never
+	// capture a nil client from a failed initial dial.
+	e.metrics = NewMetrics(e.client, e.internalAPI, e.ethrpcClient, e.log, e.name, e.namespace, e.enabledModules)
 
 	e.metrics.StartAsync(ctx)
 }

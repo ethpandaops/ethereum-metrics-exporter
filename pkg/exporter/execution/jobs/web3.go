@@ -15,7 +15,6 @@ import (
 type Web3 struct {
 	client          *ethclient.Client
 	api             api.ExecutionClient
-	ethRPCClient    *ethrpc.EthRPC
 	log             logrus.FieldLogger
 	ClientVersion   prometheus.GaugeVec
 	previousVersion string
@@ -40,10 +39,9 @@ func NewWeb3(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCCl
 	constLabels["module"] = NameWeb3
 
 	return Web3{
-		client:       client,
-		api:          internalAPI,
-		ethRPCClient: ethRPCClient,
-		log:          log.WithField("module", NameWeb3),
+		client: client,
+		api:    internalAPI,
+		log:    log.WithField("module", NameWeb3),
 		ClientVersion: *prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace:   namespace,
@@ -71,9 +69,12 @@ func (w *Web3) Start(ctx context.Context) {
 	}
 }
 
-//nolint:unparam // context will be used in the future
 func (w *Web3) tick(ctx context.Context) {
-	clientVersion, err := w.ethRPCClient.Web3ClientVersion()
+	// Call through the go-ethereum rpc client, which omits the params member
+	// for zero-argument calls; some clients (nimbus-eth1) reject "params": null.
+	var clientVersion string
+
+	err := w.client.Client().CallContext(ctx, &clientVersion, "web3_clientVersion")
 	if err != nil {
 		w.log.WithError(err).Error("Failed to get node info")
 	} else {
