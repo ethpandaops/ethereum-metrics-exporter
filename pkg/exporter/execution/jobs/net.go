@@ -28,14 +28,14 @@ func (n *Net) Name() string {
 }
 
 func (n *Net) RequiredModules() []string {
-	return []string{"net"}
+	return []string{NameNet}
 }
 
 // NewNet returns a new Net instance.
 func NewNet(client *ethclient.Client, internalAPI api.ExecutionClient, ethRPCClient *ethrpc.EthRPC, log logrus.FieldLogger, namespace string, constLabels map[string]string) Net {
 	namespace += "_net"
 
-	constLabels["module"] = NameWeb3
+	constLabels["module"] = NameNet
 
 	return Net{
 		client: client,
