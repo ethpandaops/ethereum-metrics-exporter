@@ -33,7 +33,7 @@ func (s *SyncStatus) Name() string {
 }
 
 func (s *SyncStatus) RequiredModules() []string {
-	return []string{"eth"}
+	return []string{ModuleEth}
 }
 
 type syncingStatus struct {

@@ -34,7 +34,7 @@ func newDirectoryAnalyzer(log logrus.FieldLogger) *directoryAnalyzer {
 func (a *directoryAnalyzer) analyze(path string) (*DirectoryStats, error) {
 	startTime := time.Now()
 
-	a.log.WithField("path", path).Debug("Starting directory analysis")
+	a.log.WithField(labelPath, path).Debug("Starting directory analysis")
 
 	// Calculate directory size and count files in single pass
 	totalBytes, fileCount, err := a.calculateDirectorySize(path)
@@ -64,10 +64,10 @@ func (a *directoryAnalyzer) analyze(path string) (*DirectoryStats, error) {
 	}
 
 	a.log.WithFields(logrus.Fields{
-		"path":        path,
-		"total_bytes": totalBytes,
-		"file_count":  fileCount,
-		"calc_time":   calculationTime,
+		labelPath:       path,
+		labelTotalBytes: totalBytes,
+		labelFileCount:  fileCount,
+		labelCalcTime:   calculationTime,
 	}).Info("Completed directory analysis")
 
 	return stats, nil
@@ -104,8 +104,8 @@ func (a *directoryAnalyzer) calculateDirectorySize(path string) (totalBytes uint
 		if walkErr != nil {
 			// Skip inaccessible files without failing the entire operation
 			a.log.WithFields(logrus.Fields{
-				"path":  filePath,
-				"error": walkErr,
+				labelPath: filePath,
+				"error":   walkErr,
 			}).Debug("Skipping inaccessible file during directory walk")
 
 			return nil

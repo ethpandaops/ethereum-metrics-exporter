@@ -43,6 +43,9 @@ type BlockMetrics struct {
 const (
 	NameBlock = "block"
 
+	// ModuleEth is the RPC module required by jobs that call eth_ methods.
+	ModuleEth = "eth"
+
 	SafeDistanceBlocks = 6
 )
 
@@ -51,7 +54,7 @@ func (b *BlockMetrics) Name() string {
 }
 
 func (b *BlockMetrics) RequiredModules() []string {
-	return []string{"eth", "net"}
+	return []string{ModuleEth, NameNet}
 }
 
 // NewBlockMetrics returns a new Block metrics instance.
