@@ -1,5 +1,11 @@
 package jobs
 
+// RPC modules a job needs enabled on the execution client.
+const (
+	moduleEth = "eth"
+	moduleNet = "net"
+)
+
 func contains(slice []string, item string) bool {
 	set := make(map[string]struct{}, len(slice))
 	for _, s := range slice {

@@ -61,7 +61,7 @@ func buildPrometheusLabels(container *types.Container, labelConfig LabelConfig, 
 	}
 
 	if labelConfig.IncludeContainerID {
-		labels["container_id"] = container.ID[:12] // Short ID
+		labels[keyContainerID] = container.ID[:12] // Short ID
 	}
 
 	if labelConfig.IncludeImageName {
@@ -119,7 +119,7 @@ func parseContainerVolumes(containerJSON types.ContainerJSON, volumeConfigs []Vo
 	// If no volumes configured, auto-discover all volumes
 	if len(volumeConfigs) == 0 {
 		logrus.WithFields(logrus.Fields{
-			"container_id": containerJSON.ID[:12],
+			keyContainerID: containerJSON.ID[:12],
 			"mount_count":  len(containerJSON.Mounts),
 		}).Debug("Auto-discovering all container volumes")
 
@@ -140,11 +140,11 @@ func parseContainerVolumes(containerJSON types.ContainerJSON, volumeConfigs []Vo
 			}
 
 			logrus.WithFields(logrus.Fields{
-				"volume_name":  name,
-				"volume_type":  volumeType,
+				keyVolumeName:  name,
+				keyVolumeType:  volumeType,
 				"source_path":  mount.Source,
-				"mount_path":   mount.Destination,
-				"container_id": containerJSON.ID[:12],
+				keyMountPath:   mount.Destination,
+				keyContainerID: containerJSON.ID[:12],
 			}).Info("Auto-discovered container volume")
 
 			volumes = append(volumes, VolumeInfo{
@@ -157,7 +157,7 @@ func parseContainerVolumes(containerJSON types.ContainerJSON, volumeConfigs []Vo
 		}
 
 		logrus.WithFields(logrus.Fields{
-			"container_id":     containerJSON.ID[:12],
+			keyContainerID:     containerJSON.ID[:12],
 			"discovered_count": len(volumes),
 		}).Info("Completed volume auto-discovery")
 
@@ -264,7 +264,7 @@ func resolveVolumeUsagePath(volumeName, standardPath string) string {
 			orbStackPath := filepath.Join(homeDir, "OrbStack", "docker", "volumes", volumeName)
 			if _, err := os.Stat(orbStackPath); err == nil {
 				logrus.WithFields(logrus.Fields{
-					"volume_name":   volumeName,
+					keyVolumeName:   volumeName,
 					"standard_path": standardPath,
 					"orbstack_path": orbStackPath,
 				}).Debug("Using OrbStack volume path instead of standard Docker path")
