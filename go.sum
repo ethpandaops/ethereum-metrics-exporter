@@ -81,8 +81,8 @@ github.com/ethereum/go-bigmodexpfix v0.0.0-20250911101455-f9e208c548ab h1:rvv6MJ
 github.com/ethereum/go-bigmodexpfix v0.0.0-20250911101455-f9e208c548ab/go.mod h1:IuLm4IsPipXKF7CW5Lzf68PIbZ5yl7FFd74l/E0o9A8=
 github.com/ethereum/go-ethereum v1.17.6 h1:27mdzjoN/bjz+rgjjZPGnD6E44W/Nd+vG+FKQFd/heg=
 github.com/ethereum/go-ethereum v1.17.6/go.mod h1:nl9wZjMuIjAottU6bq82UihXPbyY0jHHwkYXhnYhmU4=
-github.com/ethpandaops/beacon v0.71.0 h1:tWAbQ187sfWiRWBywkeYynxL1q/SeUu+9vad6WyaI5w=
-github.com/ethpandaops/beacon v0.71.0/go.mod h1:ePrsXdiJ7e7JqXUrlV6tsEXv3iPT9NJfssxU8MNm/Us=
+github.com/ethpandaops/beacon v0.72.0 h1:hoA2IzHUrrUUTXDvr1UH/FjqtOTFmUgXG5Z0zaZi92Q=
+github.com/ethpandaops/beacon v0.72.0/go.mod h1:FNG6sw+GI+WZtoQt07JxlivM6wFTqpygFfZj6gzO9J0=
 github.com/ethpandaops/ethwallclock v0.2.0 h1:EeFKtZ7v6TAdn/oAh0xaPujD7N4amjBxrWIByraUfLM=
 github.com/ethpandaops/ethwallclock v0.2.0/go.mod h1:y0Cu+mhGLlem19vnAV2x0hpFS5KZ7oOi2SWYayv9l24=
 github.com/ethpandaops/go-eth2-client v0.1.7 h1:EzZP50rrpVsjk2U8cOpN+kgNDTd/9IZNQXkh9t8G9AQ=

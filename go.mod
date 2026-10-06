@@ -5,7 +5,7 @@ go 1.26.1
 require (
 	github.com/docker/docker v26.1.5+incompatible
 	github.com/ethereum/go-ethereum v1.17.6
-	github.com/ethpandaops/beacon v0.71.0
+	github.com/ethpandaops/beacon v0.72.0
 	github.com/onrik/ethrpc v1.1.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sirupsen/logrus v1.9.3
