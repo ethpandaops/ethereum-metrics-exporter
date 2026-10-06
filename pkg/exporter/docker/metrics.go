@@ -7,6 +7,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const (
+	keyContainerID = "container_id"
+	keyVolumeName  = "volume_name"
+	keyVolumeType  = "volume_type"
+	keyMountPath   = "mount_path"
+)
+
 type metrics struct {
 	// Existing metrics
 	cpuUsagePercent   *prometheus.GaugeVec
@@ -72,7 +79,7 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 	}
 
 	if labelConfig.IncludeContainerID {
-		labelNames = append(labelNames, "container_id")
+		labelNames = append(labelNames, keyContainerID)
 	}
 
 	if labelConfig.IncludeImageName {
@@ -378,7 +385,7 @@ func newMetrics(namespace string, labelConfig LabelConfig) *metrics {
 	)
 
 	// Volume metrics (with volume name label)
-	staticLabelNames := []string{"volume_name", "volume_type", "mount_path"}
+	staticLabelNames := []string{keyVolumeName, keyVolumeType, keyMountPath}
 	volumeLabelNames := make([]string, 0, len(labelNames)+len(staticLabelNames))
 	volumeLabelNames = append(volumeLabelNames, labelNames...)
 	volumeLabelNames = append(volumeLabelNames, staticLabelNames...)
@@ -608,9 +615,9 @@ func (m *metrics) updateVolumeMetrics(volumeUsages []VolumeUsage, volumes []Volu
 			volumeLabels[k] = v
 		}
 
-		volumeLabels["volume_name"] = volume.Name
-		volumeLabels["volume_type"] = volume.Type
-		volumeLabels["mount_path"] = volume.Target
+		volumeLabels[keyVolumeName] = volume.Name
+		volumeLabels[keyVolumeType] = volume.Type
+		volumeLabels[keyMountPath] = volume.Target
 
 		m.volumeTotalBytes.With(volumeLabels).Set(float64(usage.TotalBytes))
 		m.volumeUsedBytes.With(volumeLabels).Set(float64(usage.UsedBytes))

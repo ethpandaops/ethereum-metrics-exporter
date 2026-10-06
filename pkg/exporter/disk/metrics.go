@@ -5,6 +5,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const keyDirectory = "directory"
+
 // Metrics defines the interface for reporting disk usage metrics.
 type Metrics interface {
 	// ObserveDiskUsage reports the disk usage for the directory.
@@ -33,7 +35,7 @@ func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 				ConstLabels: constLabels,
 			},
 			[]string{
-				"directory",
+				keyDirectory,
 			},
 		),
 		diskSize: prometheus.NewGaugeVec(
@@ -44,7 +46,7 @@ func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 				ConstLabels: constLabels,
 			},
 			[]string{
-				"directory",
+				keyDirectory,
 			},
 		),
 		diskAvailable: prometheus.NewGaugeVec(
@@ -55,7 +57,7 @@ func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 				ConstLabels: constLabels,
 			},
 			[]string{
-				"directory",
+				keyDirectory,
 			},
 		),
 		diskFree: prometheus.NewGaugeVec(
@@ -66,7 +68,7 @@ func NewMetrics(log logrus.FieldLogger, namespace string) Metrics {
 				ConstLabels: constLabels,
 			},
 			[]string{
-				"directory",
+				keyDirectory,
 			},
 		),
 	}

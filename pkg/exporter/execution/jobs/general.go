@@ -31,7 +31,7 @@ func (g *GeneralMetrics) Name() string {
 }
 
 func (g *GeneralMetrics) RequiredModules() []string {
-	return []string{"eth", "net"}
+	return []string{moduleEth, moduleNet}
 }
 
 // NewGeneralMetrics returns a new General metrics instance.

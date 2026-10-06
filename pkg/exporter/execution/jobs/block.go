@@ -51,7 +51,7 @@ func (b *BlockMetrics) Name() string {
 }
 
 func (b *BlockMetrics) RequiredModules() []string {
-	return []string{"eth", "net"}
+	return []string{moduleEth, moduleNet}
 }
 
 // NewBlockMetrics returns a new Block metrics instance.

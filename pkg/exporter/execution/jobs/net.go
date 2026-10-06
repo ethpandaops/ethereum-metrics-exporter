@@ -29,7 +29,7 @@ func (n *Net) Name() string {
 }
 
 func (n *Net) RequiredModules() []string {
-	return []string{"net"}
+	return []string{moduleNet}
 }
 
 // NewNet returns a new Net instance.

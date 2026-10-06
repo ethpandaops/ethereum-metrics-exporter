@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+const (
+	keyPath            = "path"
+	keyTotalBytes      = "total_bytes"
+	keyFileCount       = "file_count"
+	keyCalcTime        = "calc_time"
+	keyDynamicInterval = "dynamic_interval"
+)
+
 // DirectoryStats represents comprehensive statistics about a directory
 type DirectoryStats struct {
 	Path            string        // Absolute path to directory

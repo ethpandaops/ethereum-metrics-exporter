@@ -136,7 +136,7 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 	monitoredVolumes := make([]VolumeInfo, 0, len(volumes))
 
 	c.log.WithFields(logrus.Fields{
-		"container_id":    containerID[:12],
+		keyContainerID:    containerID[:12],
 		"total_volumes":   len(volumes),
 		"config_provided": len(volumeConfigs) > 0,
 	}).Info("Starting volume usage collection")
@@ -144,7 +144,7 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 	for _, volume := range volumes {
 		if !volume.Monitor {
 			c.log.WithFields(logrus.Fields{
-				"volume_name": volume.Name,
+				keyVolumeName: volume.Name,
 				"reason":      "monitoring disabled",
 			}).Debug("Skipping volume")
 
@@ -152,10 +152,10 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 		}
 
 		c.log.WithFields(logrus.Fields{
-			"volume_name": volume.Name,
-			"volume_type": volume.Type,
+			keyVolumeName: volume.Name,
+			keyVolumeType: volume.Type,
 			"source_path": volume.Source,
-			"mount_path":  volume.Target,
+			keyMountPath:  volume.Target,
 		}).Debug("Processing volume for usage metrics")
 
 		var usagePath string
@@ -172,19 +172,19 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 			// This requires special handling - skip for now as it's memory-based
 			continue
 		default:
-			c.log.WithField("volume_type", volume.Type).Warn("Unknown volume type, skipping")
+			c.log.WithField(keyVolumeType, volume.Type).Warn("Unknown volume type, skipping")
 			continue
 		}
 
 		c.log.WithFields(logrus.Fields{
-			"volume_name": volume.Name,
+			keyVolumeName: volume.Name,
 			"usage_path":  usagePath,
 		}).Debug("Attempting to collect filesystem usage stats")
 
 		stats, err := fsMonitor.GetStats(usagePath)
 		if err != nil {
 			c.log.WithError(err).WithFields(logrus.Fields{
-				"volume_name": volume.Name,
+				keyVolumeName: volume.Name,
 				"usage_path":  usagePath,
 			}).Warn("Failed to get volume usage (volume may not be accessible from host)")
 
@@ -200,7 +200,7 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 		}
 
 		c.log.WithFields(logrus.Fields{
-			"volume_name":     volume.Name,
+			keyVolumeName:     volume.Name,
 			"total_bytes":     usage.TotalBytes,
 			"used_bytes":      usage.UsedBytes,
 			"available_bytes": usage.AvailableBytes,
@@ -213,7 +213,7 @@ func (c *containerCollector) getContainerVolumeUsage(ctx context.Context, contai
 	}
 
 	c.log.WithFields(logrus.Fields{
-		"container_id":       containerID[:12],
+		keyContainerID:       containerID[:12],
 		"total_volumes":      len(volumes),
 		"monitored_volumes":  len(monitoredVolumes),
 		"successful_metrics": len(volumeUsages),
