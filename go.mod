@@ -1,6 +1,6 @@
 module github.com/ethpandaops/ethereum-metrics-exporter
 
-go 1.26.1
+go 1.26.10
 
 require (
 	github.com/docker/docker v26.1.5+incompatible
