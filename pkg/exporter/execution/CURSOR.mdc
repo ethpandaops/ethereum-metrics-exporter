@@ -1,0 +1,23 @@
+---
+description: Execution - Prometheus metrics collector for Ethereum execution layer nodes
+globs: 
+  - "*.go"
+  - "**/*.go"
+alwaysApply: false
+---
+
+# Execution Component
+
+Prometheus metrics collector for Ethereum execution layer nodes that supports multiple client implementations via unified interfaces.
+
+## Key Patterns
+- **Multi-Client Support**: Uses three client interfaces (ethclient.Client, api.ExecutionClient, ethrpc.EthRPC) to support different Ethereum execution clients
+- **Job-Based Architecture**: Organizes metrics collection into independent jobs (sync, block, txpool, admin, net, web3, general)
+- **Conditional Registration**: Only registers Prometheus metrics for jobs when required RPC modules are enabled
+- **Bootstrap with Retry**: Implements connection retry logic with 5-second intervals until node becomes available
+
+## Architecture Constraints
+- All jobs must implement the jobs interface with Name(), RequiredModules(), and Start() methods
+- Metrics registration occurs during initialization, not at runtime
+- Each job runs as independent goroutine started by StartAsync()
+- Node interface requires Bootstrapped() check before metric collection begins

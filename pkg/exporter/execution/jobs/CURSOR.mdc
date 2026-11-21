@@ -1,0 +1,22 @@
+---
+description: Jobs - Scheduled Prometheus metric collectors for Ethereum execution RPC modules
+globs: 
+  - "*.go"
+alwaysApply: false
+---
+
+# Jobs Component
+
+Scheduled Prometheus metric collectors that gather execution layer metrics via periodic RPC calls to Ethereum nodes.
+
+## Key Patterns
+- **Periodic Collection**: All jobs use consistent tick-based pattern with time.After() intervals (5-15 seconds)
+- **Module-Based Structure**: Each job corresponds to specific Ethereum RPC modules (admin, net, txpool, web3, eth)
+- **Error Resilience**: Jobs continue operating despite individual RPC failures, logging errors without stopping collection
+- **Modular Registration**: Jobs only register when required RPC modules are enabled via ExporterCanRun()
+
+## Implementation Constraints  
+- All job structs must embed same client dependencies (ethclient, api.ExecutionClient, ethrpc.EthRPC)
+- Use consistent Prometheus metric naming: namespace + "_" + module + "_" + metric_name
+- Implement context-based cancellation in Start() methods for graceful shutdown
+- Include "module" label in constLabels for metric identification
