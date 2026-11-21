@@ -35,7 +35,23 @@ type containerMetrics struct {
 	fsMonitor  filesystem.Monitor
 }
 
+// defaultCollectionInterval is used whenever the configured docker collection interval is not a
+// positive duration, since time.NewTicker panics on a non-positive interval.
+const defaultCollectionInterval = 10 * time.Second
+
+// resolveCollectionInterval returns interval unchanged if it is positive, otherwise it returns
+// defaultCollectionInterval.
+func resolveCollectionInterval(interval time.Duration) time.Duration {
+	if interval <= 0 {
+		return defaultCollectionInterval
+	}
+
+	return interval
+}
+
 func NewContainerMetrics(ctx context.Context, log logrus.FieldLogger, namespace string, containers []ContainerInfo, endpoint string, interval time.Duration, labels LabelConfig) (ContainerMetrics, error) {
+	interval = resolveCollectionInterval(interval)
+
 	// Create Docker client
 	dockerClient, err := client.NewClientWithOpts(client.WithHost(endpoint), client.WithAPIVersionNegotiation())
 	if err != nil {
